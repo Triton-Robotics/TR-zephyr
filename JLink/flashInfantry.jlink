@@ -1,0 +1,3 @@
+loadfile build/Infantry/zephyr/zephyr.elf
+reset
+exit

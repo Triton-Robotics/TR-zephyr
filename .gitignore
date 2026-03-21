@@ -1,0 +1,19 @@
+# ignore west and zephyr folders
+.west/
+bootloader/
+modules/
+tools/
+zephyr/
+
+# ignore venv
+.venv/
+
+# ignore vscode
+.vscode/
+compile_commands.json
+
+# ignore clangd
+.clangd
+
+# ignore builds
+build/
