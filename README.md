@@ -49,3 +49,12 @@ To flash:
 ```
 make infantry-flash
 ```
+
+## Intellisense
+
+Get clangd (VS code extension and run sudo apt install clangd) -Dil 
+
+Cop nRF DeviceTree from nordic semiconductor
+
+TODO: Add WSL section
+

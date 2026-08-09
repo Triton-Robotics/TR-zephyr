@@ -1,0 +1,12 @@
+zephyr_library()
+zephyr_library_sources(
+    util/algorithms/general_functions.cpp
+    util/communications/DJIRemote2.cpp
+)
+zephyr_library_include_directories(
+    .
+    util/algorithms
+    util/communications
+    util/motor
+    util/peripherals
+)
