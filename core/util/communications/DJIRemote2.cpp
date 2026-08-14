@@ -101,7 +101,7 @@ DJIRemote2::DJIRemote2(const struct device *uart_dev)
 bool DJIRemote2::update()
 {
     readIncomingBytes();
-    uint64_t curr_time = now_us();
+    uint64_t curr_time = now_us(); // Dumb intellisense warning
     // if it's been more than 250 ms since we've received a valid frame, zero inputs for safety
     if (curr_time - lastFrameTimeUs_ > 250 * 1000) { 
         zeroInputs();

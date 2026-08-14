@@ -4,4 +4,8 @@ project(Infantry)
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../core core_build)
 
-target_sources(app PRIVATE src/main.c)
+target_sources(app PRIVATE src/infantry.cpp)
+target_include_directories(app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../core)
+
+# Otherwise has trouble getting core since it's up a level on the directory
+target_link_libraries(app PRIVATE core)
