@@ -5,8 +5,10 @@ zephyr_library_sources(
     util/communications/DJIRemote2.cpp
     util/communications/CANMsg.h
     util/communications/CANHandler.h
+    util/communications/ui/ui_g.cpp
     util/motor/DJIMotor.cpp
     util/peripherals/imu/ISM330.cpp
+    util/peripherals/encoder/MA4.cpp
 )
 zephyr_library_include_directories(
     .

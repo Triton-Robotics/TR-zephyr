@@ -36,3 +36,14 @@
     pinctrl-names = "default";
     status = "okay";
 };
+
+&timers3 { // Encoder | PWM is done thru timer node, PB_4 is timer3 channel 1
+    status = "okay";
+    st,prescaler = <83>;   // tune below
+
+    pwm3: pwm {
+        status = "okay";
+        pinctrl-0 = <&tim3_ch1_pb4>;
+        pinctrl-names = "default";
+    };
+};

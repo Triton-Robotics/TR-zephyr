@@ -26,7 +26,7 @@ float capAngle(float curr_angle)
     return curr_angle;
 }
 
-static inline uint64_t now_us()
+uint64_t now_us()
 {
     return k_ticks_to_us_floor64(k_uptime_ticks());
 }
