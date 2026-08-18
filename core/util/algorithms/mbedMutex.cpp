@@ -1,7 +1,7 @@
 /*
 This is here so that porting the old Mbed Mutex to Zephyr is easier. Could probably be cleaned up later - Dil
 */
-
+#pragma once
 #include <zephyr/kernel.h>
 
 

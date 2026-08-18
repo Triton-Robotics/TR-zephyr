@@ -8,24 +8,24 @@
 #include "crc.h"
 #include "ref_constants.h"
 #include <util/algorithms/mbedMutex.cpp>
-#include <util/communications/mbedSerial.cpp>
+#include <util/communications/mbedSerial.h>
 #include <general_functions.h>
-
+#include <stm32_ll_usart.h>
 
 class Referee: public StmIO {
 public:
     // Referee(PinName pin_tx, PinName pin_rx);
-    Referee(const struct device *uart); // Apparently no uart_dt_spec the same way there is for PWM and i2c, very sad
+    explicit Referee(const struct device *uart); // Apparently no uart_dt_spec the same way there is for PWM and i2c, very sad
     
     //BufferedSerial getRef();
     bool readable();
 
-    // Old referee thread code
-    void refereeThread();
+    // // Old referee thread code
+    // void refereeThread();
 
-    void readThread();
+    // void readThread();
 
-    void writeThread();
+    // void writeThread();
 
     void read();
 
@@ -49,13 +49,22 @@ public:
     bool is_cv_on = false;
     bool is_aligned = false;
 private:
+    
     SerialBase ref;
     Mutex mutex_write_;
     Mutex mutex_read_;
     // Thread readThread_;
     // Thread writeThread_;
-    static struct k_thread readThread_;
-    static struct k_thread writeThread_;
+
+    void readThread();
+    void writeThread();
+
+    static void readThreadEntry(void *p1, void *p2, void *p3);
+    static void writeThreadEntry(void *p1, void *p2, void *p3);
+    
+    struct k_thread m_read_tdata;
+    struct k_thread m_write_tdata;
+
     bool enablePrintRefData = 0;
 
     uint8_t JudgeSystem_rxBuff_priv[JUDGESYSTEM_PACKSIZE];

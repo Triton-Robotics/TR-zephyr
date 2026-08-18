@@ -1,6 +1,16 @@
 
 #include "ref_serial.h"
 #include "../ui/ui_g.h"
+#include "zephyr/kernel.h"
+
+// TODO: test these values to see how much is being used. 4096 is just the 
+// Default value from mbedOS 
+#define READ_STACK_SIZE  4096  
+#define WRITE_STACK_SIZE 4096
+#define THREAD_PRIORITY 8 // TODO: Figure out a better, more reasoned number
+
+K_THREAD_STACK_DEFINE(read_stack, READ_STACK_SIZE);
+K_THREAD_STACK_DEFINE(write_stack, WRITE_STACK_SIZE);
 
 // -------------------------------------
 // From South China University of Technology 华南理工大学广州学院-野狼战队-步兵代码 ----------------------------------
@@ -524,14 +534,33 @@ void Referee::referee_data_pack_handle(uint8_t sof,uint16_t cmd_id, uint8_t *p_d
 }
 
 
-Referee::Referee(PinName pin_tx, PinName pin_rx) : ref(pin_tx, pin_rx, 115200) 
-{
+// Referee::Referee(PinName pin_tx, PinName pin_rx) : ref(pin_tx, pin_rx, 115200) 
+// {
+//     memset(JudgeSystem_rxBuff, 0, JUDGESYSTEM_PACKSIZE);
+
+//     this->readThread_.start(callback(this, &Referee::readThread));
+//     this->writeThread_.start(callback(this, &Referee::writeThread));
+// }
+
+Referee::Referee(const struct device *uart) : ref(uart) {
     memset(JudgeSystem_rxBuff, 0, JUDGESYSTEM_PACKSIZE);
 
-    this->readThread_.start(callback(this, &Referee::readThread));
-    this->writeThread_.start(callback(this, &Referee::writeThread));
+    k_thread_create(&m_read_tdata, read_stack, READ_STACK_SIZE,
+                    &Referee::readThreadEntry, this, NULL, NULL, //These 3 pointers are put into the readThreadEntry function, which basically just 
+                    THREAD_PRIORITY, 0, K_NO_WAIT);          // Directs us to the particular thread we're talking about 
+
+    k_thread_create(&m_write_tdata, write_stack, WRITE_STACK_SIZE, 
+                    &Referee::writeThreadEntry, this, NULL, NULL,  
+                    THREAD_PRIORITY, 0, K_NO_WAIT);
 }
 
+void Referee::readThreadEntry(void *p1, void *p2, void *p3) {
+    static_cast<Referee *>(p1)->readThread();
+}
+
+void Referee::writeThreadEntry(void *p1, void *p2, void *p3) {
+    static_cast<Referee *>(p1)->writeThread();
+}
 
 bool Referee::readable()
 {
@@ -601,7 +630,7 @@ void Referee::readThread()
             }
         }
 
-        ThisThread::yield();
+        k_yield();
     }
 }
 
@@ -610,7 +639,7 @@ void Referee::writeThread()
 {
     
     while(get_robot_id() == 0) {
-        ThisThread::yield();
+        k_yield();
     }
     
     // Some variables required to properrly send
@@ -642,7 +671,7 @@ void Referee::writeThread()
         } else {
             // If cannot read, then not connected in server
             // which in that case do not need to try and send packets
-            ThisThread::yield();
+            k_yield();
             continue;
         }
 
@@ -672,7 +701,7 @@ void Referee::writeThread()
             ui_dirty = false;
         }
 
-        ThisThread::yield();
+        k_yield();
     }
 }
 
