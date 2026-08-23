@@ -1,6 +1,7 @@
 // Created to make it easier to port mbedOS to Zephyr. Mainly used with referee stuff
 // This was supposed to be silly and easy but turned out to be very real, reference the driver in MbedOS when debugging
 // that's in mbedOS/drivers/source/BufferedSerial.cpp. Sometimes baseSerial.cpp can also be helpful 
+#include "stm32f446xx.h"
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/uart.h>
 #include <zephyr/pm/device.h>
@@ -13,7 +14,7 @@
 
 class SerialBase {
 public:
-    explicit SerialBase(const struct device *dev);
+    explicit SerialBase(const struct device *dev, USART_TypeDef *ll_usart);
 
     // equivalent of enable_output from Serialbase
     int enable_output(bool enable);
@@ -26,6 +27,8 @@ public:
     ssize_t write(const void *buffer, size_t length);
 
     bool readable();
+
+    USART_TypeDef *usart_getter() const; // Returns the USART typedef of the object 
 
 
 private:
@@ -56,6 +59,7 @@ private:
     void deinit_peripheral();
 
     const struct device *uart_dev;
+    USART_TypeDef *m_ll_usart;
     
     struct k_mutex m_lock;
     struct k_sem m_rx_sem;

@@ -8,7 +8,7 @@
 ///////////////////////////////////////////////////////////////////////
 // Yes the PKnessness Graffeti is indeed necessary
 #pragma once
-#include "CANMsg.h"
+// #include "CANMsg.h"
 #include <cerrno>
 #include <stdint.h>
 #include <zephyr/kernel.h>
@@ -19,13 +19,13 @@
 
 struct ExactCallback {
     uint32_t id;
-    std::function<void(const CANMsg*)> func;
+    std::function<void(const can_frame*)> func;
 };
 
 struct RangeCallback {
     uint32_t start_id;
     uint32_t end_id;
-    std::function<void(const CANMsg*)> func;
+    std::function<void(const can_frame*)> func;
 };
 
 class CANHandler{
@@ -53,28 +53,32 @@ public:
         return can_start(dev_);
     }
 
-    void registerCallback(uint32_t id, std::function<void(const CANMsg*)> func) {
+    void registerCallback(uint32_t id, std::function<void(const can_frame*)> func) {
         exact_.push_back({id, std::move(func)});
     }
 
-    void registerCallback(uint32_t start_id, uint32_t end_id, std::function<void(const CANMsg*)> func) {
+    void registerCallback(uint32_t start_id, uint32_t end_id, std::function<void(const can_frame*)> func) {
         range_.push_back({start_id, end_id, std::move(func)});
     }
 
     void readAllCan() {
         struct can_frame raw;
-        CANMsg rxMsg;
+        // CANMsg rxMsg;
+        struct can_frame rxMsg;
 
         while (k_msgq_get(&rx_msgq_, &raw, K_NO_WAIT) == 0) {
-            rxMsg.msg = raw;
+            // rxMsg.msg = raw;
+            rxMsg = raw;
 
             for (auto &cb : exact_) {
-                if (rxMsg.msg.id == cb.id) {
+                // if (rxMsg.msg.id == cb.id) {
+                if (rxMsg.id == cb.id) {
                     cb.func(&rxMsg);
                 }
             }
             for (auto &cb : range_) {
-                if (rxMsg.msg.id >= cb.start_id && rxMsg.msg.id <= cb.end_id) {
+                // if (rxMsg.msg.id >= cb.start_id && rxMsg.msg.id <= cb.end_id) {
+                if (rxMsg.id >= cb.start_id && rxMsg.id <= cb.end_id) {
                     cb.func(&rxMsg);
                 }
             }
@@ -82,8 +86,14 @@ public:
     }
 
     bool rawSend(uint32_t id, const uint8_t bytes[], uint8_t length = 8) {
-        CANMsg tx(id, bytes, length);
-        int ret = can_send(dev_, &tx.msg, K_MSEC(100), nullptr, nullptr);
+        // CANMsg tx(id, bytes, length);
+        struct can_frame tx = {
+            .id = id,
+            .dlc = length,
+            .flags = 0,
+        };
+        memcpy(tx.data,bytes,length);
+        int ret = can_send(dev_, &tx, K_MSEC(100), nullptr, nullptr);
         return ret == 0;
     }
 

@@ -5,7 +5,7 @@
 #include <zephyr/pm/device.h>
 #include "mbedSerial.h"
 
-SerialBase::SerialBase(const struct device *dev) : uart_dev(dev) {
+SerialBase::SerialBase(const struct device *dev, USART_TypeDef *ll_usart) : uart_dev(dev), m_ll_usart(ll_usart) {
     k_mutex_init(&m_lock);
 
     // Despite being limited to 1, we're still using semaphores here because they have to be called in an ISR
@@ -19,6 +19,10 @@ SerialBase::SerialBase(const struct device *dev) : uart_dev(dev) {
     // This function basically declares: When the interrupt happens, irq_trampoline got that. Just let it know we're going thru THIS 
     // SerialBase object, and uart_dev is the device we're going with 
     uart_irq_rx_enable(uart_dev);  // RX stays on; TX toggles via enable_output
+}
+
+USART_TypeDef *SerialBase::usart_getter() const {
+    return m_ll_usart;
 }
 
 // equivalent of enable_output from Serialbase in mbedOS

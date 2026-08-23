@@ -113,7 +113,7 @@ void ShooterSubsystem::periodic(int curr_heat, int heat_limit)
     {
         setFlywheels();
         
-        if (abs(flywheelR >> VELOCITY) < abs(FLYWHEEL_VELO * 0.75) || abs(flywheelL >> VELOCITY) < abs(FLYWHEEL_VELO * 0.75)) {
+        if (abs(flywheelR >> VELOCITY) < fabs(FLYWHEEL_VELO * 0.75) || abs(flywheelL >> VELOCITY) < fabs(FLYWHEEL_VELO * 0.75)) {
             return;
         }
 
@@ -139,7 +139,7 @@ void ShooterSubsystem::periodic(int curr_heat, int heat_limit)
 
             // Preventative Backfeeding logic
             
-            if ((abs(float(indexer>>TORQUE) / 5596) > 1.65 && (abs((indexer >> MULTITURNANGLE) - shootTargetPosition) > int(8192/360)))) {
+            if ((fabs(float(indexer>>TORQUE) / 5596) > 1.65 && (abs((indexer >> MULTITURNANGLE) - shootTargetPosition) > int(8192/360)))) {
                 printf("%.2f, %d BACKFEED TIME\n", fabs(static_cast<double>(indexer>>TORQUE) / 5596), abs((indexer >> MULTITURNANGLE) - shootTargetPosition));
                 indexer.pidSpeed.feedForward = (-(indexer>>VELOCITY) / 4788.0) * 630 * 6; // todo what are these magic numbers?
                 //indexer.setSpeed(-60 * M2006_GEAR_RATIO);
@@ -162,7 +162,7 @@ void ShooterSubsystem::periodic(int curr_heat, int heat_limit)
 
             }
 
-            indexer.pidSpeed.feedForward = (indexer >> VELOCITY) / 4788 * 630;
+            indexer.pidSpeed.feedForward = (indexer >> VELOCITY) / 4788.0f * 630;
             indexer.setPosition(shootTargetPosition);
         }
     }
@@ -195,7 +195,7 @@ void ShooterSubsystem::periodic(int curr_heat, int heat_limit)
             reverseFlywheels();
         }
         if (now_us() - jamCurrTime < 150000) { //Reverse Indexer for 150ms 
-                indexer.pidSpeed.feedForward = (-(indexer>>VELOCITY) / 4788) * 630 * 6; 
+                indexer.pidSpeed.feedForward = (-(indexer>>VELOCITY) / 4788.0f) * 630 * 6; 
                 //indexer.setSpeed(-60 * M2006_GEAR_RATIO);
                 indexer.setPosition(backfeedPosition);
             }

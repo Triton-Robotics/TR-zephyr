@@ -185,9 +185,9 @@ void DJIMotor::setCanHandlers() {
         }
     }
 }
-
-void DJIMotor::getCanRxFeedback(const struct device *dev, struct can_frame *msg) {
-    int canBus = -1; //Initialize here so clangd stfu about warning
+// TODO: Figure out if this can even be implemented cause it's kinda weird - Dil
+void DJIMotor::getCanRxFeedback(const struct device *dev, struct can_frame *msg) { 
+    int canBus = -1; //Initialize here so clangd doesn't warn
     if (dev == DEVICE_DT_GET(DT_NODELABEL(can1))) canBus = CANHandler::CANBUS_1;
     else if (dev == DEVICE_DT_GET(DT_NODELABEL(can2))) canBus = CANHandler::CANBUS_2;
     int canID_0 = msg->id - 0x201;
@@ -225,7 +225,79 @@ void DJIMotor::getCanRxFeedback(const struct device *dev, struct can_frame *msg)
     updateOneMultiTurn(canBus, can_line, motor_id);
 }
 
+void DJIMotor::getCanOneFeedback(const struct can_frame *msg) {
+    int canBus = CANHandler::CANBUS_1; //Initialize here so clangd doesn't warn
+    int canID_0 = msg->id - 0x201;
 
+    // Find which motor line we are in (0x200, 0x1FF, 0x2FF)
+    int can_line = canID_0 / 4;
+
+    // Find which motor it is
+    int motor_id = canID_0 % 4;
+
+    // Update motor specific data
+    if (s_motorsExist[canBus][can_line][motor_id]) {
+        DJIMotor *motor = s_allMotors[canBus][canID_0 / 4][canID_0 % 4];
+
+        motor->motorData[ANGLE] =
+            static_cast<int16_t>(msg->data[0] << 8 | msg->data[1]);
+        motor->motorData[VELOCITY] =
+            static_cast<int16_t>(msg->data[2] << 8 | msg->data[3]);
+        motor->motorData[TORQUE] =
+            static_cast<int16_t>(msg->data[4] << 8 | msg->data[5]);
+        motor->motorData[TEMPERATURE] = static_cast<int16_t>(msg->data[6]);
+        motor->timeOfLastFeedback = now_us() / 1000;
+
+        if (motor->motorData[TEMPERATURE] > 80)
+            printf("[WARNING] YOU HAVE A MOTOR [0x%x] ATTACHED THAT IS %d "
+                   "DEGREES CELSIUS ON BUS [%d] ID [%d], \"%s\" \n",
+                   msg->id, motor->motorData[TEMPERATURE], canBus + 1,
+                   motor->motorID_0 + 1, motor->name.c_str());
+
+    } else if (initializedWarning) {
+        printf("[WARNING] YOU HAVE A MOTOR [0x%x] {%d}{%d}{%d} ATTACHED THAT "
+               "IS NOT INITIALIZED.. WHY: \n",
+               msg->id, canBus, can_line, motor_id);
+    }
+    updateOneMultiTurn(canBus, can_line, motor_id);
+}
+
+void DJIMotor::getCanTwoFeedback(const struct can_frame *msg) {
+    int canBus = CANHandler::CANBUS_2; //Initialize here so clangd doesn't warn
+    int canID_0 = msg->id - 0x201;
+
+    // Find which motor line we are in (0x200, 0x1FF, 0x2FF)
+    int can_line = canID_0 / 4;
+
+    // Find which motor it is
+    int motor_id = canID_0 % 4;
+
+    // Update motor specific data
+    if (s_motorsExist[canBus][can_line][motor_id]) {
+        DJIMotor *motor = s_allMotors[canBus][canID_0 / 4][canID_0 % 4];
+
+        motor->motorData[ANGLE] =
+            static_cast<int16_t>(msg->data[0] << 8 | msg->data[1]);
+        motor->motorData[VELOCITY] =
+            static_cast<int16_t>(msg->data[2] << 8 | msg->data[3]);
+        motor->motorData[TORQUE] =
+            static_cast<int16_t>(msg->data[4] << 8 | msg->data[5]);
+        motor->motorData[TEMPERATURE] = static_cast<int16_t>(msg->data[6]);
+        motor->timeOfLastFeedback = now_us() / 1000;
+
+        if (motor->motorData[TEMPERATURE] > 80)
+            printf("[WARNING] YOU HAVE A MOTOR [0x%x] ATTACHED THAT IS %d "
+                   "DEGREES CELSIUS ON BUS [%d] ID [%d], \"%s\" \n",
+                   msg->id, motor->motorData[TEMPERATURE], canBus + 1,
+                   motor->motorID_0 + 1, motor->name.c_str());
+
+    } else if (initializedWarning) {
+        printf("[WARNING] YOU HAVE A MOTOR [0x%x] {%d}{%d}{%d} ATTACHED THAT "
+               "IS NOT INITIALIZED.. WHY: \n",
+               msg->id, canBus, can_line, motor_id);
+    }
+    updateOneMultiTurn(canBus, can_line, motor_id);
+}
 
 // TODO: Fix again
 void DJIMotor::updateOneMultiTurn(int canBus, int can_line, int motor_id) {

@@ -505,7 +505,7 @@ void Referee::referee_data_pack_handle(uint8_t sof,uint16_t cmd_id, uint8_t *p_d
 	
 	/*****数据上传*****/
 	// USART_ClearFlag(UART4,USART_FLAG_TC);
-    LL_USART_ClearFlag_TC(USART3);
+    LL_USART_ClearFlag_TC(ref.usart_getter());
 
     /*
 	for(i=0;i<frame_length;i++)
@@ -527,7 +527,7 @@ void Referee::referee_data_pack_handle(uint8_t sof,uint16_t cmd_id, uint8_t *p_d
     // Accquires thread resources
     mutex_write_.lock();
 	/*****数据上传*****/
-    LL_USART_ClearFlag_TC(USART3);
+    LL_USART_ClearFlag_TC(ref.usart_getter());
     mutex_write_.unlock();
     
     ref.write(packet, len);
@@ -542,7 +542,7 @@ void Referee::referee_data_pack_handle(uint8_t sof,uint16_t cmd_id, uint8_t *p_d
 //     this->writeThread_.start(callback(this, &Referee::writeThread));
 // }
 
-Referee::Referee(const struct device *uart) : ref(uart) {
+Referee::Referee(const struct device *uart, USART_TypeDef *ll_usart) : ref(uart, ll_usart) {
     memset(JudgeSystem_rxBuff, 0, JUDGESYSTEM_PACKSIZE);
 
     k_thread_create(&m_read_tdata, read_stack, READ_STACK_SIZE,

@@ -94,7 +94,9 @@ public:
 
     static void setCanHandlers();
     static void getCanRxFeedback(const struct device *dev, struct can_frame *frame);
-    
+    static void getCanOneFeedback(const can_frame *frame);
+    static void getCanTwoFeedback(const can_frame *frame);
+
     // static void getCan1Feedback(const CANMsg * msg);
     // static void getCan2Feedback(const CANMsg * msg);
     static void sendValues(bool debug = false);

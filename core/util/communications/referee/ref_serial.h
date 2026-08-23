@@ -15,7 +15,7 @@
 class Referee: public StmIO {
 public:
     // Referee(PinName pin_tx, PinName pin_rx);
-    explicit Referee(const struct device *uart); // Apparently no uart_dt_spec the same way there is for PWM and i2c, very sad
+    explicit Referee(const struct device *uart, USART_TypeDef *ll_usart); // Apparently no uart_dt_spec the same way there is for PWM and i2c, very sad
     
     //BufferedSerial getRef();
     bool readable();

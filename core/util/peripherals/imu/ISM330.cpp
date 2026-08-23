@@ -1,4 +1,3 @@
-#pragma once
 #include "ISM330.h"
 #include "zephyr/drivers/i2c.h"
 #include <cmath>

@@ -1,7 +1,6 @@
 #include "ChassisSubsystem.h"
 #include "util/motor/DJIMotor.h"
 #include <cmath>
-#include <stdexcept>
 
 /**
  * @param radius radius in meters
@@ -227,10 +226,10 @@ float ChassisSubsystem::setWheelSpeeds(WheelSpeeds wheelSpeeds)
     int p3 = abs(powers[2]);
     int p4 = abs(powers[3]);
 
-    int r1 = abs(getMotorSpeed(MotorLocation::LEFT_FRONT, RPM));
-    int r2 = abs(getMotorSpeed(MotorLocation::RIGHT_FRONT, RPM));
-    int r3 = abs(getMotorSpeed(MotorLocation::LEFT_BACK, RPM));
-    int r4 = abs(getMotorSpeed(MotorLocation::RIGHT_BACK, RPM));
+    int r1 = fabs(getMotorSpeed(MotorLocation::LEFT_FRONT, RPM));
+    int r2 = fabs(getMotorSpeed(MotorLocation::RIGHT_FRONT, RPM));
+    int r3 = fabs(getMotorSpeed(MotorLocation::LEFT_BACK, RPM));
+    int r4 = fabs(getMotorSpeed(MotorLocation::RIGHT_BACK, RPM));
 
     float totalEstimatedWatts = estimatePowerWatts(LF.getData(TORQUE))
                                + estimatePowerWatts(RF.getData(TORQUE))
@@ -246,10 +245,10 @@ float ChassisSubsystem::setWheelSpeeds(WheelSpeeds wheelSpeeds)
     LB.setPower(powers[2]*scale);
     RB.setPower(powers[3]*scale);
 
-    p1 = abs(LF.getData(POWEROUT));
-    p2 = abs(RF.getData(POWEROUT));
-    p3 = abs(LB.getData(POWEROUT));
-    p4 = abs(RB.getData(POWEROUT));
+    p1 = fabs(LF.getData(POWEROUT));
+    p2 = fabs(RF.getData(POWEROUT));
+    p3 = fabs(LB.getData(POWEROUT));
+    p4 = fabs(RB.getData(POWEROUT));
 
     return scale;
 }
@@ -346,7 +345,7 @@ float ChassisSubsystem::setChassisSpeeds(ChassisSpeeds desiredChassisSpeeds_, DR
         while (yawError > 180) yawError -= 360;
         while (yawError < -180) yawError += 360;
         
-        if (abs(yawError) < 5) yawError = 0;
+        if (fabs(yawError) < 5) yawError = 0;
 
         if (yawError > 90) yawError -= 180;
         else if (yawError < -90) yawError += 180;
@@ -356,7 +355,7 @@ float ChassisSubsystem::setChassisSpeeds(ChassisSpeeds desiredChassisSpeeds_, DR
         pid_align.feedForward = yaw_velo * yaw_velo_gain;
         float omegaCmd = pid_align.calculatePeriodic(yawError, 1000) * deg2rad;
 
-        if (abs(omegaCmd) < 0.1) omegaCmd = 0;
+        if (fabs(omegaCmd) < 0.1) omegaCmd = 0;
 
         ChassisSpeeds xAlignSpeeds = {desiredChassisSpeeds_.vX, desiredChassisSpeeds_.vY, omegaCmd};
         desiredChassisSpeeds = rotateChassisSpeed(xAlignSpeeds, yawCurrent);
@@ -609,7 +608,7 @@ void ChassisSubsystem::setMotorSpeedRPM(MotorLocation location, double speed)
         return;
     }
     getMotor(location).setSpeed(speed);
-    double sgn_speed = speed / abs(speed); // if speed is 0, it won't execute this line
+    double sgn_speed = speed / fabs(speed); // if speed is 0, it won't execute this line
     setSpeedFeedforward(location, FF_Ks * sgn_speed);
 }
 
@@ -631,7 +630,7 @@ int ChassisSubsystem::motorPIDtoPower(MotorLocation location, double speed, uint
         setSpeedFeedforward(location, 0);
         return power;
     }
-    double sgn_speed = speed / abs(speed); // if speed is 0, it won't execute this line
+    double sgn_speed = speed / fabs(speed); // if speed is 0, it won't execute this line
     setSpeedFeedforward(location, FF_Ks * sgn_speed);
     return power;
 }

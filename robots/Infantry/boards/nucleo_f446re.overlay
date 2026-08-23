@@ -47,3 +47,31 @@
         pinctrl-names = "default";
     };
 };
+/* The sigular slash below indicates that we're just making a new node
+Unlike the ones above, which were already declared for us in the
+root dts file Zephyr has for us, this LED node is specific to us */
+/ {
+    leds {
+        compatible = "gpio-leds";
+        led0: led_0 {
+            gpios = <&gpiob 0 GPIO_ACTIVE_HIGH>;
+            label = "LED0";
+        };
+        led1: led_1 {
+            gpios = <&gpioc 1 GPIO_ACTIVE_HIGH>;
+            label = "LED1";
+        };
+        led2: led_2 {
+            gpios = <&gpioc 0 GPIO_ACTIVE_HIGH>;
+            label = "LED2";
+        };
+    };
+
+    aliases {
+        //Left hand side lives in a diff namespace than right hand side
+        //So this doesn't break everything I swear
+        led0 = &led0;
+        led1 = &led1;
+        led2 = &led2;
+    };
+};
