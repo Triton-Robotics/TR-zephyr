@@ -65,6 +65,11 @@ root dts file Zephyr has for us, this LED node is specific to us */
             gpios = <&gpioc 0 GPIO_ACTIVE_HIGH>;
             label = "LED2";
         };
+
+        LD2: LD_2 {
+            gpios = <&gpioa 5 GPIO_ACTIVE_HIGH>;
+            label = "User LD2";
+        };
     };
 
     aliases {

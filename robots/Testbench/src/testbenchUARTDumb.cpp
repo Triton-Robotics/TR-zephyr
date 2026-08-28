@@ -1,0 +1,1 @@
+// Remember to Edit prj.conf and make sure CONFIG_UART_INTERRUPT_DRIVEN=y

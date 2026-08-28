@@ -139,7 +139,7 @@ class BaseRobot {
 
             if ((loop_clock_us - prev_loop_time_us) / 1000 >= main_loop_dt_ms) {
                 // Add subsystems in periodic
-                led0_.write(!led0_.read());
+                led0_.toggle();
 
                 periodic(loop_clock_us - prev_loop_time_us);
                 prev_loop_time_us = loop_clock_us;

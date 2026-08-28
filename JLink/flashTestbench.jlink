@@ -1,0 +1,3 @@
+loadfile build/Testbench/zephyr/zephyr.elf
+reset
+exit

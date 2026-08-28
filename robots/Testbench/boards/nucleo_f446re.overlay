@@ -1,0 +1,99 @@
+/ {
+
+    leds {
+    compatible = "gpio-leds";
+    green_led_2: led_2 {
+        gpios = <&gpioa 5 GPIO_ACTIVE_HIGH>;
+        label = "User LD2";
+    };
+    };
+
+aliases {
+    led0 = &green_led_2;
+};
+};
+
+&i2c1 {
+    pinctrl-0 = <&i2c1_scl_pb8 &i2c1_sda_pb7>;
+    pinctrl-names = "default";
+    status = "disabled";
+    clock-frequency = <100000>;
+
+};
+
+&i2c2 {
+    pinctrl-0 = <&i2c2_scl_pb10 &i2c2_sda_pc12>;
+    pinctrl-names = "default";
+    status = "disabled";
+    clock-frequency = <100000>;
+
+};
+
+// &spi1 {
+//     pinctrl-0 = <&spi1_miso_pb4 &spi1_mosi_pb5 &spi1_sck_pb3>; // pb4 is declared as a gpio pin
+//     pinctrl-names = "default";
+//     status = "okay";
+//     clock-frequency = <1000000>;
+//     cs-gpios = <&gpioa 4 GPIO_ACTIVE_LOW>;
+
+//     spi1_loopback_dev: spi-device@0 {
+//         compatible = "vnd,spi-device"; // Actually needed, otherwise something about the drivers doesn't like us? Idrk the details
+//         reg = <0>;
+//         spi-max-frequency = <1000000>;
+//     };
+// };
+
+// &spi2 {
+//     pinctrl-0 = <&spi2_miso_pc2 &spi2_mosi_pc3 &spi2_nss_pb9 &spi2_sck_pb10>;
+//     pinctrl-names = "default";
+//     status = "okay";
+//     clock-frequency = <1000000>;
+// };
+
+&spi1 {
+    pinctrl-0 = <&spi1_miso_pb4 &spi1_mosi_pb5 &spi1_sck_pb3>;
+    pinctrl-names = "default";
+    status = "okay";
+    clock-frequency = <375000>;
+    cs-gpios = <&gpioa 4 GPIO_ACTIVE_LOW>;
+
+    spi1_loopback_dev: spi-device@0 {
+        compatible = "vnd,spi-device";
+        reg = <0>;
+        spi-max-frequency = <375000>;
+    };
+};
+
+&spi2 {
+    pinctrl-0 = <
+        &spi2_miso_pc2
+        &spi2_mosi_pc3
+        &spi2_sck_pb10
+        &spi2_nss_pb9
+    >;
+    pinctrl-names = "default";
+    status = "okay";
+};
+
+
+&usart1 { //Controller
+    pinctrl-0 = <&usart1_rx_pa10>; // tx isn't connected because this is the controller
+    pinctrl-names = "default";
+    status = "disabled";
+    current-speed = <921600>;
+
+    // Experimenting with DMA
+    dmas = <&dma2 2 4 STM32_DMA_PERIPH_RX STM32_DMA_FIFO_FULL>;
+        dma-names = "rx";
+};
+
+&dma2 {
+    status = "disabled";
+};
+
+&usart3 { //Ref
+    pinctrl-0 = <&usart3_tx_pc10 &usart3_rx_pc11>;
+    pinctrl-names = "default";
+    status = "disabled";
+    current-speed = <921600>;
+};
