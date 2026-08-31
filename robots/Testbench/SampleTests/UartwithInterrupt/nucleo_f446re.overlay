@@ -1,0 +1,16 @@
+&usart1 { //Controller
+    pinctrl-0 = <&usart1_rx_pa10>; // tx isn't connected because this is the controller
+    pinctrl-names = "default";
+    status = "okay";
+    current-speed = <921600>;
+
+};
+
+&usart3 { //Ref
+    pinctrl-0 = <&usart3_tx_pc10 &usart3_rx_pc11>;
+    pinctrl-names = "default";
+    status = "okay";
+    current-speed = <921600>;
+};
+
+

@@ -1,6 +1,18 @@
-/* Jank but working DMA UART check, make sure prj.conf has 
+/* Quick (and dirty) test to check if USART 3 (normally the REF) can write properly to USART 1 (normally the controller)
+
+You might see it work in bursts (ping like twice before it writes the whole message), that's just how it is, I did say it was 
+a dirty test after all, but hopefully we eventually clean that up 
+
+This uses DMA, NOT interrupts
+
+Make sure PC10 is connected to PA10, and that you have 
+
+prj.conf should have 
+CONFIG_SERIAL=y
 CONFIG_DMA=y
 CONFIG_UART_ASYNC_API=y
+
+Remember to make sure your overlay is properly set 
 */
 
 #include <zephyr/kernel.h>

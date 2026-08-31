@@ -53,7 +53,7 @@ aliases {
 &spi1 {
     pinctrl-0 = <&spi1_miso_pb4 &spi1_mosi_pb5 &spi1_sck_pb3>;
     pinctrl-names = "default";
-    status = "okay";
+    status = "disabled";
     clock-frequency = <10000000>;
     cs-gpios = <&gpioa 4 GPIO_ACTIVE_LOW>;
 
@@ -74,7 +74,7 @@ aliases {
         &spi2_nss_pb9
     >;
     pinctrl-names = "default";
-    status = "okay";
+    status = "disabled";
 
     dmas = <&dma1 3 0 STM32_DMA_PERIPH_RX STM32_DMA_FIFO_FULL
             &dma1 4 0 STM32_DMA_PERIPH_TX STM32_DMA_FIFO_FULL>;
@@ -91,7 +91,7 @@ aliases {
 &usart1 { //Controller
     pinctrl-0 = <&usart1_rx_pa10>; // tx isn't connected because this is the controller
     pinctrl-names = "default";
-    status = "disabled";
+    status = "okay";
     current-speed = <921600>;
 
     // Experimenting with DMA
@@ -103,10 +103,10 @@ aliases {
 &usart3 { //Ref
     pinctrl-0 = <&usart3_tx_pc10 &usart3_rx_pc11>;
     pinctrl-names = "default";
-    status = "disabled";
+    status = "okay";
     current-speed = <921600>;
 };
 
 &dma2 {
-    status = "disabled";
+    status = "okay";
 };
