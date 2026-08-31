@@ -12,7 +12,7 @@ static const struct device *spi2_dev =
     DEVICE_DT_GET(DT_NODELABEL(spi2));
 
 static struct spi_config spi2_cfg = {
-    .frequency = 375000,
+    .frequency = 10000000,
     .operation = SPI_WORD_SET(8)
                | SPI_TRANSFER_MSB
                | SPI_OP_MODE_SLAVE,
@@ -49,28 +49,41 @@ void slave_thread(void)
 {
 	printk("slave thread started\n");
 
-	uint8_t slave_tx_buf[sizeof(rx_buf)] = {0};
+    printk("SPI2 SR before: 0x%08x\n", SPI2->SR);
 
-	struct spi_buf slave_tx_spi_buf = {
-		.buf = slave_tx_buf,
-		.len = sizeof(slave_tx_buf),
-	};
+    int ret = spi_read(spi2_dev, &spi2_cfg, &rx_set);
 
-	struct spi_buf_set slave_tx_set = {
-		.buffers = &slave_tx_spi_buf,
-		.count = 1,
-	};
+    printk("SPI2 SR after:  0x%08x\n", SPI2->SR);
+    printk("spi_read returned %d\n", ret);
 
-	int ret = spi_transceive(
-		spi2_dev,
-		&spi2_cfg,
-		&slave_tx_set,
-		&rx_set
-	);
+    printk("slave got: %02x %02x %02x %02x\n",
+           rx_buf[0],
+           rx_buf[1],
+           rx_buf[2],
+           rx_buf[3]);
 
-	printk("spi_transceive returned %d\n", ret);
-	printk("slave got: %02x %02x %02x %02x\n",
-	       rx_buf[0], rx_buf[1], rx_buf[2], rx_buf[3]);
+	// uint8_t slave_tx_buf[sizeof(rx_buf)] = {0};
+
+	// struct spi_buf slave_tx_spi_buf = {
+	// 	.buf = slave_tx_buf,
+	// 	.len = sizeof(slave_tx_buf),
+	// };
+
+	// struct spi_buf_set slave_tx_set = {
+	// 	.buffers = &slave_tx_spi_buf,
+	// 	.count = 1,
+	// };
+
+	// int ret = spi_transceive(
+	// 	spi2_dev,
+	// 	&spi2_cfg,
+	// 	&slave_tx_set,
+	// 	&rx_set
+	// );
+
+	// printk("spi_transceive returned %d\n", ret);
+	// printk("slave got: %02x %02x %02x %02x\n",
+	//        rx_buf[0], rx_buf[1], rx_buf[2], rx_buf[3]);
 }
 
 

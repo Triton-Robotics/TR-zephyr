@@ -54,14 +54,16 @@ aliases {
     pinctrl-0 = <&spi1_miso_pb4 &spi1_mosi_pb5 &spi1_sck_pb3>;
     pinctrl-names = "default";
     status = "okay";
-    clock-frequency = <375000>;
+    clock-frequency = <10000000>;
     cs-gpios = <&gpioa 4 GPIO_ACTIVE_LOW>;
 
     spi1_loopback_dev: spi-device@0 {
         compatible = "vnd,spi-device";
         reg = <0>;
-        spi-max-frequency = <375000>;
+        spi-max-frequency = <10000000>;
     };
+
+
 };
 
 &spi2 {
@@ -73,8 +75,18 @@ aliases {
     >;
     pinctrl-names = "default";
     status = "okay";
+
+    dmas = <&dma1 3 0 STM32_DMA_PERIPH_RX STM32_DMA_FIFO_FULL
+            &dma1 4 0 STM32_DMA_PERIPH_TX STM32_DMA_FIFO_FULL>;
+        dma-names = "rx","tx";
+
+
 };
 
+
+&dma1 {
+    status = "okay";
+};
 
 &usart1 { //Controller
     pinctrl-0 = <&usart1_rx_pa10>; // tx isn't connected because this is the controller
