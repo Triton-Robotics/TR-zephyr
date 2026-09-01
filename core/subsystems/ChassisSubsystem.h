@@ -8,6 +8,7 @@
 #include <util/communications/CANHandler.h>
 #include <util/algorithms/PID.h>
 #include <assert.h>
+#include <util/algorithms/general_functions.h>
 // #include <algorithms/WheelSpeeds.h>
 // #include <algorithms/ChassisSpeeds.h>
 

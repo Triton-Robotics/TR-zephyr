@@ -475,15 +475,17 @@ void ChassisSubsystem::periodic(IMU::EulerAngles *imuCurr)
     m_chassisSpeeds = wheelSpeedsToChassisSpeeds(m_wheelSpeeds);
 }
 
-double ChassisSubsystem::degreesToRadians(double degrees)
-{
-    return degrees * PI / 180.0;
-}
 
-double ChassisSubsystem::radiansToDegrees(double radians)
-{
-    return radians / PI * 180.0;
-}
+// Moved to general functions
+// double ChassisSubsystem::degreesToRadians(double degrees)
+// {
+//     return degrees * PI / 180.0;
+// }
+
+// double ChassisSubsystem::radiansToDegrees(double radians)
+// {
+//     return radians / PI * 180.0;
+// }
 
 int ChassisSubsystem::getHeadingDegrees() const
 {

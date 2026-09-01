@@ -37,16 +37,34 @@
     status = "okay";
 };
 
+&uart5 {
+    pinctrl-0 = <&uart5_tx_pc12 &uart5_rx_pd2>;
+    pinctrl-names = "default";
+    status = "okay";
+    current-speed = <115200>;
+};
+
 &timers3 { // Encoder | PWM is done thru timer node, PB_4 is timer3 channel 1
     status = "okay";
     st,prescaler = <83>;   // tune below
 
     pwm3: pwm {
+        compatible = "st,stm32-pwm";
         status = "okay";
         pinctrl-0 = <&tim3_ch1_pb4>;
         pinctrl-names = "default";
+        #pwm-cells = <3>;
     };
 };
+
+/ {
+    pwm_encoder_ch: zephyr,user { //Node has to be named "zephyr,user" so it compiles
+        pwms = <&pwm3 1 PWM_MSEC(20) PWM_POLARITY_NORMAL>;
+        status = "okay";
+    };
+};
+
+
 /* The sigular slash below indicates that we're just making a new node
 Unlike the ones above, which were already declared for us in the
 root dts file Zephyr has for us, this LED node is specific to us */

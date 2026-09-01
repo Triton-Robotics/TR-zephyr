@@ -8,8 +8,9 @@
 #include "util/communications/referee/ref_serial.h"
 #include <util/communications/mbedDigitalOut.cpp>
 #include "util/motor/DJIMotor.h"
-#include <general_functions.h>
-
+#include <subsystems/ChassisSubsystem.h>
+#include <subsystems/TurretSubsystem.h>
+#include <subsystems/ShooterSubsystem.h>
 
 class BaseRobot {
   public:

@@ -3,7 +3,7 @@
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/pwm.h>
-#include <general_functions.h>
+#include <util/algorithms/general_functions.h>
 #ifndef MA4_H
 #define MA4_H
 

@@ -5,7 +5,7 @@
 
 TurretSubsystem::TurretSubsystem(config cfg, IMU &imu):
     pitch({
-        cfg.can_device,
+        cfg.pitch_can_device,
         cfg.pitch_id,
             cfg.pitchCanBus,
             cfg.pitch_type,
@@ -14,7 +14,7 @@ TurretSubsystem::TurretSubsystem(config cfg, IMU &imu):
             cfg.pitch_pos_PID
     }),
     yaw({
-        cfg.can_device,
+        cfg.yaw_can_device,
         cfg.yaw_id,
             cfg.yawCanBus,
             cfg.yaw_type,

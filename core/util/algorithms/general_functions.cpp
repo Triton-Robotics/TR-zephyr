@@ -4,7 +4,7 @@
 float calculateDeltaYaw(float curr_yaw, float des_yaw)
 {
     float deltaYaw = des_yaw - curr_yaw;
-    while (abs(deltaYaw) > 180)
+    while (fabs(deltaYaw) > 180)
     {
         if (deltaYaw > 0)
             deltaYaw -= 360;
@@ -31,3 +31,11 @@ uint64_t now_us()
     return k_ticks_to_us_floor64(k_uptime_ticks());
 }
 
+double degreesToRadians(double degrees) {
+    return degrees * PI / 180.0f;
+}
+
+double radiansToDegrees(double radians)
+{
+    return radians / PI * 180.0;
+}

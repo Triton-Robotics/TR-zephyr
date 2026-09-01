@@ -24,6 +24,8 @@ public:
     struct config
     {
         const struct device *can_device;
+        CANHandler::CANBus canBus;
+        
         ShooterType type;
         int heat_limit;
 
@@ -36,7 +38,6 @@ public:
         PID::config indexer_PID_vel;
         PID::config indexer_PID_pos;
 
-        CANHandler::CANBus canBus;
 
         bool invert = false;
     };

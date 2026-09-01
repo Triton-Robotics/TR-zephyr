@@ -23,9 +23,13 @@ public:
 
     struct config
     {
-        const struct device *can_device;
+        const struct device *yaw_can_device;
+        CANHandler::CANBus yawCanBus;
         short yaw_id;
         motorType yaw_type = motorType::GM6020;
+
+        const struct device *pitch_can_device;
+        CANHandler::CANBus pitchCanBus;
         short pitch_id;
         motorType pitch_type = motorType::GM6020;
         
@@ -42,8 +46,6 @@ public:
         const float pitch_static_friction = 1221; // We multiply it by dir
         const float pitch_kinetic_friction = 97.4; // We multiply this by pitchvelo
         
-        CANHandler::CANBus yawCanBus;
-        CANHandler::CANBus pitchCanBus;
         int forward;
 
         float gear_ratio = 1;

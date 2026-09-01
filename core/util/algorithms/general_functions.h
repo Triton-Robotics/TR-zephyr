@@ -8,6 +8,8 @@ float calculateDeltaYaw(float curr_yaw, float des_yaw);
 
 float capAngle(float curr_angle);
 
-float degreesToRadians(float degrees);
+double degreesToRadians(double degrees);
 
-uint64_t now_us(); // Replacement for us_ticker
+double radiansToDegrees(double radians);
+
+uint64_t now_us(); 

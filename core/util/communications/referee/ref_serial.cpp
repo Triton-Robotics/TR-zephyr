@@ -3,14 +3,13 @@
 #include "../ui/ui_g.h"
 #include "zephyr/kernel.h"
 
-// TODO: test these values to see how much is being used. 4096 is just the 
-// Default value from mbedOS 
-#define READ_STACK_SIZE  4096  
-#define WRITE_STACK_SIZE 4096
+// If needed, these values could definitely be lowered, 1024 just seems like a safe option
+#define REFEREE_READ_STACK_SIZE  1024  
+#define REFEREE_WRITE_STACK_SIZE 1024
 #define THREAD_PRIORITY 8 // TODO: Figure out a better, more reasoned number
 
-K_THREAD_STACK_DEFINE(read_stack, READ_STACK_SIZE);
-K_THREAD_STACK_DEFINE(write_stack, WRITE_STACK_SIZE);
+K_THREAD_STACK_DEFINE(referee_read_stack, REFEREE_READ_STACK_SIZE);
+K_THREAD_STACK_DEFINE(referee_write_stack, REFEREE_WRITE_STACK_SIZE);
 
 // -------------------------------------
 // From South China University of Technology 华南理工大学广州学院-野狼战队-步兵代码 ----------------------------------
@@ -545,11 +544,11 @@ void Referee::referee_data_pack_handle(uint8_t sof,uint16_t cmd_id, uint8_t *p_d
 Referee::Referee(const struct device *uart, USART_TypeDef *ll_usart) : ref(uart, ll_usart) {
     memset(JudgeSystem_rxBuff, 0, JUDGESYSTEM_PACKSIZE);
 
-    k_thread_create(&m_read_tdata, read_stack, READ_STACK_SIZE,
+    k_thread_create(&m_read_tdata, referee_read_stack, REFEREE_READ_STACK_SIZE,
                     &Referee::readThreadEntry, this, NULL, NULL, //These 3 pointers are put into the readThreadEntry function, which basically just 
                     THREAD_PRIORITY, 0, K_NO_WAIT);          // Directs us to the particular thread we're talking about 
 
-    k_thread_create(&m_write_tdata, write_stack, WRITE_STACK_SIZE, 
+    k_thread_create(&m_write_tdata, referee_write_stack, REFEREE_WRITE_STACK_SIZE, 
                     &Referee::writeThreadEntry, this, NULL, NULL,  
                     THREAD_PRIORITY, 0, K_NO_WAIT);
 }
