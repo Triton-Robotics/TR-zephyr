@@ -114,7 +114,7 @@ double ChassisSubsystem::p_theory(int LeftFrontPower, int RightFrontPower, int L
     return p_tot_c;
 }
 
-double ChassisSubsystem::Bisection(int LeftFrontPower, int RightFrontPower, int LeftBackPower, int RightBackPower, int LeftFrontRpm, int RightFrontRpm, int LeftBackRpm, int RightBackRpm, float chassisPowerLimit) {
+double ChassisSubsystem::Bisection(int LeftFrontPower, int RightFrontPower, int LeftBackPower, int RightBackPower, int LeftFrontRpm, int RightFrontRpm, int LeftBackRpm, int RightBackRpm, double chassisPowerLimit) {
     double scale = 0.5; // initial scale
     double precision = 0.25; // initial precision
     double powerInit = p_theory(LeftFrontPower, RightFrontPower, LeftBackPower, RightBackPower, LeftFrontRpm, RightFrontRpm, LeftBackRpm, RightBackRpm);

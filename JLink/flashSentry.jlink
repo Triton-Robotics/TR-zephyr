@@ -1,0 +1,3 @@
+loadfile build/Sentry/zephyr/zephyr.elf
+reset
+exit

@@ -1,0 +1,3 @@
+loadfile build/Hero/zephyr/zephyr.elf
+reset
+exit

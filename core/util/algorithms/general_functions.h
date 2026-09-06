@@ -12,4 +12,8 @@ double degreesToRadians(double degrees);
 
 double radiansToDegrees(double radians);
 
+
+/**
+* @brief Returns the current microsecond ticks
+*/
 uint64_t now_us(); 

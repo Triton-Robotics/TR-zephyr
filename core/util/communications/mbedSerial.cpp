@@ -1,4 +1,3 @@
-#pragma once 
 // Created to make it easier to port mbedOS to Zephyr. Mainly used with referee stuff
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/uart.h>

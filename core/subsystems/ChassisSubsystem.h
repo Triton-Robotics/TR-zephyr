@@ -140,7 +140,7 @@ public:
 
     float estimatePowerWatts(int torqueCounts);
 
-    static double Bisection(int LeftFrontPower, int RightFrontPower, int LeftBackPower, int RightBackPower, int LeftFrontRpm, int RightFrontRpm, int LeftBackRpm, int RightBackRpm, float chassisPowerLimit);
+    static double Bisection(int LeftFrontPower, int RightFrontPower, int LeftBackPower, int RightBackPower, int LeftFrontRpm, int RightFrontRpm, int LeftBackRpm, int RightBackRpm, double chassisPowerLimit);
 
     float power_limit;
 

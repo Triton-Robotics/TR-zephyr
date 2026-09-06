@@ -1,59 +1,38 @@
-/ {
-
-    leds {
-    compatible = "gpio-leds";
-    green_led_2: led_2 {
-        gpios = <&gpioa 5 GPIO_ACTIVE_HIGH>;
-        label = "User LD2";
-    };
-    };
-
-aliases {
-    led0 = &green_led_2;
-};
-};
-
 &i2c1 {
-    pinctrl-0 = <&i2c1_scl_pb8 &i2c1_sda_pb7>;
-    pinctrl-names = "default";
-    status = "disabled";
-    clock-frequency = <100000>;
+	pinctrl-0 = <&i2c1_scl_pb8 &i2c1_sda_pb7>;
+	pinctrl-names = "default";
+	clock-frequency = <100000>;
+	status = "okay";
 
+
+	scl-gpios = <&gpiob 8 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
+	sda-gpios = <&gpiob 7 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
 };
 
 &i2c2 {
-    pinctrl-0 = <&i2c2_scl_pb10 &i2c2_sda_pc12>;
-    pinctrl-names = "default";
-    status = "disabled";
-    clock-frequency = <100000>;
+	pinctrl-0 = <&i2c2_scl_pb10 &i2c2_sda_pc12>;
+	pinctrl-names = "default";
+	clock-frequency = <100000>;
+	status = "okay";
 
+	eeprom_target: eeprom@50 { // Needed so that i2c2 functions as a peripheral device
+		compatible = "zephyr,i2c-target-eeprom";
+		reg = <0x50>;   /* address the target answers to */
+		size = <256>;
+	};
 };
 
-// &spi1 {
-//     pinctrl-0 = <&spi1_miso_pb4 &spi1_mosi_pb5 &spi1_sck_pb3>; // pb4 is declared as a gpio pin
-//     pinctrl-names = "default";
-//     status = "okay";
-//     clock-frequency = <1000000>;
-//     cs-gpios = <&gpioa 4 GPIO_ACTIVE_LOW>;
-
-//     spi1_loopback_dev: spi-device@0 {
-//         compatible = "vnd,spi-device"; // Actually needed, otherwise something about the drivers doesn't like us? Idrk the details
-//         reg = <0>;
-//         spi-max-frequency = <1000000>;
-//     };
-// };
-
-// &spi2 {
-//     pinctrl-0 = <&spi2_miso_pc2 &spi2_mosi_pc3 &spi2_nss_pb9 &spi2_sck_pb10>;
-//     pinctrl-names = "default";
-//     status = "okay";
-//     clock-frequency = <1000000>;
-// };
+/ {
+	aliases {
+		i2c-controller = &i2c1;
+		i2c-controller-target = &i2c2;
+	};
+};
 
 &spi1 {
     pinctrl-0 = <&spi1_miso_pb4 &spi1_mosi_pb5 &spi1_sck_pb3>;
     pinctrl-names = "default";
-    status = "okay";
+    status = "disabled";
     clock-frequency = <10000000>;
     cs-gpios = <&gpioa 4 GPIO_ACTIVE_LOW>;
 
@@ -74,7 +53,7 @@ aliases {
         &spi2_nss_pb9
     >;
     pinctrl-names = "default";
-    status = "okay";
+    status = "disabled";
 
     dmas = <&dma1 3 0 STM32_DMA_PERIPH_RX STM32_DMA_FIFO_FULL
             &dma1 4 0 STM32_DMA_PERIPH_TX STM32_DMA_FIFO_FULL>;
@@ -85,7 +64,7 @@ aliases {
 
 
 &dma1 {
-    status = "okay";
+    status = "disabled";
 };
 
 &usart1 { //Controller
