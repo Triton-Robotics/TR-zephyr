@@ -1,7 +1,7 @@
 /*
-This test is ONLY to make sure your software-side configuration (prj.conf, devicetree/overlay), for the CANBusses are correct
+This test is ONLY to make sure your software-side configuration (prj.conf, devicetree/overlay), for the CANBusses are correct.
 
-It just loops back each canbus controller to itself, which is done internally on the board, so no wiring needed
+It just loops back each canbus controller to itself, which is done internally on the board, so no wiring or transceiver needed
 
 */
 
