@@ -63,7 +63,7 @@ class BaseRobot {
     float mpitch = 0;
     int pitchVelo = 0;
     // joystick tolerance
-    float tolerance = 0.05;
+    double tolerance = 0.05;
     // Keyboard Driving
     float mult = 0.7;
     float omega_speed = 0;

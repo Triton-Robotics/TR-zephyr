@@ -14,6 +14,12 @@ class HeroShooterSubsystem : public Subsystem
 public:
     struct config
     {
+        const struct device *top_can_device;
+        CANHandler::CANBus canBusTopFeed;
+
+        const struct device *indexer_can_device;
+        CANHandler::CANBus canBusIndexer;
+
         int heat_limit;
 
         short flywheelL_id;
@@ -27,8 +33,6 @@ public:
         PID::config indexer_PID_vel;
         PID::config indexer_PID_pos;
 
-        CANHandler::CANBus canBusTopFeed;
-        CANHandler::CANBus canBusIndexer;
 
         bool invert = false;
     };

@@ -13,6 +13,7 @@
 #include <util/algorithms/PID.h>
 #include <base_robot/BaseRobot.h>
 #include <zephyr/dt-bindings/pwm/pwm.h>
+#include <subsystems/HeroShooterSubsystem.h>
 
 
 // Robot Constants
@@ -25,26 +26,28 @@ constexpr float JOYSTICK_PITCH_SENSITIVITY_DPS = 150;
 constexpr float MOUSE_SENSITIVITY_YAW_DPS = 1.0;
 constexpr float MOUSE_SENSITIVITY_PITCH_DPS = 1.0;
 
-constexpr PID::config YAW_VEL_PID     = {181, 3.655 * 10e-3, 4.51 * 7.5, 32000, 1000};
-constexpr PID::config YAW_POS_PID     = {1, 0, 0, 45, 2};
-const float yaw_static_friction       = 0;//-150;       // We multiply it by dir
+constexpr PID::config YAW_VEL_PID     = {181, 3.655 * 10e-3, 4.51 * 2.25, 32000, 1000};
+constexpr PID::config YAW_POS_PID     = {1, 0, 0, 90, 2};
+const float yaw_static_friction       = -150;       // We multiply it by dir
 const float yaw_kinetic_friction      = 0;       // We multiply this by yawvelo
 
-constexpr PID::config PITCH_VEL_PID   = {173.8994, 4.898 * 10e-6, 12.474 * 10e3, 16000, 2000}; //{25, 0.001, 5, 16000, 1000};
+constexpr PID::config PITCH_VEL_PID   = {173.8994, 4.898 * 10e-9, 12.474 * 10, 16000, 1000}; //{25, 0.001, 5, 16000, 1000};
 constexpr PID::config PITCH_POS_PID   = {1, 0, 0,30,2}; //{1, 0, 0, 30, 2};
-const float pitch_gravity_feedforward = -1200;    // We multiply this by cos(angle)
-const float pitch_static_friction     = 0;       // We multiply it by dir
+const float pitch_gravity_feedforward = -500;    // We multiply this by cos(angle)
+const float pitch_static_friction     = 635.0 / 5;       // We multiply it by dir
 const float pitch_kinetic_friction    = 0; //5.5;     // We multiply this by pitchvelo
 
-constexpr PID::config FL_VEL_CONFIG = {3, 0, 0};
-constexpr PID::config FR_VEL_CONFIG = {3, 0, 0};
-constexpr PID::config BL_VEL_CONFIG = {3, 0, 0};
-constexpr PID::config BR_VEL_CONFIG = {3, 0, 0};
+constexpr PID::config FL_VEL_CONFIG = {2.58, 0.23 * 1e-3, 17.3 * 1e-3};
+constexpr PID::config FR_VEL_CONFIG = {2.75, 0.574 * 1e-3, 17.9 * 1e-3};
+constexpr PID::config BL_VEL_CONFIG = {4.1, 0.0523 * 1e-3, 10.9 * 1e-3};
+constexpr PID::config BR_VEL_CONFIG = {3.9, 0.159 * 1e-3, 26.1 * 1e-3};
+
+constexpr PID::config FEEDER_PID = {4, 0, 1};
 
 constexpr PID::config FLYWHEEL_L_PID = {7.1849, 0.000042634, 0};
 constexpr PID::config FLYWHEEL_R_PID = {7.1849, 0.000042634, 0};
 constexpr PID::config INDEXER_PID_VEL = {2.7, 0.001, 0};
-constexpr PID::config INDEXER_PID_POS = {0.1, 0, 0.001};
+constexpr PID::config INDEXER_PID_POS = {0.1,0,0.001};
 
 
 // const struct device *gpio_devb = DEVICE_DT_GET(DT_NODELABEL(gpiob));
@@ -91,16 +94,19 @@ TurretSubsystem::config turret_config = {
     PITCH_LOWER_BOUND,
     PITCH_UPPER_BOUND
 };
-ShooterSubsystem::config shooter_config = {
+HeroShooterSubsystem::config shooter_config = {
     canbus2_dev,
     CANHandler::CANBUS_2,
-    ShooterSubsystem::BURST,
+    canbus1_dev,
+    CANHandler::CANBUS_1,
     0,
     2,
     4,
     1,
+    0, // MAKE SURE TO CHANGE THIS 
     FLYWHEEL_L_PID,
     FLYWHEEL_R_PID,
+    FEEDER_PID,
     INDEXER_PID_VEL,
     INDEXER_PID_POS,
     false
@@ -117,7 +123,7 @@ float dt_global = 0.0;
 
 IMU::EulerAngles imuAngles;
 
-class Infantry : public BaseRobot {
+class Hero : public BaseRobot {
   public:
     ISM330 imu_;
     MA4 encoder_;  
@@ -128,12 +134,12 @@ class Infantry : public BaseRobot {
     Jetson::ReadState jetson_state;
 
     TurretSubsystem turret_;
-    ShooterSubsystem shooter_;
+    HeroShooterSubsystem shooter_;
     ChassisSubsystem chassis_;
 
     bool imu_initialized{false};
 
-    Infantry(Config &config)
+    Hero(Config &config)
         : BaseRobot(config),
           // clang-format off
         imu_(imu_spec),
@@ -165,7 +171,7 @@ class Infantry : public BaseRobot {
         // pin_mode(IMU_I2C_SDA, PinMode::OpenDrainPullUp);
     }
 
-    ~Infantry() {}
+    ~Hero() {}
 
     void init() override {
         // timer = us_ticker_read();
@@ -190,12 +196,12 @@ class Infantry : public BaseRobot {
         }
 
         // Turret from remote
-        yaw_desired_angle -= myaw * 0.01;
+        yaw_desired_angle -= myaw * 0.01f;
         yaw_desired_angle -= jyaw * JOYSTICK_YAW_SENSITIVITY_DPS * dt_us / 1000000;
         yaw_desired_angle = capAngle(yaw_desired_angle);
         des_turret_state.yaw_angle_degs = yaw_desired_angle;
 
-        pitch_desired_angle -= mpitch * 0.01;
+        pitch_desired_angle -= mpitch * 0.01f;
         pitch_desired_angle -= jpitch * JOYSTICK_PITCH_SENSITIVITY_DPS * dt_us / 1000000;
         pitch_desired_angle = std::clamp(pitch_desired_angle, PITCH_LOWER_BOUND, PITCH_UPPER_BOUND);
         des_turret_state.pitch_angle_degs = pitch_desired_angle;
@@ -299,8 +305,8 @@ int main(void)
 {
     printf("HELLO\n");
     BaseRobot::Config config = BaseRobot::Config{};
-    Infantry infantry(config);
+    Hero hero(config);
 
-    infantry.main_loop();
+    hero.main_loop();
     // // blocking
 }

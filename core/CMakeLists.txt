@@ -29,6 +29,7 @@ zephyr_library_sources(
     subsystems/ChassisSubsystem.cpp
     subsystems/TurretSubsystem.cpp
     subsystems/ShooterSubsystem.cpp
+    subsystems/HeroShooterSubsystem.cpp
 
 )
 zephyr_library_include_directories(

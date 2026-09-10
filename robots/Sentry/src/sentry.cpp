@@ -17,7 +17,7 @@
 
 // Robot Constants
 constexpr float PITCH_LOWER_BOUND{-22.0};
-constexpr float PITCH_UPPER_BOUND{25.0};
+constexpr float PITCH_UPPER_BOUND{20.0};
 
 constexpr float JOYSTICK_YAW_SENSITIVITY_DPS = 300;
 constexpr float JOYSTICK_PITCH_SENSITIVITY_DPS = 150;
@@ -27,19 +27,20 @@ constexpr float MOUSE_SENSITIVITY_PITCH_DPS = 1.0;
 
 constexpr PID::config YAW_VEL_PID     = {181, 3.655 * 10e-3, 4.51 * 7.5, 32000, 1000};
 constexpr PID::config YAW_POS_PID     = {1, 0, 0, 45, 2};
-const float yaw_static_friction       = 0;//-150;       // We multiply it by dir
+const float yaw_static_friction       = -150;       // We multiply it by dir
 const float yaw_kinetic_friction      = 0;       // We multiply this by yawvelo
 
 constexpr PID::config PITCH_VEL_PID   = {173.8994, 4.898 * 10e-6, 12.474 * 10e3, 16000, 2000}; //{25, 0.001, 5, 16000, 1000};
 constexpr PID::config PITCH_POS_PID   = {1, 0, 0,30,2}; //{1, 0, 0, 30, 2};
 const float pitch_gravity_feedforward = -1200;    // We multiply this by cos(angle)
-const float pitch_static_friction     = 0;       // We multiply it by dir
+const float pitch_static_friction     = 0; //635.0 / 2;   // We multiply it by dir
 const float pitch_kinetic_friction    = 0; //5.5;     // We multiply this by pitchvelo
 
-constexpr PID::config FL_VEL_CONFIG = {3, 0, 0};
-constexpr PID::config FR_VEL_CONFIG = {3, 0, 0};
-constexpr PID::config BL_VEL_CONFIG = {3, 0, 0};
-constexpr PID::config BR_VEL_CONFIG = {3, 0, 0};
+
+constexpr PID::config FL_VEL_CONFIG = {2.58, 0.23 * 1e-3, 17.3 * 1e-3};
+constexpr PID::config FR_VEL_CONFIG = {2.75, 0.574 * 1e-3, 17.9 * 1e-3};
+constexpr PID::config BL_VEL_CONFIG = {4.1, 0.0523 * 1e-3, 10.9 * 1e-3};
+constexpr PID::config BR_VEL_CONFIG = {3.9, 0.159 * 1e-3, 26.1 * 1e-3};
 
 constexpr PID::config FLYWHEEL_L_PID = {7.1849, 0.000042634, 0};
 constexpr PID::config FLYWHEEL_R_PID = {7.1849, 0.000042634, 0};
@@ -117,7 +118,7 @@ float dt_global = 0.0;
 
 IMU::EulerAngles imuAngles;
 
-class Infantry : public BaseRobot {
+class Sentry : public BaseRobot {
   public:
     ISM330 imu_;
     MA4 encoder_;  
@@ -133,7 +134,7 @@ class Infantry : public BaseRobot {
 
     bool imu_initialized{false};
 
-    Infantry(Config &config)
+    Sentry(Config &config)
         : BaseRobot(config),
           // clang-format off
         imu_(imu_spec),
@@ -165,7 +166,7 @@ class Infantry : public BaseRobot {
         // pin_mode(IMU_I2C_SDA, PinMode::OpenDrainPullUp);
     }
 
-    ~Infantry() {}
+    ~Sentry() {}
 
     void init() override {
         // timer = us_ticker_read();
@@ -208,46 +209,98 @@ class Infantry : public BaseRobot {
             referee_.is_aligned = false;
             referee_.is_cv_on = false;
             referee_.is_spinning = false;
-        }  else if (drive == 'd' || 
+        } else if (drive == 'd' ||
                    (drive == 'o' &&
                     remote_.getMode() == DJIRemote2::ModeSwitch::MODE_S)) {
-            des_chassis_state.vOmega = omega_speed;
+            // Jetson odom
+            if( (now_us() - jetson_state.stamp_us ) / 1000 > 500 ) {
+                des_chassis_state.vX = 0;
+                des_chassis_state.vY = 0;
+                des_chassis_state.vOmega = 0;
+
+                des_turret_state.turret_mode = TurretState::AIM;
+            } else {
+                des_chassis_state.vX = jetson_state.desired_x_vel;
+                des_chassis_state.vY = -jetson_state.desired_y_vel;
+                des_chassis_state.vOmega = jetson_state.desired_angular_vel;
+
+                des_turret_state.turret_mode = TurretState::AIM;
+                des_turret_state.yaw_angle_degs = jetson_state.desired_yaw_rads * (180 / PI);
+                des_turret_state.pitch_angle_degs = -jetson_state.desired_pitch_rads * (180 / PI);
+            }
             chassis_.setChassisSpeeds(des_chassis_state, ChassisSubsystem::DRIVE_MODE::YAW_ORIENTED);
             des_turret_state.turret_mode = TurretState::AIM;
             referee_.is_aligned = false;
-            referee_.is_cv_on = false;
+            referee_.is_cv_on = true;
             referee_.is_spinning = true;
         } else {
-            chassis_.setWheelPower({0, 0, 0, 0});
-            des_turret_state.turret_mode = TurretState::SLEEP;
-            des_turret_state.yaw_angle_degs = turret_.getState().yaw_angle_degs;
-            yaw_desired_angle = turret_.getState().yaw_angle_degs;
-            des_turret_state.pitch_angle_degs = 0;
-            referee_.is_aligned = false;
-            referee_.is_cv_on = false;
-            referee_.is_spinning = false;
+            //Jetson odom
+            if((now_us() - jetson_state.stamp_us ) / 1000 > 500) {
+                des_chassis_state.vX = 0;
+                des_chassis_state.vY = 0;
+                des_chassis_state.vOmega = 0;
+
+                des_turret_state.turret_mode = TurretState::AIM;
+            } else {
+                des_chassis_state.vX = jetson_state.desired_x_vel;
+                des_chassis_state.vY = -jetson_state.desired_y_vel;
+                des_chassis_state.vOmega = jetson_state.desired_angular_vel;
+
+                des_turret_state.turret_mode = TurretState::AIM;
+                des_turret_state.yaw_angle_degs = jetson_state.desired_yaw_rads * (180 / PI);
+                des_turret_state.pitch_angle_degs = -jetson_state.desired_pitch_rads * (180 / PI);
+            }
+
+            chassis_.setChassisSpeeds(des_chassis_state, ChassisSubsystem::DRIVE_MODE::YAW_ORIENTED);
+            des_shoot_state = ShootState::FLYWHEEL;
+            if (jetson_state.shoot_status) {
+                des_shoot_state = ShootState::SHOOT;
+            }
+        }
+        if (remote_.getDialValue() > 0.5f) {
+            stm_state.calibration = 1;
+        }
+        else {
+            stm_state.calibration = 0;
         }
 
-        // Shooter Logic 
-        //REMOVED remote_.PAUSEToggled() == true && FROM THE FIRST CONDITION
+
+        // Shooter Logic if not auto
+        if (remote_.getMode() != DJIRemote2::ModeSwitch::MODE_C) {
+            if ((remote_.PAUSEToggled() == true && remote_.TriggerPressed() == true) || remote_.getMouseL()) {
+                des_shoot_state = ShootState::SHOOT;
+                referee_.is_flywheel_on = true;
+            } else if (remote_.CUSTRPressed() == true) { //Make sure flywheel is on since that's part 
+                des_shoot_state = ShootState::JAM;
+                referee_.is_flywheel_on = true;
+            }else if (remote_.PAUSEToggled() == true ||
+                   shot == 'd') {
+                des_shoot_state = ShootState::FLYWHEEL;
+                referee_.is_flywheel_on = true;
+            } else {
+                des_shoot_state = ShootState::OFF;
+                referee_.is_flywheel_on = false;
+            }
+        }
+
+        // Shooter Logic
         if ((remote_.PAUSEToggled() == true && remote_.TriggerPressed() == true) || remote_.getMouseL()) {
             des_shoot_state = ShootState::SHOOT;
         } else if (remote_.CUSTRPressed() == true && remote_.PAUSEToggled() == true) {
             des_shoot_state = ShootState::JAM;
-        } else if (remote_.PAUSEToggled() == true || shot == 'd') {
+        }else if (remote_.PAUSEToggled() == true ||
+                   shot == 'd') {
             des_shoot_state = ShootState::FLYWHEEL;
-            referee_.is_flywheel_on = true;
         } else {
             des_shoot_state = ShootState::OFF;
-            referee_.is_flywheel_on = false;
         }
 
         turret_.setState(des_turret_state);
         shooter_.setState(des_shoot_state);
 
         turret_.periodic(chassis_.getChassisSpeeds().vOmega * 60 / (2 * PI));
-        chassis_.power_limit = referee_.robot_status.chassis_power_limit;
         chassis_.periodic(&imuAngles);
+        chassis_.power_limit = referee_.robot_status.chassis_power_limit;
         shooter_.periodic(referee_.power_heat_data.shooter_17mm_1_barrel_heat,
                          referee_.robot_status.shooter_barrel_heat_limit);
 
@@ -299,8 +352,8 @@ int main(void)
 {
     printf("HELLO\n");
     BaseRobot::Config config = BaseRobot::Config{};
-    Infantry infantry(config);
+    Sentry sentry(config);
 
-    infantry.main_loop();
+    sentry.main_loop();
     // // blocking
 }

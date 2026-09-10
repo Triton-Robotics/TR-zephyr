@@ -1,14 +1,14 @@
 /*
-Remember to set whether you want just one transfer (singularTransfer = 1), or if you want a continous stream 
+Remember to set whether you want just one transfer, or if you want a continous stream (singularTransfer == false)
 
 Remember your proper wiring (PB8 to PC12) (PB7 to PB10)
 
 This test should work at both 100khz and 400khz clock speeds
 
-If you're running into issues, remember to enable CONFIG_LOG=y in prj.conf, and all the other relevant logs
+If you're running into issues, remember to enable CONFIG_LOG=y in prj.conf, and all the other relevant log configs, they are very helpful
 */
 
-#define singularTransfer 1
+#define singularTransfer true
 
 #include "zephyr/drivers/i2c.h"
 #include <zephyr/kernel.h>
@@ -18,8 +18,6 @@ If you're running into issues, remember to enable CONFIG_LOG=y in prj.conf, and 
 
 const struct device *i2c1_dev = DEVICE_DT_GET(DT_NODELABEL(i2c1));
 const struct device *eeprom_dev = DEVICE_DT_GET(DT_NODELABEL(eeprom_target)); // matches overlay node label
-
-
 
 
 int main(void)
@@ -53,7 +51,7 @@ int main(void)
     return 0;
     #endif
 
-    #if singularTransfer == 0
+    #if singularTransfer == false
 
     if (!device_is_ready(i2c1_dev) || !device_is_ready(eeprom_dev)) {
 		printk("device(s) not ready\n");
