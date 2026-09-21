@@ -82,6 +82,8 @@ Intellisense for everything but devicetree stuff
 Once you have clangd, you should run the following commands to link each robot's compile commands json to each robot folder
 
 ```
+cd ~/TR-zephyr
+
 make infantry-build
 make hero-build
 make sentry-build

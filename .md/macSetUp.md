@@ -40,4 +40,40 @@ cd zephyr-sdk-0.16.8
 ./setup.sh
 ```
 
-Now you can return to step 3 of the main readme 
+From here on, you can return to step 3 of the main readme, **HOWEVER**, if you run into any issues with those steps, we have some potential fixes below. Note that this list is **not exhaustive**, so talk to your embed lead if you have any questions. 
+
+## 3. Common Issues
+
+At some point, likely when you try to build, you might see something about your toolchain not being set. If that's the case, try the following commands.
+
+```
+export ZEPHYR_TOOLCHAIN_VARIANT=zephyr
+```
+
+and then run the following to find the path to your zephyr sdk
+
+```
+find ~ -maxdepth 4 -type d -name "zephyr-sdk*" 2>/dev/null
+```
+
+you might see some pop ups about accessing your files. It's just a simple search so go ahead and allow. Once you've done that, add your specific path to this command and run it 
+
+```
+export ZEPHYR_SDK_INSTALL_DIR=/path/to/your/zephyr-sdk
+```
+
+From here, try building, and if it works, you'll have to add the two export commands to your .zshrc
+
+This command opens it in vs code
+
+
+```
+code ~/.zshrc
+```
+This opens it in a generic text editor.
+
+```
+nano ~/.zshrc
+```
+
+Adding these exports here basically just makes it so that they always run whenever you open your terminal, so that you don't always have to manually set them. 
