@@ -98,3 +98,11 @@ root dts file Zephyr has for us, this LED node is specific to us */
         led2 = &led2;
     };
 };
+
+  &gpiob {
+       status = "okay";
+   };
+
+   &gpioc {
+       status = "okay";
+   };

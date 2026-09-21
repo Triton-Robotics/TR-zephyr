@@ -157,7 +157,7 @@ private:
     float temperature; //Temperature in C-25, so at 25C it should read 0
 
     void writeReg(const uint8_t *cmd, size_t len) noexcept; //cmd points to some array starting with the register, and then the value(s)
-    void readReg(uint8_t reg, uint8_t *out) noexcept; 
+    void readReg(uint8_t reg, uint8_t *out, size_t len) noexcept; 
 
     ISM330_VECTOR_TypeDef readingToAccel(const uint8_t *readings, float temp);
     

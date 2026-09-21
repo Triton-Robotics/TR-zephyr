@@ -20,8 +20,8 @@ static constexpr uint8_t ISM330_CHIP_ID = 0x6B;   // Expected WHO_AM_I
 static const uint8_t WhoAmIReg[] = {0x0F};
 
 //Reading and Write Addresses
-static constexpr int readAddr = 0b11010101;
-static constexpr int writeAddr = 0b11010100;
+static constexpr int readAddr = 0b1101010;
+static constexpr int writeAddr = 0b1101010;
 
 static const uint8_t SWRST[] = {0x12,0x01}; // Software Reset command
 static const uint8_t xEnable[] = {0x10, 0x7A}; // Enable accelerometer at 833Hz, +/-4g
@@ -52,14 +52,15 @@ void ISM330::writeReg(const uint8_t *cmd, size_t len) noexcept { // Should hopef
     i2c_write_dt(&i2c_, cmd, len);
 }
 
-void ISM330::readReg(uint8_t reg, uint8_t *out) noexcept {
-    i2c_reg_read_byte_dt(&i2c_, reg, out);
+void ISM330::readReg(uint8_t reg, uint8_t *out, size_t len) noexcept {
+    i2c_burst_read_dt(&i2c_, reg, out, len);
 }
 
 // ------------------- INITIALIZATION -------------------
 
 bool ISM330::begin(float prop_gain, float int_gain) noexcept //TODO: Currently written in explicit i2c_writes so that ret is an actual test; change in future to writeReg/readReg
 {
+    
     int ret = i2c_write_dt(&i2c_, SWRST, sizeof(SWRST));
     if (ret != 0) {
         printf("SWRST write failed: %d\r\n", ret);
@@ -191,7 +192,7 @@ ISM330::ISM330_VECTOR_TypeDef ISM330::readingToGyro(const uint8_t *readings, flo
 // Actual Reading functions
 ISM330::ISM330_VECTOR_TypeDef ISM330::readAccel() noexcept
 {
-    readReg(xReg[0], xReadings);
+    readReg(xReg[0], xReadings,6);
     
     ISM330_VECTOR_TypeDef accel_reading = readingToAccel(xReadings, 0);
     return accel_reading;
@@ -199,7 +200,7 @@ ISM330::ISM330_VECTOR_TypeDef ISM330::readAccel() noexcept
 
 ISM330::ISM330_VECTOR_TypeDef ISM330::readGyro() noexcept
 {
-    readReg(gReg[0], gReadings);
+    readReg(gReg[0], gReadings,6);
 
     ISM330_VECTOR_TypeDef gyro_reading = readingToGyro(gReadings, 0);
     return gyro_reading;
@@ -212,7 +213,7 @@ ISM330::ISM330_RAW_DATA_TypeDef ISM330::readAGraw() noexcept
     // i2c.write(writeAddr, gReg, 1, false); 
     // i2c.read(readAddr, reinterpret_cast<char*>(agReadings), 12, true);
 
-    readReg(gReg[0],agReadings);
+    readReg(gReg[0],agReadings,12);
 
     int16_t rawGX = (int16_t)((agReadings[1] << 8) | agReadings[0]);
     int16_t rawGY = (int16_t)((agReadings[3] << 8) | agReadings[2]);
@@ -232,7 +233,7 @@ ISM330::ISM330_DATA_TypeDef ISM330::readAG() noexcept //
     // i2c.write(writeAddr, tReg, 1, false); 
     // i2c.read(readAddr, reinterpret_cast<char*>(agReadings), 14, true);
 
-    readReg(tReg[0],agReadings);
+    readReg(tReg[0],agReadings, 14);
 
     int16_t rawTemp = (int16_t)((agReadings[1] << 8) | agReadings[0]);
     float temp = rawTemp / 256.0f;

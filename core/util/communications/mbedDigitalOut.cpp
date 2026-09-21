@@ -7,6 +7,7 @@ public:
     DigitalOut(const struct gpio_dt_spec spec) : spec_(spec) {
         gpio_pin_configure_dt(&spec_, GPIO_OUTPUT);
     }
+
     void write(int value) { gpio_pin_set_dt(&spec_, value); }
 
     DigitalOut& operator=(int value) { write(value); return *this; }

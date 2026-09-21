@@ -1,6 +1,6 @@
-#include "stm32f446xx.h"
-#include "zephyr/drivers/i2c.h"
-#include "zephyr/drivers/pwm.h"
+// #include "stm32f446xx.h"
+#include <zephyr/drivers/i2c.h>
+#include <zephyr/drivers/pwm.h>
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/device.h>
@@ -47,8 +47,8 @@ constexpr PID::config INDEXER_PID_VEL = {2.7, 0.001, 0};
 constexpr PID::config INDEXER_PID_POS = {0.1, 0, 0.001};
 
 
-// const struct device *gpio_devb = DEVICE_DT_GET(DT_NODELABEL(gpiob));
-// const struct device *gpio_devc= DEVICE_DT_GET(DT_NODELABEL(gpioc));
+const struct device *gpio_devb = DEVICE_DT_GET(DT_NODELABEL(gpiob));
+const struct device *gpio_devc= DEVICE_DT_GET(DT_NODELABEL(gpioc));
 
 // Devices from DT
 
@@ -57,6 +57,10 @@ const struct device *canbus1_dev = DEVICE_DT_GET(DT_NODELABEL(can1));
 const struct device *canbus2_dev = DEVICE_DT_GET(DT_NODELABEL(can2));
 constexpr short yaw_id = 3;
 constexpr short pitch_id = 8;
+
+const struct gpio_dt_spec led0_dev = GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
+const struct gpio_dt_spec led1_dev = GPIO_DT_SPEC_GET(DT_ALIAS(led1), gpios);
+const struct gpio_dt_spec led2_dev = GPIO_DT_SPEC_GET(DT_ALIAS(led2), gpios);
 
 
 static const struct i2c_dt_spec imu_spec = I2C_DT_SPEC_GET(DT_NODELABEL(imu));
@@ -270,7 +274,7 @@ class Infantry : public BaseRobot {
         // %.2f\n", imu.getImuAngles().yaw);
         // printf("%d\n", referee_.get_game_progress());
         // printf("yp %.2f \n", encoder_.encoderMovingAverage());
-        // printf("%.2f, %.2f, %.2f\n", imuAngles.roll, imuAngles.pitch, imuAngles.yaw);
+        printf("%.2f, %.2f, %.2f\n", imuAngles.roll, imuAngles.pitch, imuAngles.yaw);
     }
 
     void end_of_loop() override {}
@@ -299,7 +303,10 @@ int main(void)
 {
     printf("HELLO\n");
     BaseRobot::Config config = BaseRobot::Config{};
-    Infantry infantry(config);
+    config.led0_dev = &led0_dev;
+    config.led1_dev = &led1_dev;
+    config.led2_dev = &led2_dev;
+    static Infantry infantry(config);
 
     infantry.main_loop();
     // // blocking

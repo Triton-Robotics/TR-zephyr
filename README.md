@@ -79,6 +79,31 @@ This section is technically optional but **highly recommended**.
 1. **Get clangd** (VS code extension and run sudo apt install clangd)
 Intellisense for everything but devicetree stuff
 
+Once you have clangd, you should run the following commands to link each robot's compile commands json to each robot folder
+
+```
+make infantry-build
+make hero-build
+make sentry-build
+make testbench-build 
+
+cd robots/Infantry
+ln -s ../../build/Infantry/compile_commands.json compile_commands.json
+
+cd ../Sentry
+ln -s ../../build/Sentry/compile_commands.json compile_commands.json
+
+cd ../Hero
+ln -s ../../build/Hero/compile_commands.json compile_commands.json
+
+cd ../Testbench
+ln -s ../../build/Testbench/compile_commands.json compile_commands.json
+
+cd ../../core
+ln -s ../build/compile_comands.json compile_commands.json
+```
+
+
 2. Get nRF DeviceTree extension on vscode (from nordic semiconductor)
 Intellisense for device tree. Very helpful; however, can be an annoying set up. Talk to your embed lead if you run into any issues. 
 
