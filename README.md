@@ -48,6 +48,10 @@ pip install -r zephyr/scripts/requirements.txt
 ```
 
 ## Building and Flashing:
+
+Go into the makefiles folder, and copy your OS-specific makefile, paste it outside of the folder into the root, and rename it to `Makefile` (it's case sensitive).
+
+
 Download the [JLink](https://www.segger.com/downloads/jlink/) software on your device (J-Link Software and Documentation pack and Ozone - The J-Link Debugger).
 
 <!-- *This also only works for WSL* -->
