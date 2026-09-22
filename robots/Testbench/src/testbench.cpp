@@ -1,8 +1,9 @@
 // #include "stm32f446xx.h"
 // #include "syscalls/can.h"
-#include "stm32f4xx_hal_can.h"
-#include "syscalls/can.h"
-#include <zephyr/drivers/can.h>
+// #include "stm32f4xx_hal_can.h"
+// #include "syscalls/can.h"
+// #include <zephyr/drivers/can.h>
+#include <cerrno>
 #include <zephyr/drivers/i2c.h>
 #include <zephyr/drivers/pwm.h>
 #include <zephyr/kernel.h>
@@ -44,11 +45,11 @@ void periodic() {
         motor.setPower(current_motor_power);
         current_motor_power *= -1;
         curr_time = 0;
-        // printf("current time is : %d, swapping power to %d\n", curr_time, current_motor_power);
+        printf("current time is : %d, swapping power to %d\n", curr_time, current_motor_power);
 
     } else {
         curr_time += 200;
-        // printf("current time is : %d\n", curr_time);
+        printf("current time is : %d\n", curr_time);
     }
 }
 
@@ -56,15 +57,18 @@ int main(void)
 {
     printk("HERROoooo\n");
 
-    // int res = -100;
-    // res = can_start(canbus1_dev);
     
-    // printk("CAN START %d\n", res);
-    // printk("CAN SET MODE %d\n", can_set_mode(canbus1_dev, CAN_MODE_NORMAL));
-    // can_state state;
-    // can_bus_err_cnt err_cnt;
-    // can_get_state(canbus1_dev, &state, &err_cnt);
-    // printk("");
+    printk("CAN SET MODE %d\n", can_set_mode(canbus1_dev, CAN_MODE_LOOPBACK));
+    printk("EBUSY %d, EIO %d, ENOTSUP %d\n", -EBUSY, -EIO, -ENOTSUP);
+    
+    int res = -100;
+    res = can_start(canbus1_dev);
+    printk("CAN START %d\n", res);
+    
+    can_state state;
+    can_bus_err_cnt err_cnt;
+    can_get_state(canbus1_dev, &state, &err_cnt);
+    printk("STATE %d, RX ERROR %d, TX ERROR %d\n", state, err_cnt.rx_err_cnt, err_cnt.tx_err_cnt);
 
     if (device_is_ready(canbus1_dev)) {
         printk("CANBUS 1 device is ready\n");
