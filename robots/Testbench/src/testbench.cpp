@@ -1,4 +1,8 @@
 // #include "stm32f446xx.h"
+// #include "syscalls/can.h"
+#include "stm32f4xx_hal_can.h"
+#include "syscalls/can.h"
+#include <zephyr/drivers/can.h>
 #include <zephyr/drivers/i2c.h>
 #include <zephyr/drivers/pwm.h>
 #include <zephyr/kernel.h>
@@ -13,6 +17,7 @@
 #include <util/algorithms/PID.h>
 #include <base_robot/BaseRobot.h>
 #include <zephyr/dt-bindings/pwm/pwm.h>
+#include <util/motor/DJIMotor.h>
 
 
 
@@ -20,43 +25,54 @@
 const struct gpio_dt_spec led0_dev = GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
 const struct gpio_dt_spec led1_dev = GPIO_DT_SPEC_GET(DT_ALIAS(led1), gpios);
 const struct gpio_dt_spec led2_dev = GPIO_DT_SPEC_GET(DT_ALIAS(led2), gpios);
+const struct device *canbus1_dev = DEVICE_DT_GET(DT_NODELABEL(can1));
 
+short constexpr MOTOR_ID = 2;
+int constexpr SWAP_TIME = 1000;
+int curr_time = 0;
+short current_motor_power = 1000;
 
-static const struct i2c_dt_spec imu_spec = I2C_DT_SPEC_GET(DT_NODELABEL(imu));
+DJIMotor::config motorConfig = {canbus1_dev, MOTOR_ID, CANHandler::CANBUS_1, M3508};
+DJIMotor motor(motorConfig);
 
-
-
-IMU::EulerAngles imuAngles;
-
-ISM330 imu_(imu_spec);
-bool imu_initialized{false};
 
 double AG[6];
 
 void periodic() {
-    imu_.mahonyUpdateIMU(200 / 1000.0);
-    imuAngles = imu_.getImuAngles();
-  
-    // auto imuaccel = imu_.readAccel();
-    
-    // printk("Accel: %.2f, %.2f, %.2f\n", static_cast<double>(imuaccel.x), static_cast<double>(imuaccel.y), static_cast<double>(imuaccel.z));
 
-    printk("%.2f, %.2f, %.2f\n", static_cast<double>(imuAngles.roll), static_cast<double>(imuAngles.pitch), static_cast<double>(imuAngles.yaw));
+    if(curr_time > SWAP_TIME) {
+        motor.setPower(current_motor_power);
+        current_motor_power *= -1;
+        curr_time = 0;
+        // printf("current time is : %d, swapping power to %d\n", curr_time, current_motor_power);
+
+    } else {
+        curr_time += 200;
+        // printf("current time is : %d\n", curr_time);
+    }
 }
 
 int main(void)
 {
-    printk("HELLO\n");
+    printk("HERROoooo\n");
 
+    // int res = -100;
+    // res = can_start(canbus1_dev);
+    
+    // printk("CAN START %d\n", res);
+    // printk("CAN SET MODE %d\n", can_set_mode(canbus1_dev, CAN_MODE_NORMAL));
+    // can_state state;
+    // can_bus_err_cnt err_cnt;
+    // can_get_state(canbus1_dev, &state, &err_cnt);
+    // printk("");
 
-    if (device_is_ready(imu_spec.bus)) {
-        printk("IMU device is ready\n");
+    if (device_is_ready(canbus1_dev)) {
+        printk("CANBUS 1 device is ready\n");
     } else {
-        printk("IMU device is not ready\n");
+        printk("CANBUS 1 device is not ready\n");
+        return -1;
     }
 
-    i2c_recover_bus(imu_spec.bus);
-    imu_.begin(0.9, 0);
     
     while (true) {
         periodic();

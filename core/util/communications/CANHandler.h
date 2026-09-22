@@ -112,7 +112,7 @@ private:
     int filter_id = -1;
 
     struct k_msgq rx_msgq_;
-    char rx_msgq_buf_[RX_QUEUE_DEPTH * sizeof(struct can_frame)];
+    char rx_msgq_buf_[RX_QUEUE_DEPTH * sizeof(struct can_frame)] __aligned(4);
 
     std::vector<ExactCallback> exact_;
     std::vector<RangeCallback> range_;
