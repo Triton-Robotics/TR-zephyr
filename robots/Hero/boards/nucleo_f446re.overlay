@@ -4,9 +4,9 @@
     status = "okay";
     clock-frequency = <400000>;
 
-    imu: ism330@6b {
+    imu: ism330@6a {
         compatible = "st,ism330dhcx";
-        reg = <0x6b>;
+        reg = <0x6a>;
     };
 };
 
