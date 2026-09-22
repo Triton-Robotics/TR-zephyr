@@ -2,7 +2,11 @@
     pinctrl-0 = <&i2c1_scl_pb8 &i2c1_sda_pb7>;
     pinctrl-names = "default";
     status = "okay";
-    clock-frequency = <400000>;
+    clock-frequency = <100000>;
+
+	scl-gpios = <&gpiob 8 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
+	sda-gpios = <&gpiob 7 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
+
 
     imu: ism330@6a {
         compatible = "st,ism330dhcx";
