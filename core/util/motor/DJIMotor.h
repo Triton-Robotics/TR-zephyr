@@ -7,6 +7,7 @@
 #include "util/communications/CANHandler.h"
 #include <cmath>
 #include <string>
+#include <optional>
 
 constexpr float M3508_GEAR_RATIO = 3591.0f / 187.0f;
 constexpr float M2006_GEAR_RATIO = 36.0f;
@@ -93,6 +94,9 @@ public:
     static float calculateDeltaPhase(float target, float current, float max);
 
     static void setCanHandlers();
+    static CANHandler* getCanHandler(CANHandler::CANBus bus) {
+    return s_canHandlers[bus];
+}
     static void getCanRxFeedback(const struct device *dev, struct can_frame *frame);
     static void getCanOneFeedback(const can_frame *frame);
     static void getCanTwoFeedback(const can_frame *frame);
@@ -177,4 +181,18 @@ private:
     static void updateOneMultiTurn(int canBus, int can_line, int motor_id);
     static void sendOneID(CANHandler::CANBus canBus, short sendIDindex, bool debug = false);
     void setOutput();
+
+
+    /** 
+    @brief These are static instances of CANHandler; Set at runtime with DJIMotor::setCanHandlers().
+    Use s_canHandlerInstances[i].value() to get a pointer to the CANHandler instance for bus i.
+
+
+    @details We have these as static optional buffers because at compile time, we don't have the actual pointers, since we need the specific device tree pointers
+    This could be done thru static function-scope instances, but that means accessing them could be a hassle. 
+    More specifically, its a struct(?) that contains a buffer "value" for a CANHandler instance, and a bool 'has_value' that encodes whether or not 
+    something is stored in the buffer
+
+    **/
+    static std::optional<CANHandler> s_canHandlerInstances[2]; 
 };

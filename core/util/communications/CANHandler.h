@@ -32,6 +32,11 @@ class CANHandler{
     
 public:
 
+    ~CANHandler() {
+    if (filter_id >= 0) {
+        can_remove_rx_filter(dev_, filter_id);
+    }
+}
     enum CANBus{CANBUS_1, CANBUS_2, NOBUS}; // Somewhat vestigal, makes porting mbedOS code a little easier - Dil 
 
     explicit CANHandler(const struct device *can_dev)

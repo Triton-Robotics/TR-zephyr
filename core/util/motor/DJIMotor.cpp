@@ -2,11 +2,14 @@
 #include "DJIMotor.h"
 #include "CANHandler.h"
 
+
+// Here to prevent any linker errors, since these are static variables that need to be defined somewhere in the cpp
 int DJIMotor::motorCount = 0;
 DJIMotor* DJIMotor::s_allMotors[2][3][4];
 bool DJIMotor::s_motorsExist[2][3][4];
 CANHandler* DJIMotor::s_canHandlers[2];
 bool DJIMotor::initializedWarning = false;
+std::optional<CANHandler> DJIMotor::s_canHandlerInstances[2];
 
 DJIMotor::DJIMotor(bool isErroneousMotor) {
     canID_0 = -1;
@@ -175,7 +178,15 @@ void DJIMotor::sendOneID(CANHandler::CANBus canBus, short sendIDindex,
 
 static const struct device *s_canDevices[2]; // 2 Canbuses
 
-void DJIMotor::setCanHandlers() {
+void DJIMotor::setCanHandlers() { //This sets the devices and the canhandlers
+    static bool already_initialized = false;
+    if (already_initialized) {
+        printf("[WARNING] setCanHandlers() called more than once — ignoring.\n");
+        return;
+    }
+    already_initialized = true;
+    
+    
     s_canDevices[CANHandler::CANBUS_1] = DEVICE_DT_GET(DT_NODELABEL(can1));
     s_canDevices[CANHandler::CANBUS_2] = DEVICE_DT_GET(DT_NODELABEL(can2));
 
@@ -184,7 +195,23 @@ void DJIMotor::setCanHandlers() {
             printf("ERROR, CANbus %d not ready", i);
         }
     }
+
+    for (int i = 0; i < 2; i++) {
+        if (!device_is_ready(s_canDevices[i])) {
+            printf("ERROR, CANbus %d not ready", i);
+            continue;
+        }
+        s_canHandlerInstances[i].emplace(s_canDevices[i]); // emplace is used to construct std::optional objects, in this case the CANHandler instance
+        int ret = s_canHandlerInstances[i]->init();
+        if (ret < 0) {
+            printf("[ERROR] CANHandler %d init failed: %d\n", i, ret);
+        } else {
+            s_canHandlers[i] = &s_canHandlerInstances[i].value();
+        }
+    }
 }
+
+
 // TODO: Figure out if this can even be implemented cause it's kinda weird - Dil
 void DJIMotor::getCanRxFeedback(const struct device *dev, struct can_frame *msg) { 
     int canBus = -1; //Initialize here so clangd doesn't warn
