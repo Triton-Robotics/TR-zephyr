@@ -49,32 +49,25 @@ pip install -r zephyr/scripts/requirements.txt
 
 ## Building and Flashing:
 
-Go into the makefiles folder, and copy your OS-specific makefile, paste it outside of the folder into the root, and rename it to `Makefile` (it's case sensitive).
+Go into the makefiles folder, and copy your OS-specific makefile, paste it outside of the folder into the root, and rename it to `Makefile` (it's case sensitive). If there's already a makefile there, just replace it to be safe, but it should be a WSL makefile by default. 
 
 
 Download the [JLink](https://www.segger.com/downloads/jlink/) software on your device (J-Link Software and Documentation pack and Ozone - The J-Link Debugger).
 
 <!-- *This also only works for WSL* -->
 
-To build:
+To build for the first time:
 ```
-make infantry-build
+make infantry-build-clean
 ```
 
-(Be aware that sometimes you may have to run a build twice for it to compile, see the note at the end for details)
+**Note:** All build commands have the format: [robot]-build. The -clean is optional and basically makes a "pristine" build that clears your local cache'd build and rebuilds from scratch, which takes longer but can be very helpful if you're working with lower-level code; however, it's not strictly necessarily and most of the time just using your cache'd files is fine, but it can be a potential source of error. 
 
 To flash:
 ```
 make infantry-flash
 ```
 
-Lastly, if you need to wipe your current build and make a clean one, you can append -clean to build. For example
-
-```
-make infantry-build-clean
-```
-
-However, you should know that this won't ever compile due to a race condition in Zephyr itself (related to offsets.h). As a result, after infantry-build-clean, just run infantry-build, and you should be good. If that doesn't compile, then the error's on your end. 
 
 ## Intellisense
 
@@ -88,11 +81,13 @@ Once you have clangd, you should run the following commands to link each robot's
 ```
 cd ~/TR-zephyr
 
-make infantry-build
-make hero-build
-make sentry-build
-make testbench-build 
+make infantry-build-clean
+make hero-build-clean
+make sentry-build-clean
+make testbench-build-clean
+```
 
+```
 cd robots/Infantry
 ln -s ../../build/Infantry/compile_commands.json compile_commands.json
 
