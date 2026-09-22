@@ -1,3 +1,6 @@
+// Make sure motor is on canbus 1, and that you have the proper motor ID. Enjoy
+
+
 // #include "stm32f446xx.h"
 // #include "syscalls/can.h"
 // #include "stm32f4xx_hal_can.h"
