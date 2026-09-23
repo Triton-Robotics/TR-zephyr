@@ -104,6 +104,29 @@ cd ../../core
 ln -s ../build/compile_comands.json compile_commands.json
 ```
 
+From this point, you might see a few erroneous clangd errors, so run the following to get rid of them
+
+```
+cd ~/TR-zephyr
+
+cat > .clangd << 'EOF'
+CompileFlags:
+  Remove:
+    - -mfp16-format=ieee
+    - -mtp=soft
+    - -specs=picolibc.specs
+    - -fno-reorder-functions
+EOF
+```
+
+Also, in your .vscode file, in settings.json, append the following to the end, (don't forget to comma before this). Make sure you put in your path to your zephyr-sdk.
+
+```
+"clangd.arguments": [
+        "--query-driver=[YOUR-PATH HERE]/zephyr-sdk-0.16.8/arm-zephyr-eabi/bin/arm-zephyr-eabi-*"
+    ]
+```
+
 
 2. Get nRF DeviceTree extension on vscode (from nordic semiconductor)
 Intellisense for device tree. Very helpful; however, can be an annoying set up. Talk to your embed lead if you run into any issues. 
