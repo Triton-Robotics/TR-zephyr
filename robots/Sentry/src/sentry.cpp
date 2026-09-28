@@ -53,9 +53,9 @@ constexpr PID::config INDEXER_PID_POS = {0.1, 0, 0.001};
 
 // Devices from DT
 
-const struct device *canbus1_dev = DEVICE_DT_GET(DT_NODELABEL(can1));
+const struct device *canbus1_dev = DEVICE_DT_GET(DT_NODELABEL(fdcan1));
 
-const struct device *canbus2_dev = DEVICE_DT_GET(DT_NODELABEL(can2));
+const struct device *canbus2_dev = DEVICE_DT_GET(DT_NODELABEL(fdcan2));
 constexpr short yaw_id = 3;
 constexpr short pitch_id = 8;
 

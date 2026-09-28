@@ -2,7 +2,7 @@
 // This was supposed to be silly and easy but turned out to be very real, reference the driver in MbedOS when debugging
 // that's in mbedOS/drivers/source/BufferedSerial.cpp. Sometimes baseSerial.cpp can also be helpful 
 #pragma once
-#include "stm32f446xx.h"
+#include "stm32h533xx.h"
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/uart.h>
 #include <zephyr/pm/device.h>

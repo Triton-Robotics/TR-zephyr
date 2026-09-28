@@ -52,9 +52,9 @@ const struct device *gpio_devc= DEVICE_DT_GET(DT_NODELABEL(gpioc));
 
 // Devices from DT
 
-const struct device *canbus1_dev = DEVICE_DT_GET(DT_NODELABEL(can1));
+const struct device *canbus1_dev = DEVICE_DT_GET(DT_NODELABEL(fdcan1));
 
-const struct device *canbus2_dev = DEVICE_DT_GET(DT_NODELABEL(can2));
+const struct device *canbus2_dev = DEVICE_DT_GET(DT_NODELABEL(fdcan2));
 constexpr short yaw_id = 3;
 constexpr short pitch_id = 8;
 

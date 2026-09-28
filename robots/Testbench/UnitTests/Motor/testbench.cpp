@@ -29,7 +29,7 @@
 const struct gpio_dt_spec led0_dev = GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
 const struct gpio_dt_spec led1_dev = GPIO_DT_SPEC_GET(DT_ALIAS(led1), gpios);
 const struct gpio_dt_spec led2_dev = GPIO_DT_SPEC_GET(DT_ALIAS(led2), gpios);
-const struct device *canbus1_dev = DEVICE_DT_GET(DT_NODELABEL(can1));
+const struct device *canbus1_dev = DEVICE_DT_GET(DT_NODELABEL(fdcan1));
 
 short constexpr MOTOR_ID = 2;
 int constexpr SWAP_TIME = 1000;

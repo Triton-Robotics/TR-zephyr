@@ -3,7 +3,7 @@
 // #include "PinNames.h"
 // #include "mbed.h"
 #include <zephyr/kernel.h>
-#include "stm32f446xx.h"
+#include "stm32h533xx.h"
 #include "util/communications/DJIRemote2.h"
 #include "util/communications/referee/ref_serial.h"
 #include <util/communications/mbedDigitalOut.cpp>

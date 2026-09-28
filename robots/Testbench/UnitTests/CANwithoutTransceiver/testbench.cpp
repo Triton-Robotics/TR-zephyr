@@ -16,8 +16,8 @@ It just loops back each canbus controller to itself, which is done internally on
  
 #define SEND_PERIOD_MS 1000
  
-static const struct device *const can1_dev = DEVICE_DT_GET(DT_NODELABEL(can1));
-static const struct device *const can2_dev = DEVICE_DT_GET(DT_NODELABEL(can2));
+static const struct device *const can1_dev = DEVICE_DT_GET(DT_NODELABEL(fdcan1));
+static const struct device *const can2_dev = DEVICE_DT_GET(DT_NODELABEL(fdcan2));
  
 static void print_frame(const char *who, const struct can_frame *frame)
 {

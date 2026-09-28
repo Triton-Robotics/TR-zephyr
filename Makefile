@@ -1,41 +1,48 @@
-.PHONY: infantry-build infantry-flash
+.PHONY: hero-build hero-build-clean hero-flash \
+        infantry-build infantry-build-clean infantry-flash \
+        sentry-build sentry-build-clean sentry-flash \
+        testbench-build testbench-build-clean testbench-flash
 
-BOARD = nucleo_f446re
+BOARD = nucleo_h533re
+JLINK = JLinkExe
+JLINK_BOARD = STM32H533RE
 
 hero-build:
 	west build -b $(BOARD) -p auto -d build/Hero robots/Hero
 
 hero-build-clean:
 	west build -b $(BOARD) -p always -d build/Hero robots/Hero
+	$(MAKE) hero-build
 
 hero-flash: hero-build
-	powershell.exe -Command "jlink.exe -device STM32F446RE -if SWD -speed 4000 -CommanderScript Jlink/flashHero.jlink"
+	$(JLINK) -device $(JLINK_BOARD) -if SWD -speed 4000 -CommanderScript Jlink/flashHero.jlink
 
 infantry-build:
 	west build -b $(BOARD) -p auto -d build/Infantry robots/Infantry
 
-infantry-build-clean:
+infantry-build-clean: infantry-build
 	west build -b $(BOARD) -p always -d build/Infantry robots/Infantry
-	infantry-build
+	$(MAKE) infantry-build
 
 infantry-flash: infantry-build
-	powershell.exe -Command "jlink.exe -device STM32F446RE -if SWD -speed 4000 -CommanderScript JLink/flashInfantry.jlink"
+	$(JLINK) -device $(JLINK_BOARD) -if SWD -speed 4000 -CommanderScript JLink/flashInfantry.jlink
 
 sentry-build:
 	west build -b $(BOARD) -p auto -d build/Sentry robots/Sentry
 
 sentry-build-clean:
 	west build -b $(BOARD) -p always -d build/Sentry robots/Sentry
+	$(MAKE) sentry-build
 
-sentry-flash: Sentry-build
-	powershell.exe -Command "jlink.exe -device STM32F446RE -if SWD -speed 4000 -CommanderScript JLink/flashSentry.jlink"
+sentry-flash: sentry-build
+	$(JLINK) -device $(JLINK_BOARD) -if SWD -speed 4000 -CommanderScript JLink/flashSentry.jlink
 
 testbench-build:
 	west build -b $(BOARD) -p auto -d build/Testbench robots/Testbench
 
-testbench-build-clean:
+testbench-build-clean: testbench-build
 	west build -b $(BOARD) -p always -d build/Testbench robots/Testbench
-	testbench-build
+	$(MAKE) testbench-build
 
 testbench-flash: testbench-build
-	powershell.exe -Command "jlink.exe -device STM32F446RE -if SWD -speed 4000 -CommanderScript JLink/flashTestbench.jlink"
+	$(JLINK) -device $(JLINK_BOARD) -if SWD -speed 4000 -CommanderScript JLink/flashTestbench.jlink

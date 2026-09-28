@@ -187,8 +187,8 @@ void DJIMotor::setCanHandlers() { //This sets the devices and the canhandlers
     already_initialized = true;
     
     
-    s_canDevices[CANHandler::CANBUS_1] = DEVICE_DT_GET(DT_NODELABEL(can1));
-    s_canDevices[CANHandler::CANBUS_2] = DEVICE_DT_GET(DT_NODELABEL(can2));
+    s_canDevices[CANHandler::CANBUS_1] = DEVICE_DT_GET(DT_NODELABEL(fdcan1));
+    s_canDevices[CANHandler::CANBUS_2] = DEVICE_DT_GET(DT_NODELABEL(fdcan2));
 
     for (int i = 0; i < 2; i++) {
         if (!device_is_ready(s_canDevices[i])) {
@@ -215,8 +215,8 @@ void DJIMotor::setCanHandlers() { //This sets the devices and the canhandlers
 // TODO: Figure out if this can even be implemented cause it's kinda weird - Dil
 void DJIMotor::getCanRxFeedback(const struct device *dev, struct can_frame *msg) { 
     int canBus = -1; //Initialize here so clangd doesn't warn
-    if (dev == DEVICE_DT_GET(DT_NODELABEL(can1))) canBus = CANHandler::CANBUS_1;
-    else if (dev == DEVICE_DT_GET(DT_NODELABEL(can2))) canBus = CANHandler::CANBUS_2;
+    if (dev == DEVICE_DT_GET(DT_NODELABEL(fdcan1))) canBus = CANHandler::CANBUS_1;
+    else if (dev == DEVICE_DT_GET(DT_NODELABEL(fdcan2))) canBus = CANHandler::CANBUS_2;
     int canID_0 = msg->id - 0x201;
 
     // Find which motor line we are in (0x200, 0x1FF, 0x2FF)
