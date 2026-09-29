@@ -1,23 +1,15 @@
 &fdcan1 {
     status = "okay";
-    clocks = <&rcc STM32_CLOCK_BUS_APB1_2 0x00000200>; /* Verify clock flags for H5 */
-    clock-names = "fdcan";
-    pinctrl-0 = <&fdcan1_rx_pa11 &fdcan1_tx_pa12>;
+    pinctrl-0 = <&fdcan1_rx_pb8 &fdcan1_tx_pb7>;
     pinctrl-names = "default";
-    bus-speed = <125000>;
-    bus-speed-data = <1000000>;
-    bosch,mram-cfg = <0x0 28 8 3 3 0 3 3>;
+    bitrate = <1000000>;
 };
 
 &fdcan2 {
     status = "okay";
-    clocks = <&rcc STM32_CLOCK_BUS_APB1_2 0x00000400>; /* Verify clock flags for H5 */
-    clock-names = "fdcan";
     pinctrl-0 = <&fdcan2_rx_pb5 &fdcan2_tx_pb6>;
     pinctrl-names = "default";
-    bus-speed = <125000>;
-    bus-speed-data = <1000000>;
-    bosch,mram-cfg = <0x350 28 8 3 3 0 3 3>;
+    bitrate = <1000000>;
 };
 
 
@@ -50,12 +42,6 @@
     status = "okay";
 };
 
-// &uart1 {
-//     pinctrl-0 = <&uart1_tx_pb14 &uart1_rx_pb15>;
-//     pinctrl-names = "default";
-//     status = "okay";
-//     current-speed = <115200>;
-// };
 
 &timers3 { // Encoder | PWM is done thru timer node, PB_4 is timer3 channel 1
     status = "okay";
