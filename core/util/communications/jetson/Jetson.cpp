@@ -1,8 +1,8 @@
 #include "util/communications/jetson/Jetson.h"
 #include <util/algorithms/general_functions.h>
 
-#define JETSON_READ_STACK_SIZE 1024
-#define JETSON_WRITE_STACK_SIZE 1024
+#define JETSON_READ_STACK_SIZE 4096
+#define JETSON_WRITE_STACK_SIZE 2048
 #define JETSON_THREAD_PRIORITY 5
 
 K_THREAD_STACK_DEFINE(jetson_read_stack, JETSON_READ_STACK_SIZE);

@@ -4,8 +4,8 @@
 #include "zephyr/kernel.h"
 
 // If needed, these values could definitely be lowered, 1024 just seems like a safe option
-#define REFEREE_READ_STACK_SIZE  1024  
-#define REFEREE_WRITE_STACK_SIZE 1024
+#define REFEREE_READ_STACK_SIZE  4096
+#define REFEREE_WRITE_STACK_SIZE 4096
 #define THREAD_PRIORITY 8 // TODO: Figure out a better, more reasoned number
 
 K_THREAD_STACK_DEFINE(referee_read_stack, REFEREE_READ_STACK_SIZE);
@@ -572,10 +572,19 @@ void Referee::read()
     if(ref.readable())
     {
         int rad = JudgeSystem_USART_Receive_DMA();
-        mutex_read_.lock();
-        memcpy(JudgeSystem_rxBuff, JudgeSystem_rxBuff_priv, JUDGESYSTEM_PACKSIZE);
-        mutex_read_.unlock();
-        Judge_GetMessage(rad);
+if (rad <= 0 || rad > JUDGESYSTEM_PACKSIZE) {
+    if (enablePrintRefData) printf("[ERROR] bad ref read: %d\n", rad);
+    return; // or continue, depending on call site
+}
+mutex_read_.lock();
+memcpy(JudgeSystem_rxBuff, JudgeSystem_rxBuff_priv, JUDGESYSTEM_PACKSIZE);
+mutex_read_.unlock();
+Judge_GetMessage(static_cast<uint16_t>(rad));
+        // int rad = JudgeSystem_USART_Receive_DMA();
+        // mutex_read_.lock();
+        // memcpy(JudgeSystem_rxBuff, JudgeSystem_rxBuff_priv, JUDGESYSTEM_PACKSIZE);
+        // mutex_read_.unlock();
+        // Judge_GetMessage(rad);
 
         if(enablePrintRefData){
             std::string output = "robot id: %s  ";
@@ -605,11 +614,20 @@ void Referee::readThread()
         // read();
         if(ref.readable())
         {
+            // int rad = JudgeSystem_USART_Receive_DMA();
+            // mutex_read_.lock();
+            // memcpy(JudgeSystem_rxBuff, JudgeSystem_rxBuff_priv, JUDGESYSTEM_PACKSIZE);
+            // mutex_read_.unlock();
+            // Judge_GetMessage(rad);
             int rad = JudgeSystem_USART_Receive_DMA();
+            if (rad <= 0 || rad > JUDGESYSTEM_PACKSIZE) {
+                if (enablePrintRefData) printf("[ERROR] bad ref read: %d\n", rad);
+                return; // or continue, depending on call site
+            }
             mutex_read_.lock();
             memcpy(JudgeSystem_rxBuff, JudgeSystem_rxBuff_priv, JUDGESYSTEM_PACKSIZE);
             mutex_read_.unlock();
-            Judge_GetMessage(rad);
+            Judge_GetMessage(static_cast<uint16_t>(rad));
 
             if(enablePrintRefData){
                 std::string output = "robot id: %s  ";

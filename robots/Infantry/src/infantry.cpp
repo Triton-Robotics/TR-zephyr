@@ -56,7 +56,7 @@ const struct device *canbus1_dev = DEVICE_DT_GET(DT_NODELABEL(can1));
 
 const struct device *canbus2_dev = DEVICE_DT_GET(DT_NODELABEL(can2));
 constexpr short yaw_id = 3;
-constexpr short pitch_id = 8;
+constexpr short pitch_id = 5;
 
 const struct gpio_dt_spec led0_dev = GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
 const struct gpio_dt_spec led1_dev = GPIO_DT_SPEC_GET(DT_ALIAS(led1), gpios);
@@ -67,7 +67,8 @@ static const struct i2c_dt_spec imu_spec = I2C_DT_SPEC_GET(DT_NODELABEL(imu));
 
 static const struct pwm_dt_spec encoderSpec = PWM_DT_SPEC_GET(DT_NODELABEL(pwm_encoder_ch));
 static const struct device *controllerUart = DEVICE_DT_GET(DT_NODELABEL(usart1));
-DJIRemote2 controller(controllerUart);
+static const struct device *refUartDev = DEVICE_DT_GET(DT_NODELABEL(usart3));
+// DJIRemote2 controller(controllerUart);
 
 static const struct device *jetsonUart = DEVICE_DT_GET(DT_NODELABEL(uart5));
 
@@ -152,9 +153,9 @@ class Infantry : public BaseRobot {
 
         // TODO add passing in individual PID objects for the motors
         chassis_(ChassisSubsystem::Config{
-            1,      // left_front_can_id
-            2,      // right_front_can_id
-            3,      // left_back_can_id
+            5,      // left_front_can_id
+            1,      // right_front_can_id
+            2,      // left_back_can_id
             4,      // right_back_can_id
             0.22617,  // radius
             0.065,    // speed_pid_ff_ks
@@ -173,6 +174,9 @@ class Infantry : public BaseRobot {
 
     void init() override {
         // timer = us_ticker_read();
+            if (!device_is_ready(controllerUart)) {
+    printf("[ERROR] controllerUart (usart1) not ready!\n");
+    }
         imu_.begin(0.9, 0);
     }
 
@@ -270,11 +274,12 @@ class Infantry : public BaseRobot {
         // %.2f\n", turret.getState().pitch_angle); printf("%d\n",
         // shooter.getState()); printf("v:%d\n",testmot>>VELOCITY); printf("cx:
         // %.2f\n", remote_.getChassisX()); printf("switch: %d\n",
-        // remote_.getSwitch(Remote::Switch::RIGHT_SWITCH)); printf("imu:
+        // remote_.getSwitch(Remote::Switch::RIGHT_SWITCH));
         // %.2f\n", imu.getImuAngles().yaw);
         // printf("%d\n", referee_.get_game_progress());
         // printf("yp %.2f \n", encoder_.encoderMovingAverage());
-        printf("%.2f, %.2f, %.2f\n", imuAngles.roll, imuAngles.pitch, imuAngles.yaw);
+        // printf("%.2f, %.2f, %.2f\n", imuAngles.roll, imuAngles.pitch, imuAngles.yaw);
+        printf("remote state: %d\n", remote_.getMode());
     }
 
     void end_of_loop() override {}
@@ -302,11 +307,18 @@ class Infantry : public BaseRobot {
 int main(void)
 {
     printf("HELLO\n");
+    
+    // I'm sure there's a cleaner way to do this but for now it's getting set in main
     BaseRobot::Config config = BaseRobot::Config{};
     config.led0_dev = &led0_dev;
     config.led1_dev = &led1_dev;
     config.led2_dev = &led2_dev;
+    config.controller_uart_dev = controllerUart;
+    config.referee_uart_dev = refUartDev;
     static Infantry infantry(config);
+
+
+
 
     infantry.main_loop();
     // // blocking

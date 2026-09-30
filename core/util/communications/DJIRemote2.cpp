@@ -87,7 +87,7 @@ bool verify_crc16_check_sum(uint8_t *p_msg, uint16_t len)
 }
 
 DJIRemote2::DJIRemote2(const struct device *uart_dev)
-    : uart_(uart_dev),
+    : serial_(uart_dev, nullptr),
       streamCount_(0),
       validFrame_(false),
       lastFrameTimeUs_(0),
@@ -182,12 +182,12 @@ void DJIRemote2::readIncomingBytes()
 
     size_t n = 0;
 
-    while (n < sizeof(temp)) {
-        uint8_t byte;
-        if (uart_poll_in(uart_, &byte) != 0) { // poll in returns 0 if byte is available, so if its not a zero, we don't care
+    while (n < sizeof(temp) && serial_.readable()) {
+        ssize_t got = serial_.read(&temp[n], sizeof(temp) - n);
+        if (got <= 0) {
             break;
-        } // We have a byte to read, so index to the next element of array
-        temp[n++] = byte;
+        }
+        n += static_cast<size_t>(got);
     }
 
     if (n == 0) {
