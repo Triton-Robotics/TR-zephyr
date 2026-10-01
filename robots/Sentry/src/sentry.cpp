@@ -1,4 +1,4 @@
-#include "stm32f446xx.h"
+#include "stm32h533xx.h"
 #include "zephyr/drivers/i2c.h"
 #include "zephyr/drivers/pwm.h"
 #include <zephyr/kernel.h>
@@ -66,7 +66,7 @@ static const struct pwm_dt_spec encoderSpec = PWM_DT_SPEC_GET(DT_NODELABEL(pwm_e
 static const struct device *controllerUart = DEVICE_DT_GET(DT_NODELABEL(usart1));
 DJIRemote2 controller(controllerUart);
 
-static const struct device *jetsonUart = DEVICE_DT_GET(DT_NODELABEL(uart5));
+static const struct device *jetsonUart = DEVICE_DT_GET(DT_NODELABEL(usart3));
 
 // Subsystem Configs
 TurretSubsystem::config turret_config = {

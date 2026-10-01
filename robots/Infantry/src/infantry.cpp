@@ -69,7 +69,7 @@ static const struct pwm_dt_spec encoderSpec = PWM_DT_SPEC_GET(DT_NODELABEL(pwm_e
 static const struct device *controllerUart = DEVICE_DT_GET(DT_NODELABEL(usart1));
 DJIRemote2 controller(controllerUart);
 
-static const struct device *jetsonUart = DEVICE_DT_GET(DT_NODELABEL(uart5));
+static const struct device *jetsonUart = DEVICE_DT_GET(DT_NODELABEL(usart3));
 
 // Subsystem Configs
 TurretSubsystem::config turret_config = {
