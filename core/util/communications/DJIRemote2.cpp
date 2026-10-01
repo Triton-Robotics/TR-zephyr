@@ -87,7 +87,7 @@ bool verify_crc16_check_sum(uint8_t *p_msg, uint16_t len)
 }
 
 DJIRemote2::DJIRemote2(const struct device *uart_dev)
-    : serial_(uart_dev, nullptr),
+    : serial_(uart_dev),
       streamCount_(0),
       validFrame_(false),
       lastFrameTimeUs_(0),
