@@ -8,7 +8,7 @@
 
 // ADJUST THESE VALUES AS NECESSARY
 #define DMA_RX_BUF_SIZE   256   // size of each of the two DMA landing buffers
-#define DMA_RX_RING_SIZE  512   // ring buffer bytes get copied into for consumption by read()
+#define DMA_RX_RING_SIZE  1024   // ring buffer bytes get copied into for consumption by read()
 #define DMA_RX_TIMEOUT_US 1000  // inactivity gap that flushes a partial UART_RX_RDY event -- tune to your frame spacing
 
 /*

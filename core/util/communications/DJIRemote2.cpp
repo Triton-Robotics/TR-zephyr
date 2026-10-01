@@ -178,7 +178,7 @@ double DJIRemote2::getFrameRateHz() const
 
 void DJIRemote2::readIncomingBytes()
 {
-    uint8_t temp[32];
+    uint8_t temp[DMA_RX_RING_SIZE];
 
     size_t n = 0;
 

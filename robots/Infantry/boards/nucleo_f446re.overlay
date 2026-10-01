@@ -1,3 +1,23 @@
+// &clk_hsi {
+//     status = "okay";
+// };
+
+// &clk_hse {
+//     status = "disabled";
+// };
+
+// &pll {
+//     clocks = <&clk_hsi>;
+//     div-m = <16>;
+//     mul-n = <384>;
+//     div-p = <4>;
+//     status = "okay";
+// };
+
+&clk_hse { status = "okay"; };
+&clk_hsi { status = "disabled"; };
+&pll { clocks = <&clk_hse>; };
+
 &dma1 {
     status = "disabled";
 };
