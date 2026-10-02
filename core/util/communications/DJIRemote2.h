@@ -147,6 +147,8 @@ public:
 	float apply_deadzone(float value) const;
 	float getDialValue() const;
 	ModeSwitch getMode() const;
+    
+    void printMissedPackets();
 
 private:
     const struct device *uart_;

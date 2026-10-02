@@ -21,6 +21,8 @@ class DMAUart {
         ssize_t read(void *buffer, size_t length);
         bool readable();
 
+        void printMissedPackets();
+
     private:
 
         /**
@@ -49,4 +51,7 @@ class DMAUart {
         uint8_t m_rx_rb_backing[DMA_RX_RING_SIZE];
 
         struct k_sem m_rx_sem; // This is currently unused, but we might want to implement this later. 
+
+        atomic_t m_total_rx = 0;
+        atomic_t m_dropped = 0;
 };

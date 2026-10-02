@@ -254,7 +254,15 @@ class Infantry : public BaseRobot {
         shooter_.setState(des_shoot_state);
 
         turret_.periodic(chassis_.getChassisSpeeds().vOmega * 60 / (2 * PI));
-        chassis_.power_limit = referee_.robot_status.chassis_power_limit;
+
+        float lim = referee_.robot_status.chassis_power_limit;
+
+        if (lim <= 0) {
+            lim = 80;
+        } 
+        chassis_.power_limit = lim;
+        
+        
         chassis_.periodic(&imuAngles);
         shooter_.periodic(referee_.power_heat_data.shooter_17mm_1_barrel_heat,
                          referee_.robot_status.shooter_barrel_heat_limit);
@@ -279,7 +287,11 @@ class Infantry : public BaseRobot {
         // printf("%d\n", referee_.get_game_progress());
         // printf("yp %.2f \n", encoder_.encoderMovingAverage());
         // printf("%.2f, %.2f, %.2f\n", imuAngles.roll, imuAngles.pitch, imuAngles.yaw);
-        printf("remote state: %d\n", remote_.getMode());
+        // printf("remote state: %d\n", remote_.getMode());
+        // printf("remote jx: %.2f, jy: %.2f, jpitch: %.2f, jyaw: %.2f\n", jx, jy, jpitch, jyaw);
+        // remote_.printMissedPackets();
+        // printf("Chassis motor speeds: %.2f, %.2f, %.2f, %.2f\n", chassis_.getMotorSpeed(ChassisSubsystem::LEFT_FRONT, ChassisSubsystem::METER_PER_SECOND), chassis_.getMotorSpeed(ChassisSubsystem::RIGHT_FRONT, ChassisSubsystem::METER_PER_SECOND), chassis_.getMotorSpeed(ChassisSubsystem::LEFT_BACK, ChassisSubsystem::METER_PER_SECOND), chassis_.getMotorSpeed(ChassisSubsystem::RIGHT_BACK, ChassisSubsystem::METER_PER_SECOND));
+        printf("Chassis speeds: %.2f, %.2f, %.2f, %.2f\n", chassis_.LF.getData(VELOCITY), chassis_.RF.getData(VELOCITY), chassis_.LB.getData(VELOCITY), chassis_.RB.getData(VELOCITY));
     }
 
     void end_of_loop() override {}

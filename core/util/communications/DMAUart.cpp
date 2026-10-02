@@ -1,6 +1,8 @@
 #include "DMAUart.h"
 #include <cstdio>
 
+#define LOG_MISSED_PACKETS 1
+
 DMAUart::DMAUart(const struct device *dev) : uart_dev(dev) {
     ring_buf_init(&m_rx_rb, sizeof(m_rx_rb_backing), m_rx_rb_backing);
     k_sem_init(&m_rx_sem, 0, 1);
@@ -16,8 +18,8 @@ DMAUart::DMAUart(const struct device *dev) : uart_dev(dev) {
         return;
     }
 
-    start_rx(m_dma_buf[0], DMA_RX_BUF_SIZE);
     m_next_dma_buf_idx = 1;
+    start_rx(m_dma_buf[0], DMA_RX_BUF_SIZE);
 }
 
 void DMAUart::start_rx(uint8_t *buf, size_t len) {
@@ -30,18 +32,19 @@ void DMAUart::start_rx(uint8_t *buf, size_t len) {
 
 void DMAUart::uart_cb(struct uart_event *evt) {
     switch (evt -> type) {
-        case UART_RX_RDY: {
+    
+    case UART_RX_RDY: {
         // New data landed in the buffer currently owned by the DMA controller.
         // Copy it into our own ring buffer so read() has a stable place to
         // pull from, independent of which of the two DMA buffers is "hot".
         uint32_t put = ring_buf_put(&m_rx_rb,
                                      evt->data.rx.buf + evt->data.rx.offset,
                                      evt->data.rx.len);
-        if (put < evt->data.rx.len) {
-            printf("[WARNING] DMAUart: rx ring overflow, dropped %u bytes\n",
-                   evt->data.rx.len - put);
-        }
+        #if LOG_MISSED_PACKETS == 1
+        atomic_add(&m_total_rx, evt->data.rx.len);
+        if (put < evt->data.rx.len) atomic_add(&m_dropped, evt->data.rx.len - put);
         break;
+        #endif
     }
 
     case UART_RX_BUF_REQUEST: {
@@ -61,7 +64,9 @@ void DMAUart::uart_cb(struct uart_event *evt) {
     case UART_RX_DISABLED:
         // Some STM32 families disable RX on certain error conditions
         // (framing/overrun/parity) and need an explicit restart.
-        start_rx(m_dma_buf[m_next_dma_buf_idx], DMA_RX_BUF_SIZE);
+        m_next_dma_buf_idx = 1;
+        start_rx(m_dma_buf[0], DMA_RX_BUF_SIZE);
+        m_next_dma_buf_idx = 1;
         break;
 
     case UART_RX_STOPPED:
@@ -81,4 +86,16 @@ ssize_t DMAUart::read(void *buffer, size_t length) {
 
 bool DMAUart::readable() {
     return !ring_buf_is_empty(&m_rx_rb);
+}
+
+void DMAUart::printMissedPackets() {
+    #if LOG_MISSED_PACKETS == 1
+    int total = atomic_get(&m_total_rx);
+    int dropped = atomic_get(&m_dropped);
+    if (total > 0) {
+        printf("[INFO] DMAUart: total rx %d, dropped %d, loss %.2f%%\n", total, dropped, (float)dropped / total * 100.0f);
+        atomic_set(&m_total_rx, 0);
+        atomic_set(&m_dropped, 0);
+    }
+    #endif
 }

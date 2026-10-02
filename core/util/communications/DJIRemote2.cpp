@@ -359,7 +359,7 @@ void DJIRemote2::shiftLeft(size_t count)
 
 float DJIRemote2::apply_deadzone(float num) const{
     const float deadzone = 0.05;
-    if (num > deadzone) {
+    if (abs(num) > deadzone) {
         return num;
     }
     else {
@@ -456,3 +456,7 @@ bool DJIRemote2::getMouseR() const { return data_.mouseR; }
 bool DJIRemote2::keyPressed(Key key) const { return (data_.keyboard & (1 << (uint8_t)key)) != 0; }
 
 int16_t DJIRemote2::getWheel() const { return data_.mouseM; }
+
+void DJIRemote2::printMissedPackets() {
+    serial_.printMissedPackets();
+}

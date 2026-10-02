@@ -350,8 +350,8 @@ public:
      */
     void updateYawPhaseFromEncoder();
 
-private:
     DJIMotor LF, RF, LB, RB;
+private:
     DJIMotor *yaw = 0;
     MA4 *encoder = nullptr;
     double yawPhase;

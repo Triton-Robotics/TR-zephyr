@@ -126,6 +126,11 @@ class BaseRobot {
 
         DJIMotor::setCanHandlers();
 
+        CANHandler *can1 = DJIMotor::getCanHandler(CANHandler::CANBUS_1);
+        CANHandler *can2 = DJIMotor::getCanHandler(CANHandler::CANBUS_2);
+        if (can1) can1->registerCallback(0x201, 0x20D, DJIMotor::getCanOneFeedback);
+        if (can2) can2->registerCallback(0x201, 0x20D, DJIMotor::getCanTwoFeedback);
+
         init();
 
         while (true) {
@@ -153,6 +158,8 @@ class BaseRobot {
 
             canHandler1_.readAllCan();
             canHandler2_.readAllCan();
+
+            k_sleep(K_MSEC(10));
         }
     }
 
@@ -193,11 +200,12 @@ class BaseRobot {
 
         myaw = remote_.getMouseX();
         mpitch = remote_.getMouseY();
+        // redundant since applydeadzone does this anyway
+        // jx = (fabs(jx) < tolerance) ? 0 : jx;
+        // jy = (fabs(jy) < tolerance) ? 0 : jy;
+        // jpitch = (fabs(jpitch) < tolerance) ? 0 : jpitch;
+        // jyaw = (fabs(jyaw) < tolerance) ? 0 : jyaw;
 
-        jx = (fabs(jx) < tolerance) ? 0 : jx;
-        jy = (fabs(jy) < tolerance) ? 0 : jy;
-        jpitch = (fabs(jpitch) < tolerance) ? 0 : jpitch;
-        jyaw = (fabs(jyaw) < tolerance) ? 0 : jyaw;
         
 
         // Shift to make robot go slower
