@@ -1,5 +1,5 @@
 #include "ISM330.h"
-#include "zephyr/drivers/i2c.h"
+#include "zephyr/drivers/spi.h"
 #include <cmath>
 #include <cstdint>
 #include <util/algorithms/general_functions.h>
@@ -45,8 +45,8 @@ static const uint8_t blockUpdate[] = {CTRL3_C, 0x44}; // Block update for readin
 
 // Constructor
 ISM330::ISM330(const struct i2c_dt_spec &i2c) noexcept : i2c_(i2c) {}; // Just makes the i2c_ attribute store the i2c_dt_spec
-
 // Helper functions
+
 
 void ISM330::writeReg(const uint8_t *cmd, size_t len) noexcept { // Should hopefully make the swap to SPI easier
     i2c_write_dt(&i2c_, cmd, len);

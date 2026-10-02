@@ -15,7 +15,7 @@
 #define ISM330_H_
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
-#include <zephyr/drivers/i2c.h>
+#include <zephyr/drivers/spi.h>
 #include "util/peripherals/imu/IMU.h"
 #include <cstdint>
 
