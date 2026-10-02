@@ -20,8 +20,8 @@ static constexpr uint8_t ISM330_CHIP_ID = 0x6B;   // Expected WHO_AM_I
 static const uint8_t WhoAmIReg[] = {0x0F};
 
 //Reading and Write Addresses
-static constexpr int readAddr = 0b1101010;
-static constexpr int writeAddr = 0b1101010;
+//static constexpr int readAddr = 0b1101010; i2c, don't need these anymore
+//static constexpr int writeAddr = 0b1101010;
 
 static const uint8_t SWRST[] = {0x12,0x01}; // Software Reset command
 static const uint8_t xEnable[] = {0x10, 0x7A}; // Enable accelerometer at 833Hz, +/-4g
@@ -44,16 +44,57 @@ static const uint8_t blockUpdate[] = {CTRL3_C, 0x44}; // Block update for readin
 
 
 // Constructor
-ISM330::ISM330(const struct i2c_dt_spec &i2c) noexcept : i2c_(i2c) {}; // Just makes the i2c_ attribute store the i2c_dt_spec
+//ISM330::ISM330(const struct i2c_dt_spec &i2c) noexcept : i2c_(i2c) {}; // Just makes the i2c_ attribute store the i2c_dt_spec
+ISM330::ISM330(const struct spi_dt_spec &spi) noexcept : spi_(spi) {};
 // Helper functions
 
 
-void ISM330::writeReg(const uint8_t *cmd, size_t len) noexcept { // Should hopefully make the swap to SPI easier
-    i2c_write_dt(&i2c_, cmd, len);
+int ISM330::writeReg(const uint8_t *cmd, size_t len) noexcept { // Should hopefully make the swap to SPI easier
+    //i2c_write_dt(&i2c_, cmd, len);
+    struct spi_buf buffer = {
+        .buf = const_cast<uint8_t *>(cmd), // some bs to treat const uint8_t* as a regular uint8_t*
+        .len = len
+    };
+    struct spi_buf_set buffers = {
+        .buffers = &buffer,
+        .count = 1
+    };
+    return spi_write_dt(&spi_, &buffers); // returns 0 on success, <0 on failure
 }
 
-void ISM330::readReg(uint8_t reg, uint8_t *out, size_t len) noexcept {
-    i2c_burst_read_dt(&i2c_, reg, out, len);
+
+int ISM330::readReg(uint8_t reg, uint8_t *out, size_t len) noexcept {
+    //i2c_burst_read_dt(&i2c_, reg, out, len);
+    uint8_t read_cmd = reg | 0x80; // forces highest bit to be 1, read mode
+    struct spi_buf tx_bufs[] = {
+        {
+            .buf = &read_cmd,
+            .len = 1
+        },
+        {
+            .buf = nullptr,
+            .len = len
+        }
+    };
+    struct spi_buf_set tx = {
+        .buffers = tx_bufs,
+        .count = 2
+    };
+    struct spi_buf rx_bufs[] = {
+        {
+            .buf = nullptr,
+            .len = 1
+        },
+        {
+            .buf = out,
+            .len = len
+        }
+    };
+    struct spi_buf_set rx = {
+        .buffers = rx_bufs,
+        .count = 2
+    };
+    return spi_transceive_dt(&spi_, &tx, &rx);
 }
 
 // ------------------- INITIALIZATION -------------------
@@ -61,17 +102,17 @@ void ISM330::readReg(uint8_t reg, uint8_t *out, size_t len) noexcept {
 bool ISM330::begin(float prop_gain, float int_gain) noexcept //TODO: Currently written in explicit i2c_writes so that ret is an actual test; change in future to writeReg/readReg
 {
     
-    int ret = i2c_write_dt(&i2c_, SWRST, sizeof(SWRST));
+    int ret = writeReg(SWRST, sizeof(SWRST));
     if (ret != 0) {
         printf("SWRST write failed: %d\r\n", ret);
         return false;
     }
     k_sleep(K_MSEC(100));
 
-    ret = i2c_write_dt(&i2c_, xEnable, sizeof(xEnable));
-    ret |= i2c_write_dt(&i2c_, gEnable, sizeof(gEnable));
-    ret |= i2c_write_dt(&i2c_, gyroLowPassFilter, sizeof(gyroLowPassFilter));
-    ret |= i2c_write_dt(&i2c_, blockUpdate, sizeof(blockUpdate));
+    ret = writeReg(xEnable, sizeof(xEnable));
+    ret |= writeReg(gEnable, sizeof(gEnable));
+    ret |= writeReg(gyroLowPassFilter, sizeof(gyroLowPassFilter));
+    ret |= writeReg(blockUpdate, sizeof(blockUpdate));
     if (ret != 0) {
         printf("IMU config write failed\r\n");
         return false;
@@ -80,7 +121,7 @@ bool ISM330::begin(float prop_gain, float int_gain) noexcept //TODO: Currently w
 
     // WHO_AM_I: write register addr, repeated-start, read back one byte.
     // i2c_reg_read_byte_dt does exactly this in a single transaction.
-    ret = i2c_reg_read_byte_dt(&i2c_, WhoAmIReg[0], &whoAmIReading);
+    ret = readReg(WhoAmIReg[0], &whoAmIReading, 1);
     if (ret != 0) {
         printf("WHO_AM_I read failed: %d\r\n", ret);
         return false;
