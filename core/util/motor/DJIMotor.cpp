@@ -436,7 +436,7 @@ float DJIMotor::calculateDeltaPhase(float target, float current, float max) {
 
     float deltaPhase = target - current;
 
-    if (fabs(deltaPhase) > max / 2) {
+    if (fabsf(deltaPhase) > max / 2) {
         if (deltaPhase > 0)
             deltaPhase -= max;
 

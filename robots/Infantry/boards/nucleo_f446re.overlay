@@ -1,3 +1,5 @@
+// Something to consider is what the diff is between using either of these clocks
+
 // &clk_hsi {
 //     status = "okay";
 // };
