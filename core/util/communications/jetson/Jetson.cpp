@@ -147,16 +147,16 @@ int Jetson::writeIO(char *buff, int write_size) {
 }
 
 void Jetson::writeThread() {
-    unsigned long curr_time = now_us();
-    unsigned long prev_time = now_us();
+    // unsigned long curr_time = now_us();
+    // unsigned long prev_time = now_us();
     while (1) {
         char buff[256];
         int buff_pos = 0;
 
-        curr_time = now_us();
+        // curr_time = now_us();
 
-        if ((curr_time - prev_time) / 1000 >= WRITE_THREAD_LOOP_DT_MS) {
-            prev_time = curr_time;
+        // if ((curr_time - prev_time) / 1000 >= WRITE_THREAD_LOOP_DT_MS) {
+        //     prev_time = curr_time;
 
             for (auto &packet : write_packets_) {
                 mutex_write_.lock();
@@ -172,8 +172,8 @@ void Jetson::writeThread() {
             }
 
             writeIO(buff, buff_pos);
-        }
-        k_yield();
+        // }
+        k_sleep(K_MSEC(WRITE_THREAD_LOOP_DT_MS));
     }
 }
 

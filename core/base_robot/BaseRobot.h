@@ -89,9 +89,6 @@ class BaseRobot {
           referee_(config.referee_uart_dev, config.referee_usart_type), 
           canHandler1_(config.can1_dev),
           canHandler2_(config.can2_dev),
-        //   led0_(config.led0_pin),
-        //   led1_(config.led1_pin),
-        //   led2_(config.led2_pin)
          led0_(*config.led0_dev),
          led1_(*config.led1_dev),
          led2_(*config.led2_dev)
