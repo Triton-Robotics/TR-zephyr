@@ -245,10 +245,10 @@ float ChassisSubsystem::setWheelSpeeds(WheelSpeeds wheelSpeeds)
     LB.setPower(powers[2]*scale);
     RB.setPower(powers[3]*scale);
 
-    p1 = fabs(LF.getData(POWEROUT));
-    p2 = fabs(RF.getData(POWEROUT));
-    p3 = fabs(LB.getData(POWEROUT));
-    p4 = fabs(RB.getData(POWEROUT));
+    p1 = fabsf(LF.getData(POWEROUT));
+    p2 = fabsf(RF.getData(POWEROUT));
+    p3 = fabsf(LB.getData(POWEROUT));
+    p4 = fabsf(RB.getData(POWEROUT));
 
     return scale;
 }
@@ -345,7 +345,7 @@ float ChassisSubsystem::setChassisSpeeds(ChassisSpeeds desiredChassisSpeeds_, DR
         while (yawError > 180) yawError -= 360;
         while (yawError < -180) yawError += 360;
         
-        if (fabs(yawError) < 5) yawError = 0;
+        if (fabsf(yawError) < 5) yawError = 0;
 
         if (yawError > 90) yawError -= 180;
         else if (yawError < -90) yawError += 180;
@@ -355,7 +355,7 @@ float ChassisSubsystem::setChassisSpeeds(ChassisSpeeds desiredChassisSpeeds_, DR
         pid_align.feedForward = yaw_velo * yaw_velo_gain;
         float omegaCmd = pid_align.calculatePeriodic(yawError, 1000) * deg2rad;
 
-        if (fabs(omegaCmd) < 0.1) omegaCmd = 0;
+        if (fabsf(omegaCmd) < 0.1f) omegaCmd = 0;
 
         ChassisSpeeds xAlignSpeeds = {desiredChassisSpeeds_.vX, desiredChassisSpeeds_.vY, omegaCmd};
         desiredChassisSpeeds = rotateChassisSpeed(xAlignSpeeds, yawCurrent);

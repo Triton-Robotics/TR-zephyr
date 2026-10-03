@@ -101,7 +101,7 @@ cd ../Testbench
 ln -s ../../build/Testbench/compile_commands.json compile_commands.json
 
 cd ../../core
-ln -s ../build/compile_comands.json compile_commands.json
+ln -s ../build/compile_commands.json compile_commands.json
 ```
 
 From this point, you might see a few erroneous clangd errors, so run the following to get rid of them
