@@ -169,6 +169,7 @@ void ShooterSubsystem::periodic(int curr_heat, int heat_limit)
     }
     else if (shoot == SHOOT && shooter_type == AUTO) 
     {
+        // flywheels
         if (!invert_flywheel) {
             flywheelL.setSpeed(-FLYWHEEL_VELO);
             flywheelR.setSpeed(FLYWHEEL_VELO);
@@ -178,12 +179,17 @@ void ShooterSubsystem::periodic(int curr_heat, int heat_limit)
             flywheelR.setSpeed(-FLYWHEEL_VELO);
         }
 
+        // indexer
         if(barrel_heat_limit < 10 || barrel_heat < barrel_heat_limit - 30) {
             indexer.setSpeed(-5 * 16 * M2006_GEAR_RATIO);
         }
         else {
             indexer.setSpeed(0);
         }
+
+        // feeder
+        // TODO - calibrated delay
+        // TODO - advance feeder state
     }
     else if (shoot == JAM || jammed) { // Dedicated Unjamming state
         if (!jammed) {

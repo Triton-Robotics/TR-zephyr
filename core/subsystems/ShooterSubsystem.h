@@ -20,8 +20,9 @@ class ShooterSubsystem : public Subsystem
 {
 public:
     enum ShooterType {BURST, AUTO};
+    // TODO - feeder state enum
 
-    struct config
+    struct config // TODO - update for feeder and limit switch motors
     {
         const struct device *can_device;
         CANHandler::CANBus canBus;

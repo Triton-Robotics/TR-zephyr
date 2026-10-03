@@ -98,7 +98,7 @@ TurretSubsystem::config turret_config = {
     PITCH_LOWER_BOUND,
     PITCH_UPPER_BOUND
 };
-ShooterSubsystem::config shooter_config = {
+ShooterSubsystem::config shooter_config = { // TODO - fix for updated configs
     canbus2_dev,
     CANHandler::CANBUS_2,
     ShooterSubsystem::BURST,
