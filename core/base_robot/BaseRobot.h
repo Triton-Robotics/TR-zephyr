@@ -153,8 +153,10 @@ class BaseRobot {
             // Add sensors updates in your end of loop
             end_of_loop();
 
-            canHandler1_.readAllCan();
-            canHandler2_.readAllCan();
+            // canHandler1_.readAllCan();
+            // canHandler2_.readAllCan();
+            if (can1) can1->readAllCan();
+            if (can2) can2->readAllCan();
 
             k_sleep(K_MSEC(10));
         }

@@ -25,12 +25,14 @@ constexpr float JOYSTICK_PITCH_SENSITIVITY_DPS = 150;
 constexpr float MOUSE_SENSITIVITY_YAW_DPS = 1.0;
 constexpr float MOUSE_SENSITIVITY_PITCH_DPS = 1.0;
 
-constexpr PID::config YAW_VEL_PID     = {181, 3.655 * 10e-3, 4.51 * 7.5, 32000, 1000};
+// constexpr PID::config YAW_VEL_PID     = {181, 3.655 * 10e-3, 4.51 * 7.5, 32000, 1000};
+constexpr PID::config YAW_VEL_PID     = {181,0,10, 32000, 1000};
 constexpr PID::config YAW_POS_PID     = {1, 0, 0, 45, 2};
 const float yaw_static_friction       = 0;//-150;       // We multiply it by dir
 const float yaw_kinetic_friction      = 0;       // We multiply this by yawvelo
 
-constexpr PID::config PITCH_VEL_PID   = {173.8994, 4.898 * 10e-6, 12.474 * 10e3, 16000, 2000}; //{25, 0.001, 5, 16000, 1000};
+constexpr PID::config PITCH_VEL_PID   = {173.8994f, 4.898f * static_cast<float>(10e-6), 12.474f * static_cast<float>(10e3) * 1.5f, 16000, 2000}; //{25, 0.001, 5, 16000, 1000};
+// constexpr PID::config PITCH_VEL_PID = {170, 0, 1200, 16000,2000}; //{25, 0.001, 5, 16000, 1000};
 constexpr PID::config PITCH_POS_PID   = {1, 0, 0,30,2}; //{1, 0, 0, 30, 2};
 const float pitch_gravity_feedforward = -1200;    // We multiply this by cos(angle)
 const float pitch_static_friction     = 0;       // We multiply it by dir
@@ -103,7 +105,7 @@ ShooterSubsystem::config shooter_config = {
     0,
     2,
     4,
-    1,
+    6,
     FLYWHEEL_L_PID,
     FLYWHEEL_R_PID,
     INDEXER_PID_VEL,
