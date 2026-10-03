@@ -15,6 +15,8 @@ constexpr int HERO_FLYWHEEL_VELO = 450;
 // enum for states
 enum ShootState {OFF, FLYWHEEL, SHOOT, JAM};
 
+enum FeederState {POS_1, POS_2, POS_3, NOTINUSE};
+
 // struct for config
 class ShooterSubsystem : public Subsystem
 {
@@ -63,7 +65,7 @@ private:
     int barrel_heat_limit;
     bool shootReady;
 
-    int shootTargetPosition; //
+    int shootTargetPosition;
     int backfeedPosition;
 
     int jammed;
