@@ -51,7 +51,7 @@ public:
     } ISM330_DATA_TypeDef;
 
 
-    ISM330(const struct i2c_dt_spec &i2c) noexcept;
+    ISM330(const struct spi_dt_spec &spi) noexcept;
 
     /**
     * @brief Initialize communication with the device.
@@ -88,7 +88,7 @@ public:
     IMU::EulerAngles read() override { return getImuAngles(); }
 
    //Full read functions
-    //Reads Accel and Gyro sequentially, reduces I2C transactions
+    //Reads Accel and Gyro in one burst transaction
     ISM330_RAW_DATA_TypeDef readAGraw() noexcept; //used during calibration
 
     ISM330_DATA_TypeDef readAG() noexcept;
@@ -138,8 +138,7 @@ public:
     ISM330_VECTOR_TypeDef readGyro() noexcept;
     
 private:
-    struct i2c_dt_spec i2c_;
-    uint8_t _address;
+    struct spi_dt_spec spi_;
     uint8_t whoAmIReading;
 
     // Raw offsets for accel and gyro
@@ -150,14 +149,14 @@ private:
     float wyBias;
     float wzBias;
     
-    //Raw I2C readings to actual measurements
+    //Raw sensor reading buffers
     uint8_t agReadings[14]; //Temperature, Accel and Gyro Readings buffer
     uint8_t xReadings[6]; //Accel Readings buffer
     uint8_t gReadings[6]; //Gyro Readings buffer
     float temperature; //Temperature in C-25, so at 25C it should read 0
 
-    void writeReg(const uint8_t *cmd, size_t len) noexcept; //cmd points to some array starting with the register, and then the value(s)
-    void readReg(uint8_t reg, uint8_t *out, size_t len) noexcept; 
+    int writeReg(const uint8_t *cmd, size_t len) noexcept; //cmd points to some array starting with the register, and then the value(s)
+    int readReg(uint8_t reg, uint8_t *out, size_t len) noexcept; 
 
     ISM330_VECTOR_TypeDef readingToAccel(const uint8_t *readings, float temp);
     
