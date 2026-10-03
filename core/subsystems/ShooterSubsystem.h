@@ -62,7 +62,7 @@ private:
     int barrel_heat_limit;
     bool shootReady;
 
-    int shootTargetPosition;
+    int shootTargetPosition; //
     int backfeedPosition;
 
     int jammed;
