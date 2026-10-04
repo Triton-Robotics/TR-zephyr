@@ -68,7 +68,6 @@
     };
 };
 
-
 /* The sigular slash below indicates that we're just making a new node
 Unlike the ones above, which were already declared for us in the
 root dts file Zephyr has for us, this LED node is specific to us */
@@ -109,4 +108,28 @@ root dts file Zephyr has for us, this LED node is specific to us */
 
    &gpioc {
        status = "okay";
+   };
+
+   // Make some node for the gpio that takes in some analog in (Ask claude prolly cause its annoying)
+
+/ {
+    zephyr,user {
+        io-channels = <&adc1 1>;
+    };
+};
+   &adc1 {
+    status = "okay";
+    st,adc-prescaler = <4>;
+    pinctrl-0 = <&adc1_in1_pa1>;
+    pinctrl-names = "default";
+    #address-cells = <1>;
+    #size-cells = <0>;
+    channel@1 {
+        reg = <1>;
+        zephyr,gain = "ADC_GAIN_1";
+        zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
+        zephyr,reference = "ADC_REF_INTERNAL";
+        zephyr,resolution = <12>;
+        // vref_mv = <5000>;
+    };
    };
