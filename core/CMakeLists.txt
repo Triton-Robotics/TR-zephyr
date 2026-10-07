@@ -1,5 +1,8 @@
 # Explicitly name it because otherwise Zephyr appends _ to the beginning because we're up a level on the directory
 zephyr_library_named(core)
+# This library is added from an application, outside Zephyr's kernel directory.
+# Wait for generated headers (including offsets.h) before compiling it.
+add_dependencies(core zephyr_generated_headers)
 zephyr_library_sources(
     # Algo Section
     util/algorithms/general_functions.cpp

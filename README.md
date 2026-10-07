@@ -49,6 +49,8 @@ pip install -r zephyr/scripts/requirements.txt
 
 ## Building and Flashing:
 
+For Jetson-only autonomy on Infantry hardware, see the [Sentry firmware guide](robots/Sentry/README.md).
+
 Go into the makefiles folder, and copy your OS-specific makefile, paste it outside of the folder into the root, and rename it to `Makefile` (it's case sensitive). If there's already a makefile there, just replace it to be safe, but it should be a WSL makefile by default. 
 
 
@@ -131,4 +133,3 @@ Read the guide [here](.md/OzoneSetUp.md)
 
 ### 3. Get nRF DeviceTree extension on vscode (from nordic semiconductor)
 Intellisense for device tree. Very helpful; however, can be an annoying set up. Talk to your embed lead if you run into any issues. 
-

@@ -1,5 +1,6 @@
 #include "util/communications/jetson/Jetson.h"
 #include <util/algorithms/general_functions.h>
+#include <cstdio>
 
 #define JETSON_READ_STACK_SIZE 4096
 #define JETSON_WRITE_STACK_SIZE 2048
@@ -100,7 +101,6 @@ void Jetson::readThread() {
                     mutex_read_.lock();
                     // clang-format off
                     bytes_consumed = packet->parse_buff(&buff[buff_head], buff_tail - buff_head, read_state_);
-                    read_state_.stamp_us = now_us();
                     // clang-format on
                     mutex_read_.unlock();
 
