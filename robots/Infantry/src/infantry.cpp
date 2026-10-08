@@ -13,9 +13,11 @@
 #include <util/algorithms/PID.h>
 #include <base_robot/BaseRobot.h>
 #include <zephyr/dt-bindings/pwm/pwm.h>
+#include "/home/alichtenberger/TR-zephyr/core/subsystems/ShooterSubsystem.h"
 
 // Globals (testing)
-float left_flywheel_vel, right_flywheel_vel;
+float left_flywheel_vel = 0;
+float right_flywheel_vel = 0;
 
 // Robot Constants
 constexpr float PITCH_LOWER_BOUND{-22.0};
