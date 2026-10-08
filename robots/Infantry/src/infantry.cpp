@@ -186,9 +186,7 @@ class Infantry : public BaseRobot {
     }
 
     void periodic(unsigned long dt_us) override {
-        left_flywheel_vel = shooter_.getFlywheelL();
-        right_flywheel_vel = shooter_.getFlywheelR();
-
+        
         // TODO this should be threaded inside imu instead
         imu_.mahonyUpdateIMU(dt_us / 1000000.0);
         imuAngles = imu_.getImuAngles();
@@ -196,7 +194,7 @@ class Infantry : public BaseRobot {
         max_linear_vel = MAX_VEL;
         des_chassis_state.vX = jy * max_linear_vel;
         des_chassis_state.vY = jx * max_linear_vel;
-
+        
         // Read jetson
         jetson_state = jetson.read();
         // check if new jetson state given and if we want cv
@@ -204,18 +202,18 @@ class Infantry : public BaseRobot {
             yaw_desired_angle = jetson_state.desired_yaw_rads * 180 / PI;
             pitch_desired_angle = jetson_state.desired_pitch_rads * 180 / PI;
         }
-
+        
         // Turret from remote
         yaw_desired_angle -= myaw * 0.01f;
         yaw_desired_angle -= jyaw * JOYSTICK_YAW_SENSITIVITY_DPS * dt_us / 1000000;
         yaw_desired_angle = capAngle(yaw_desired_angle);
         des_turret_state.yaw_angle_degs = yaw_desired_angle;
-
+        
         pitch_desired_angle -= mpitch * 0.01f;
         pitch_desired_angle -= jpitch * JOYSTICK_PITCH_SENSITIVITY_DPS * dt_us / 1000000;
         pitch_desired_angle = std::clamp(pitch_desired_angle, PITCH_LOWER_BOUND, PITCH_UPPER_BOUND);
         des_turret_state.pitch_angle_degs = pitch_desired_angle;
-
+        
         // Chassis logic
         if (drive == 'u' || (drive == 'o' && remote_.getMode() == DJIRemote2::ModeSwitch::MODE_N)) {
             des_chassis_state.vOmega = 0;
@@ -227,30 +225,30 @@ class Infantry : public BaseRobot {
         }  else if (drive == 'd' || 
                    (drive == 'o' &&
                     remote_.getMode() == DJIRemote2::ModeSwitch::MODE_S)) {
-            des_chassis_state.vOmega = omega_speed;
-            chassis_.setChassisSpeeds(des_chassis_state, ChassisSubsystem::DRIVE_MODE::YAW_ORIENTED);
-            des_turret_state.turret_mode = TurretState::AIM;
-            referee_.is_aligned = false;
-            referee_.is_cv_on = false;
-            referee_.is_spinning = true;
-        } else {
-            chassis_.setWheelPower({0, 0, 0, 0});
-            des_turret_state.turret_mode = TurretState::SLEEP;
-            des_turret_state.yaw_angle_degs = turret_.getState().yaw_angle_degs;
-            yaw_desired_angle = turret_.getState().yaw_angle_degs;
-            des_turret_state.pitch_angle_degs = 0;
-            referee_.is_aligned = false;
-            referee_.is_cv_on = false;
-            referee_.is_spinning = false;
-        }
-
-        // Shooter Logic 
-        //REMOVED remote_.PAUSEToggled() == true && FROM THE FIRST CONDITION
-        if ((remote_.PAUSEToggled() == true && remote_.TriggerPressed() == true) || remote_.getMouseL()) {
-            
-            des_shoot_state = ShootState::SHOOT;
-        } else if (remote_.CUSTRPressed() == true && remote_.PAUSEToggled() == true) {
-            des_shoot_state = ShootState::JAM;
+                        des_chassis_state.vOmega = omega_speed;
+                        chassis_.setChassisSpeeds(des_chassis_state, ChassisSubsystem::DRIVE_MODE::YAW_ORIENTED);
+                        des_turret_state.turret_mode = TurretState::AIM;
+                        referee_.is_aligned = false;
+                        referee_.is_cv_on = false;
+                        referee_.is_spinning = true;
+                    } else {
+                        chassis_.setWheelPower({0, 0, 0, 0});
+                        des_turret_state.turret_mode = TurretState::SLEEP;
+                        des_turret_state.yaw_angle_degs = turret_.getState().yaw_angle_degs;
+                        yaw_desired_angle = turret_.getState().yaw_angle_degs;
+                        des_turret_state.pitch_angle_degs = 0;
+                        referee_.is_aligned = false;
+                        referee_.is_cv_on = false;
+                        referee_.is_spinning = false;
+                    }
+                    
+                    // Shooter Logic 
+                    //REMOVED remote_.PAUSEToggled() == true && FROM THE FIRST CONDITION
+                    if ((remote_.PAUSEToggled() == true && remote_.TriggerPressed() == true) || remote_.getMouseL()) {
+                        
+                        des_shoot_state = ShootState::SHOOT;
+                    } else if (remote_.CUSTRPressed() == true && remote_.PAUSEToggled() == true) {
+                        des_shoot_state = ShootState::JAM;
         } else if (remote_.PAUSEToggled() == true || shot == 'd') {
             des_shoot_state = ShootState::FLYWHEEL;
             referee_.is_flywheel_on = true;
@@ -258,14 +256,14 @@ class Infantry : public BaseRobot {
             des_shoot_state = ShootState::OFF;
             referee_.is_flywheel_on = false;
         }
-
+        
         turret_.setState(des_turret_state);
         shooter_.setState(des_shoot_state);
-
+        
         turret_.periodic(chassis_.getChassisSpeeds().vOmega * 60 / (2 * PI));
-
+        
         float lim = referee_.robot_status.chassis_power_limit;
-
+        
         if (lim <= 0) {
             lim = 80;
         } 
@@ -274,15 +272,21 @@ class Infantry : public BaseRobot {
         
         chassis_.periodic(&imuAngles);
         shooter_.periodic(referee_.power_heat_data.shooter_17mm_1_barrel_heat,
-                         referee_.robot_status.shooter_barrel_heat_limit);
-
-        // jetson comms
-        set_jetson_state();
-        jetson.write(stm_state);
-
+            referee_.robot_status.shooter_barrel_heat_limit);
+            
+            // jetson comms
+            set_jetson_state();
+            jetson.write(stm_state);
+            
         // printf("time %.4f\n", dt_us / 1000000.0);
-
+        
         // Debug print statements
+        left_flywheel_vel = shooter_.getFlywheelL();
+        right_flywheel_vel = shooter_.getFlywheelR();
+
+        printf("are we getting pritns?");
+        printf("%f",left_flywheel_vel);
+    
         // printf("des: %.2f, %.2f, %.2f %d \n", jetson.read().desired_x_vel,
         // jetson.read().desired_y_vel, jetson.read().desired_angular_vel,
         // jetson.read().localization_calibration); printf("y: %.2f\n",
