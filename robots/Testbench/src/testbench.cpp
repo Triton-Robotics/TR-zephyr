@@ -71,7 +71,7 @@ static float read_Pot_V(){
     static bool seq_ready = false;
 
     if (!seq_ready) {
-        if (adc_sequence_init_dt(&pot_dev, &sequence) < 0) {
+        if (adc_sequence_init_dt(&pot_dev, &sequence) < 0) { //copies the channel bitmask, resolution, and oversampling from pot_dev into sequence
             return -1.0f;
         }
         seq_ready = true;
@@ -142,19 +142,20 @@ int main(void)
     }
 
     while (true) {
-        periodic();
+        // periodic();
         
         float voltage = read_Pot_V();
-        if (voltage < 0.0f) {
-            k_sleep(K_MSEC(100));
-            continue;
-        }
-        float updated_motor_power = interpretVolt(voltage);
-        printf("power is %f\n", updated_motor_power);
+        printf("voltage is %f\n", voltage);
+        // if (voltage < 0.0f) {
+        //     k_sleep(K_MSEC(100));
+        //     continue;
+        // }
+        // float updated_motor_power = interpretVolt(voltage);
+        // printf("power is %f\n", updated_motor_power);
 
-        motorM2006.setPower(updated_motor_power);
-        motorM3508.setPower(updated_motor_power);
-        DJIMotor::sendValues(true);
+        // motorM2006.setPower(updated_motor_power);
+        // motorM3508.setPower(updated_motor_power);
+        // DJIMotor::sendValues(true);
 
         k_sleep(K_MSEC(100));
     }

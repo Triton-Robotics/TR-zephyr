@@ -114,18 +114,18 @@ root dts file Zephyr has for us, this LED node is specific to us */
 
 / {
     zephyr,user {
-        io-channels = <&adc1 1>;
+        io-channels = <&adc1 7>;
     };
 };
    &adc1 {
     status = "okay";
     st,adc-prescaler = <4>;
-    pinctrl-0 = <&adc1_in1_pa1>;
+    pinctrl-0 = <&adc1_in7_pa7>;
     pinctrl-names = "default";
     #address-cells = <1>;
     #size-cells = <0>;
-    channel@1 {
-        reg = <1>;
+    channel@7 {
+        reg = <7>;
         zephyr,gain = "ADC_GAIN_1";
         zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
         zephyr,reference = "ADC_REF_INTERNAL";
