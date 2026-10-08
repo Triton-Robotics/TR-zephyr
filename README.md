@@ -133,3 +133,37 @@ Read the guide [here](.md/OzoneSetUp.md)
 
 ### 3. Get nRF DeviceTree extension on vscode (from nordic semiconductor)
 Intellisense for device tree. Very helpful; however, can be an annoying set up. Talk to your embed lead if you run into any issues. 
+
+## Jetson UART telemetry timing
+
+A telemetry group is 40 bytes: referee (6), robot state (30), and user input
+(4). At 115200 baud, 8N1, the link carries at most 11,520 bytes/s; one group
+takes about 3.47 ms. The previous 2 ms enqueue interval exceeded that capacity.
+Telemetry now takes one coherent latest-state snapshot per group and waits
+10 ms between groups, allowing the transmitter to empty between updates.
+
+This addresses measured Jetson receive bursts of 4096 bytes roughly every
+395 ms. A stationary camera test produced 879 detections but only 61 aiming
+solutions in 20 seconds because embedded feedback was frequently too old.
+Verify receive intervals again after flashing; host tests cannot establish
+actual UART timing.
+
+The UART idle interrupt now disables TX without acquiring a mutex, keeps RX
+active, and permits subsequent writes to restart TX. The existing Sentry
+500 ms command watchdog, independent packet timestamps, motor configuration,
+and control conventions are preserved. On this branch, the watchdog explicitly
+puts the turret into SLEEP when aiming commands expire; telemetry improvements
+do not change that behavior.
+
+Run both host regressions before a firmware build:
+
+```bash
+python3 tests/test_jetson_transport_host.py
+python3 tests/sentry_autonomy/run.py
+```
+
+The transport regression compiles the actual Jetson/SerialBase sources with a
+simulated Zephyr UART. It checks telemetry bytes and pacing, idle interrupt lock
+avoidance, TX restart after interrupt preemption, continued RX, and rejection of
+invalid command timestamps. The existing Sentry suite covers control behavior.
+These tests do not replace a Zephyr build and hardware validation.

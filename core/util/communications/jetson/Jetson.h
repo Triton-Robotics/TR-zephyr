@@ -101,7 +101,11 @@ class Jetson {
 
     mode jetsonMode;
 
-    static constexpr unsigned long WRITE_THREAD_LOOP_DT_MS = 2;
+    // A telemetry group is 40 bytes (referee + robot state + user input).
+    // At 115200 8N1 this takes 3.47 ms on the wire. A 2 ms producer
+    // saturates the queue; 10 ms leaves idle time for the Jetson RX DMA
+    // end-of-receive interrupt and sends the latest snapshot at <=100 Hz.
+    static constexpr unsigned long WRITE_THREAD_LOOP_DT_MS = 10;
 };
 
 // ------
