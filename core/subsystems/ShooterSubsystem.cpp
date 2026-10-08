@@ -52,6 +52,14 @@ void ShooterSubsystem::setFlywheels() {
         }
 }
 
+float ShooterSubsystem::getFlywheelL(){
+    return flywheelL.getData(VELOCITY);
+}
+
+float ShooterSubsystem::getFlywheelR(){
+    return flywheelR.getData(VELOCITY);
+}
+
 void ShooterSubsystem::reverseFlywheels() {
     if (!invert_flywheel) {
             flywheelL.setSpeed(FLYWHEEL_VELO);

@@ -72,5 +72,7 @@ private:
     int jamCurrTime;
 
     void setFlywheels();
+    float getFlywheelL();
+    float getFlywheelR();
     void reverseFlywheels();
 };
