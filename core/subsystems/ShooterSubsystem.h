@@ -50,6 +50,8 @@ public:
     void setState(ShootState shoot_state);
 
     void periodic(int curr_heat, int heat_limit);
+    float getFlywheelL();
+    float getFlywheelR();
 
 private:
     unsigned long shooter_time;
@@ -72,7 +74,6 @@ private:
     int jamCurrTime;
 
     void setFlywheels();
-    float getFlywheelL();
-    float getFlywheelR();
+    
     void reverseFlywheels();
 };

@@ -186,6 +186,9 @@ class Infantry : public BaseRobot {
     }
 
     void periodic(unsigned long dt_us) override {
+        left_flywheel_vel = shooter_.getFlywheelL();
+        right_flywheel_vel = shooter_.getFlywheelR();
+
         // TODO this should be threaded inside imu instead
         imu_.mahonyUpdateIMU(dt_us / 1000000.0);
         imuAngles = imu_.getImuAngles();
@@ -244,6 +247,7 @@ class Infantry : public BaseRobot {
         // Shooter Logic 
         //REMOVED remote_.PAUSEToggled() == true && FROM THE FIRST CONDITION
         if ((remote_.PAUSEToggled() == true && remote_.TriggerPressed() == true) || remote_.getMouseL()) {
+            
             des_shoot_state = ShootState::SHOOT;
         } else if (remote_.CUSTRPressed() == true && remote_.PAUSEToggled() == true) {
             des_shoot_state = ShootState::JAM;
