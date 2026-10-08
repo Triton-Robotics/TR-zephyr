@@ -14,6 +14,8 @@
 #include <base_robot/BaseRobot.h>
 #include <zephyr/dt-bindings/pwm/pwm.h>
 
+// Globals (testing)
+float left_flywheel_vel, right_flywheel_vel;
 
 // Robot Constants
 constexpr float PITCH_LOWER_BOUND{-22.0};
