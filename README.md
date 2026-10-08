@@ -68,12 +68,11 @@ To flash:
 make infantry-flash
 ```
 
-
-## Intellisense
+## Intellisense and debugging
 
 This section is technically optional but **highly recommended**.
 
-1. **Get clangd** (VS code extension and run sudo apt install clangd)
+### 1. **Get clangd** (VS code extension and run sudo apt install clangd)
 Intellisense for everything but devicetree stuff
 
 Once you have clangd, you should run the following commands to link each robot's compile commands json to each robot folder
@@ -127,7 +126,9 @@ Also, in your .vscode file, in settings.json, append the following to the end, (
     ]
 ```
 
+### 2. Set up Ozone 
+Read the guide [here](.md/OzoneSetUp.md)
 
-2. Get nRF DeviceTree extension on vscode (from nordic semiconductor)
+### 3. Get nRF DeviceTree extension on vscode (from nordic semiconductor)
 Intellisense for device tree. Very helpful; however, can be an annoying set up. Talk to your embed lead if you run into any issues. 
 
