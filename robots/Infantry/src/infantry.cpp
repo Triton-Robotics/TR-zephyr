@@ -16,7 +16,7 @@
 
 
 // Globals (testing)
-float left_flywheel_vel, right_flywheel_vel;
+float left_flywheel_vel = -1.0f, right_flywheel_vel = -1.0f;
 
 // Robot Constants
 constexpr float PITCH_LOWER_BOUND{-22.0};
@@ -284,8 +284,8 @@ class Infantry : public BaseRobot {
         left_flywheel_vel = shooter_.getFlywheelL();
         right_flywheel_vel = shooter_.getFlywheelR();
 
-        printf("are we getting pritns?");
-        printf("%f",left_flywheel_vel);
+        // printf("Left Flywheel Velocity: %f\n", left_flywheel_vel);
+        // printf("Right Flywheel Velocity: %f\n", right_flywheel_vel);
     
         // printf("des: %.2f, %.2f, %.2f %d \n", jetson.read().desired_x_vel,
         // jetson.read().desired_y_vel, jetson.read().desired_angular_vel,
