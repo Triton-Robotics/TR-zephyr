@@ -53,7 +53,7 @@ void ShooterSubsystem::setFlywheels() {
 }
 
 float ShooterSubsystem::getFlywheelL(){
-    return flywheelL.getData(VELOCITY);
+    return -flywheelL.getData(VELOCITY);
 }
 
 float ShooterSubsystem::getFlywheelR(){
