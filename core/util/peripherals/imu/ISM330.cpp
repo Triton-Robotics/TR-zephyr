@@ -6,7 +6,8 @@
 
 // Scale factors for calculations 
 static constexpr float accelRangeScale = 0.122f;  // mg/LSB @ ±4g; see datasheet for other ranges
-static constexpr float gyroRangeScale  = 70.0 * 1.5;   // mdps/LSB @ ±2000 dps * 1.5 for scaling error
+static constexpr float gyroRangeScale  = 70.0f;   // mdps/LSB @ ±2000 dps (datasheet). A 1.5x fudge here made
+                                                   // fast moves over-integrate by 50% (bench bag 2026-10-10).
 
 static constexpr float g = 9.80665f; 
 static constexpr float dpsToRad = PI / 180.0f;

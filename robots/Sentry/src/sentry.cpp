@@ -353,9 +353,9 @@ class Sentry : public BaseRobot {
         stm_state.chassis_rotation = chassis_.getChassisSpeeds().vOmega;
 
         stm_state.yaw_angle_rads = degreesToRadians(turret_.getState().yaw_angle_degs);
-        stm_state.yaw_velocity = degreesToRadians(turret_.getState().yaw_velo_rad_s);
+        stm_state.yaw_velocity = turret_.getState().yaw_velo_rad_s; // already rad/s
         stm_state.pitch_angle_rads = degreesToRadians(turret_.getState().pitch_angle_degs);
-        stm_state.pitch_velocity = degreesToRadians(turret_.getState().pitch_velo_rad_s);
+        stm_state.pitch_velocity = turret_.getState().pitch_velo_rad_s; // already rad/s
     }
 };
 
