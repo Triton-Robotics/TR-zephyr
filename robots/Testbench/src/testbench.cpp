@@ -35,10 +35,10 @@ int constexpr SWAP_TIME = 1000;
 int curr_time = 0;
 short current_motor_power = 1000;
 
-DJIMotor::config m2006Config = {canbus1_dev, MOTOR_ID, CANHandler::CANBUS_1, M2006};  //C610
-DJIMotor motorM2006(m2006Config);
+// DJIMotor::config m2006Config = {canbus1_dev, MOTOR_ID, CANHandler::CANBUS_1, M2006};  //C610, motorid = 6
+// DJIMotor motorM2006(m2006Config);
 
-DJIMotor::config m3508Config = {canbus1_dev, MOTOR_ID, CANHandler::CANBUS_1, M3508};  //C620
+DJIMotor::config m3508Config = {canbus1_dev, MOTOR_ID, CANHandler::CANBUS_1, M3508};  //C620, motorid = 2
 DJIMotor motorM3508(m3508Config);
 
 
@@ -94,7 +94,7 @@ void periodic() {
     DJIMotor::getCanHandler(CANHandler::CANBUS_1)->readAllCan();
 
     if(curr_time > SWAP_TIME) {
-        motorM2006.setPower(current_motor_power);
+        // motorM2006.setPower(current_motor_power);
         motorM3508.setPower(current_motor_power);
         current_motor_power *= -1;
         DJIMotor::sendValues(true);
@@ -146,16 +146,16 @@ int main(void)
         
         float voltage = read_Pot_V();
         printf("voltage is %f\n", voltage);
-        // if (voltage < 0.0f) {
-        //     k_sleep(K_MSEC(100));
-        //     continue;
-        // }
-        // float updated_motor_power = interpretVolt(voltage);
-        // printf("power is %f\n", updated_motor_power);
+        if (voltage < 0.0f) {
+            k_sleep(K_MSEC(100));
+            continue;
+        }
+        float updated_motor_power = interpretVolt(voltage);
+        printf("power is %f\n", updated_motor_power);
 
         // motorM2006.setPower(updated_motor_power);
-        // motorM3508.setPower(updated_motor_power);
-        // DJIMotor::sendValues(true);
+        motorM3508.setPower(updated_motor_power);
+        DJIMotor::sendValues(true);
 
         k_sleep(K_MSEC(100));
     }
