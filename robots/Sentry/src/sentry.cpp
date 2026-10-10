@@ -20,6 +20,11 @@
 constexpr float PITCH_LOWER_BOUND{-22.0};
 constexpr float PITCH_UPPER_BOUND{25.0};
 
+// Remote (infantry-style) control sensitivities
+constexpr float JOYSTICK_YAW_SENSITIVITY_DPS = 300;
+constexpr float JOYSTICK_PITCH_SENSITIVITY_DPS = 150;
+
+// Jetson (autonomy) limits
 constexpr uint64_t JETSON_COMMAND_TIMEOUT_US = 500000;
 constexpr float JETSON_MAX_ANGULAR_VEL = 8.0f;
 
@@ -105,6 +110,14 @@ ShooterSubsystem::config shooter_config = {
     false
 };
 
+// State variables (remote control path)
+ChassisSpeeds des_chassis_state;
+TurretSubsystem::TurretInfo des_turret_state;
+ShootState des_shoot_state;
+
+float pitch_desired_angle = 0.0;
+float yaw_desired_angle = 0.0;
+
 // A stream must have received a valid packet before it can enable actuators.
 static bool command_is_fresh(uint64_t stamp_us, uint64_t current_us) {
     return stamp_us != 0 && current_us >= stamp_us &&
@@ -121,6 +134,16 @@ class Sentry : public BaseRobot {
     TurretSubsystem turret_;
     ShooterSubsystem shooter_;
     ChassisSubsystem chassis_;
+
+    IMU::EulerAngles imuAngles;
+
+    // Enum to more easily control robotstates, at comp we can easily just set neutral to jetson and profit 
+    enum class ControlMode {
+        REMOTE, // Mode N: yaw-oriented, remote/keyboard control
+        JETSON, // Mode S: Jetson commands chassis / turret / shooter
+        NEUTRAL    // Anything else: everything off
+    };
+    ControlMode control_mode_{ControlMode::NEUTRAL};
 
     Sentry(Config &config)
         : BaseRobot(config),
@@ -142,19 +165,36 @@ class Sentry : public BaseRobot {
           }) {}
 
     void init() override {
+        if (!device_is_ready(controllerUart)) {
+            printf("[ERROR] controllerUart (usart1) not ready!\n");
+        }
         if (!device_is_ready(jetsonUart)) {
             printf("[ERROR] jetsonUart (uart5) not ready!\n");
         }
         imu_.begin(0.9, 0);
     }
 
+    // Same override scheme as infantry: 'u' forces the first mode, 'd' forces
+    // the second, 'o' defers to the remote's mode switch.
+    //   N  (or drive 'u') -> REMOTE
+    //   S  (or drive 'd') -> JETSON
+    //   otherwise         -> NEUTRAL
+    ControlMode select_mode() {
+        if (drive == 'u' || (drive == 'o' && remote_.getMode() == DJIRemote2::ModeSwitch::MODE_N)) {
+            return ControlMode::REMOTE;
+        }
+        if (drive == 'd' || (drive == 'o' && remote_.getMode() == DJIRemote2::ModeSwitch::MODE_S)) {
+            return ControlMode::JETSON;
+        }
+        return ControlMode::NEUTRAL;
+    }
+
     void periodic(unsigned long dt_us) override {
         imu_.mahonyUpdateIMU(dt_us / 1000000.0f);
-        auto imu_angles = imu_.getImuAngles();
+        imuAngles = imu_.getImuAngles();
+
+        // Always read the Jetson so its state stays current regardless of mode
         jetson_state = jetson.read();
-        const uint64_t current_us = now_us();
-        const bool chassis_enabled = command_is_fresh(jetson_state.chassis_stamp_us, current_us);
-        const bool turret_enabled = command_is_fresh(jetson_state.turret_stamp_us, current_us);
 
         // Set the power budget before calculating chassis motor outputs.
         float power_limit = referee_.robot_status.chassis_power_limit;
@@ -162,6 +202,77 @@ class Sentry : public BaseRobot {
             power_limit = 80;
         }
         chassis_.power_limit = power_limit;
+
+        control_mode_ = select_mode();
+        switch (control_mode_) {
+            case ControlMode::REMOTE:   run_remote_mode(dt_us); break;
+            case ControlMode::JETSON:   run_jetson_mode();      break;
+            case ControlMode::NEUTRAL:  run_neutral_mode();        break;
+        }
+
+        turret_.periodic(chassis_.getChassisSpeeds().vOmega * 60.0f / (2.0f * PI));
+        chassis_.periodic(&imuAngles);
+        shooter_.periodic(referee_.power_heat_data.shooter_17mm_1_barrel_heat,
+                          referee_.robot_status.shooter_barrel_heat_limit);
+
+        set_jetson_state();
+        jetson.write(stm_state);
+    }
+
+    unsigned int main_loop_dt_ms() override { return 2; } // 500 Hz loop
+
+    // ---------------------------------------------------------------
+    // Mode N: Infantry-mode basically, the remote does everything
+    // ---------------------------------------------------------------
+    void run_remote_mode(unsigned long dt_us) {
+        const float dt_s = dt_us / 1000000.0f;
+
+        // Chassis: yaw-oriented translation, no spin
+        max_linear_vel = MAX_VEL;
+        des_chassis_state.vX = jy * max_linear_vel;
+        des_chassis_state.vY = jx * max_linear_vel;
+        des_chassis_state.vOmega = 0;
+        chassis_.setChassisSpeeds(des_chassis_state, ChassisSubsystem::DRIVE_MODE::YAW_ORIENTED);
+
+        // Turret from remote (joystick + mouse)
+        yaw_desired_angle -= myaw * 0.01f;
+        yaw_desired_angle -= jyaw * JOYSTICK_YAW_SENSITIVITY_DPS * dt_s;
+        yaw_desired_angle = capAngle(yaw_desired_angle);
+        des_turret_state.yaw_angle_degs = yaw_desired_angle;
+
+        pitch_desired_angle -= mpitch * 0.01f;
+        pitch_desired_angle -= jpitch * JOYSTICK_PITCH_SENSITIVITY_DPS * dt_s;
+        pitch_desired_angle = std::clamp(pitch_desired_angle, PITCH_LOWER_BOUND, PITCH_UPPER_BOUND);
+        des_turret_state.pitch_angle_degs = pitch_desired_angle;
+        des_turret_state.turret_mode = TurretState::AIM;
+
+        // Shooter from remote
+        if ((remote_.PAUSEToggled() == true && remote_.TriggerPressed() == true) || remote_.getMouseL()) {
+            des_shoot_state = ShootState::SHOOT;
+        } else if (remote_.CUSTRPressed() == true && remote_.PAUSEToggled() == true) {
+            des_shoot_state = ShootState::JAM;
+        } else if (remote_.PAUSEToggled() == true || shot == 'd') {
+            des_shoot_state = ShootState::FLYWHEEL;
+        } else {
+            des_shoot_state = ShootState::OFF;
+        }
+
+        turret_.setState(des_turret_state);
+        shooter_.setState(des_shoot_state);
+
+        referee_.is_aligned = false;
+        referee_.is_cv_on = false;
+        referee_.is_spinning = false;
+        referee_.is_flywheel_on = des_shoot_state != ShootState::OFF;
+    }
+
+    // ---------------------------------------------------------------
+    // Mode S: Jetson mode 
+    // ---------------------------------------------------------------
+    void run_jetson_mode() {
+        const uint64_t current_us = now_us();
+        const bool chassis_enabled = command_is_fresh(jetson_state.chassis_stamp_us, current_us);
+        const bool turret_enabled = command_is_fresh(jetson_state.turret_stamp_us, current_us);
 
         ChassisSpeeds chassis_command{};
         if (chassis_enabled) {
@@ -196,25 +307,42 @@ class Sentry : public BaseRobot {
         turret_.setState(turret_command);
         shooter_.setState(shoot_command);
 
+        // Keep the remote-mode setpoints tracking the real turret so switching
+        // S -> N doesn't make the turret snap to a stale target.
+        yaw_desired_angle = turret_.getState().yaw_angle_degs;
+        pitch_desired_angle = std::clamp(turret_.getState().pitch_angle_degs,
+                                         PITCH_LOWER_BOUND, PITCH_UPPER_BOUND);
+
         referee_.is_aligned = false;
         referee_.is_cv_on = turret_enabled;
         referee_.is_spinning = chassis_enabled && chassis_command.vOmega != 0.0f;
         referee_.is_flywheel_on = shoot_command != ShootState::OFF;
-
-        turret_.periodic(chassis_.getChassisSpeeds().vOmega * 60.0f / (2.0f * PI));
-        chassis_.periodic(&imu_angles);
-        shooter_.periodic(referee_.power_heat_data.shooter_17mm_1_barrel_heat,
-                          referee_.robot_status.shooter_barrel_heat_limit);
-
-        set_jetson_state();
-        jetson.write(stm_state);
     }
 
-    unsigned int main_loop_dt_ms() override { return 2; }
+    // ---------------------------------------------------------------
+    // Any other switch position: everything off
+    // ---------------------------------------------------------------
+    void run_neutral_mode() {
+        chassis_.setWheelPower({0, 0, 0, 0});
+
+        des_turret_state.turret_mode = TurretState::SLEEP;
+        des_turret_state.yaw_angle_degs = turret_.getState().yaw_angle_degs;
+        des_turret_state.pitch_angle_degs = 0;
+        yaw_desired_angle = turret_.getState().yaw_angle_degs;
+        pitch_desired_angle = 0;
+
+        turret_.setState(des_turret_state);
+        shooter_.setState(ShootState::OFF);
+
+        referee_.is_aligned = false;
+        referee_.is_cv_on = false;
+        referee_.is_spinning = false;
+        referee_.is_flywheel_on = false;
+    }
 
     void set_jetson_state() {
-        // Autonomy is always requested, independent of remote_.getMode()/cv_enabled_.
-        stm_state.activate_CV = 1;
+        // Only request autonomy while the remote has handed control to the Jetson.
+        stm_state.activate_CV = (control_mode_ == ControlMode::JETSON) ? 1 : 0;
         stm_state.calibration = 0;
         stm_state.game_state = referee_.get_game_progress();
         stm_state.robot_hp = referee_.get_remain_hp();
@@ -243,5 +371,4 @@ int main(void) {
     config.can2_dev = canbus2_dev;
     static Sentry sentry(config);
     sentry.main_loop();
-    return 0;
 }
