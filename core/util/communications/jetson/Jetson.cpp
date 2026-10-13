@@ -81,63 +81,61 @@ void Jetson::readThread() {
     int buff_tail = 0;
 
     while (1) {
-        if (readIOReadable()) {
-            // because we check readable first this should not block waiting for
-            // data
-            int bytes_read = readIO(&buff[buff_tail], BUFF_SIZE - buff_tail);
-            if (bytes_read < 0) {
-                continue;
-            }
+        // Sleeps on m_rx_sem until there's data to actually read
+        int bytes_read = readIO(&buff[buff_tail], BUFF_SIZE - buff_tail);
+        if (bytes_read < 0) {
+            continue;
+        }
 
-            buff_tail += bytes_read;
+        buff_tail += bytes_read;
 
-            // search for packets left to right.
-            int buff_head = 0;
-            int start_of_partial_data = 0;
-            while (buff_head < buff_tail) {
-                bool found_packet = false;
-                int bytes_consumed = 0;
-                for (auto &packet : read_packets_) {
-                    mutex_read_.lock();
-                    // clang-format off
-                    bytes_consumed = packet->parse_buff(&buff[buff_head], buff_tail - buff_head, read_state_);
-                    // clang-format on
-                    mutex_read_.unlock();
+        // search for packets left to right.
+        int buff_head = 0;
+        int start_of_partial_data = 0;
+        while (buff_head < buff_tail) {
+            bool found_packet = false;
+            int bytes_consumed = 0;
+            for (auto &packet : read_packets_) {
+                mutex_read_.lock();
+                // clang-format off
+                bytes_consumed = packet->parse_buff(&buff[buff_head], buff_tail - buff_head, read_state_);
+                // clang-format on
+                mutex_read_.unlock();
 
-                    // found a match
-                    if (bytes_consumed > 0) {
-                        found_packet = true;
-                        // dont look for anymore packets at the current idx
-                        break;
-                    }
-                }
-
-                if (found_packet) {
-                    buff_head += bytes_consumed;
-                    start_of_partial_data = buff_head;
-                } else {
-                    buff_head++;
+                // found a match
+                if (bytes_consumed > 0) {
+                    found_packet = true;
+                    // dont look for anymore packets at the current idx
+                    break;
                 }
             }
 
-            // if a packet is found and there is data to the right of it, copy
-            // that data to the start of the buffer so it can be potentially
-            // matched to a packet as more data arrives
-            if (start_of_partial_data != 0) {
-                memmove(&buff[0], &buff[start_of_partial_data],
-                             buff_tail - start_of_partial_data);
-
-                buff_tail = buff_tail - start_of_partial_data;
-            }
-
-            // dumb safety check a circular buffer is probably better
-            if (buff_tail > 400) {
-                buff_tail = 0;
-                printf("[ERROR] jetson read buffer resetting");
+            if (found_packet) {
+                buff_head += bytes_consumed;
+                start_of_partial_data = buff_head;
+            } else {
+                buff_head++;
             }
         }
-        // ThisThread::yield();
-        k_yield();
+
+        // if a packet is found and there is data to the right of it, copy
+        // that data to the start of the buffer so it can be potentially
+        // matched to a packet as more data arrives
+        if (start_of_partial_data != 0) {
+            memmove(&buff[0], &buff[start_of_partial_data],
+                            buff_tail - start_of_partial_data);
+
+            buff_tail = buff_tail - start_of_partial_data;
+        }
+
+        // dumb safety check a circular buffer is probably better
+        if (buff_tail > 400) {
+            buff_tail = 0;
+            printf("[ERROR] jetson read buffer resetting");
+        }
+    
+    // ThisThread::yield();
+    k_yield();
     }
 }
 

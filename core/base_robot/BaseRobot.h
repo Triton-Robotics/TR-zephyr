@@ -130,33 +130,34 @@ class BaseRobot {
 
         init();
 
+        const int64_t period_ticks = k_us_to_ticks_ceil64(this->main_loop_dt_ms() * 1000ULL);
+        int64_t next_wake = k_uptime_ticks();
+        uint64_t prev_loop_us = now_us();
+        uint64_t prev_remote_time_us = prev_loop_us;
+
         while (true) {
             loop_clock_us = now_us();
 
             // 20 ms remote read
-            if ((loop_clock_us - prev_remote_time_us) / 1000 >= 15) {
+            if ((loop_clock_us - prev_remote_time_us) >= 15000) {
                 remote_.update();
                 remoteRead();
                 prev_remote_time_us = loop_clock_us;
             }
 
-            if ((loop_clock_us - prev_loop_time_us) / 1000 >= main_loop_dt_ms) {
-                // Add subsystems in periodic
-                led0_.toggle();
+           
+            if (can1) can1->readAllCan();
+            if (can2) can2->readAllCan();
+            led0_.toggle(); // Here for debugging
+            
+            periodic(loop_clock_us - prev_loop_time_us);
+            prev_loop_time_us = loop_clock_us;
 
-                periodic(loop_clock_us - prev_loop_time_us);
-                prev_loop_time_us = loop_clock_us;
-
-                // Motor updates
-                DJIMotor::sendValues();
-            }
+            // Motor updates
+            DJIMotor::sendValues();
             // Add sensors updates in your end of loop
             end_of_loop();
 
-            // canHandler1_.readAllCan();
-            // canHandler2_.readAllCan();
-            if (can1) can1->readAllCan();
-            if (can2) can2->readAllCan();
 
             k_sleep(K_MSEC(2));
         }
