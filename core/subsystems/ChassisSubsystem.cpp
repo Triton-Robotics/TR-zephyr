@@ -114,44 +114,47 @@ float ChassisSubsystem::p_theory(int LeftFrontPower, int RightFrontPower, int Le
     return p_tot_c;
 }
 
-float ChassisSubsystem::Bisection(int LeftFrontPower, int RightFrontPower, int LeftBackPower, int RightBackPower, int LeftFrontRpm, int RightFrontRpm, int LeftBackRpm, int RightBackRpm, float chassisPowerLimit) {
-    float scale = 0.5; // initial scale
-    float precision = 0.25; // initial precision
-    float powerInit = p_theory(LeftFrontPower, RightFrontPower, LeftBackPower, RightBackPower, LeftFrontRpm, RightFrontRpm, LeftBackRpm, RightBackRpm);
+//p_theory() and bisection() are never called anywhere in current beyblade implementation
+//both functions replaced by estimatePowerWatts()
+
+// float ChassisSubsystem::Bisection(int LeftFrontPower, int RightFrontPower, int LeftBackPower, int RightBackPower, int LeftFrontRpm, int RightFrontRpm, int LeftBackRpm, int RightBackRpm, float chassisPowerLimit) {
+//     float scale = 0.5; // initial scale
+//     float precision = 0.25; // initial precision
+//     float powerInit = p_theory(LeftFrontPower, RightFrontPower, LeftBackPower, RightBackPower, LeftFrontRpm, RightFrontRpm, LeftBackRpm, RightBackRpm);
 
 
-    if (powerInit > chassisPowerLimit) {
+//     if (powerInit > chassisPowerLimit) {
 
-        float powerScaled = p_theory(LeftFrontPower*scale, RightFrontPower*scale, LeftBackPower*scale, RightBackPower*scale, LeftFrontRpm, RightFrontRpm, LeftBackRpm, RightBackRpm);
+//         float powerScaled = p_theory(LeftFrontPower*scale, RightFrontPower*scale, LeftBackPower*scale, RightBackPower*scale, LeftFrontRpm, RightFrontRpm, LeftBackRpm, RightBackRpm);
         
-        for (int i = 0; i < 6; i++) {
+//         for (int i = 0; i < 6; i++) {
             
-            // if (abs(powerScaled - chassisPowerLimit) < 0.1) {
-            //     printf("ppppp \n");
-            //     break;
-            // }
-            if (powerScaled > chassisPowerLimit) {
-                scale = scale - precision;
-                precision = precision / 2;
-                powerScaled = p_theory(LeftFrontPower*scale, RightFrontPower*scale, LeftBackPower*scale, RightBackPower*scale, LeftFrontRpm, RightFrontRpm, LeftBackRpm, RightBackRpm);
-                // printf("powerScaled Down: %f\n", powerScaled);
-            }
+//             // if (abs(powerScaled - chassisPowerLimit) < 0.1) {
+//             //     printf("ppppp \n");
+//             //     break;
+//             // }
+//             if (powerScaled > chassisPowerLimit) {
+//                 scale = scale - precision;
+//                 precision = precision / 2;
+//                 powerScaled = p_theory(LeftFrontPower*scale, RightFrontPower*scale, LeftBackPower*scale, RightBackPower*scale, LeftFrontRpm, RightFrontRpm, LeftBackRpm, RightBackRpm);
+//                 // printf("powerScaled Down: %f\n", powerScaled);
+//             }
 
-            else { // power is low enough
-                scale = scale + precision;
-                precision = precision / 2;
-                powerScaled = p_theory(LeftFrontPower*scale, RightFrontPower*scale, LeftBackPower*scale, RightBackPower*scale, LeftFrontRpm, RightFrontRpm, LeftBackRpm, RightBackRpm);
-                // printf("powerScaled Up: %f\n", powerScaled);
-            }
-        }
-        return scale;
-    }
+//             else { // power is low enough
+//                 scale = scale + precision;
+//                 precision = precision / 2;
+//                 powerScaled = p_theory(LeftFrontPower*scale, RightFrontPower*scale, LeftBackPower*scale, RightBackPower*scale, LeftFrontRpm, RightFrontRpm, LeftBackRpm, RightBackRpm);
+//                 // printf("powerScaled Up: %f\n", powerScaled);
+//             }
+//         }
+//         return scale;
+//     }
 
-    else {
-        return 1;
-    }
+//     else {
+//         return 1;
+//     }
 
-}
+// }
 
 float ChassisSubsystem::estimatePowerWatts(int torqueCounts)
 {
