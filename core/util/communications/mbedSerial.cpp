@@ -18,6 +18,7 @@ SerialBase::SerialBase(const struct device *dev, USART_TypeDef *ll_usart) : uart
     // This function basically declares: When the interrupt happens, irq_trampoline got that. Just let it know we're going thru THIS 
     // SerialBase object, and uart_dev is the device we're going with 
     uart_irq_rx_enable(uart_dev);  // RX stays on; TX toggles via enable_output
+    m_rx_enabled = true;
 }
 
 USART_TypeDef *SerialBase::usart_getter() const {
@@ -43,9 +44,9 @@ int SerialBase::enable_output(bool enable) {
             uart_irq_tx_disable(uart_dev);
             pm_device_busy_clear(uart_dev);     // unlock deep sleep
         }
-        irq_unlock(key); // Restores our savestate (key) and everything resumes as normal 
-
         m_tx_enabled = enable;
+        // Publish the state before TX IRQ can run and drain the queue again.
+        irq_unlock(key); // Restores our savestate (key) and everything resumes as normal
 
         if (!enable && !m_rx_enabled) {
             deinit_peripheral();
@@ -176,7 +177,11 @@ void SerialBase::irq_handler() {
                 k_sem_give(&m_tx_space_sem); // 
             }
             else {
-                enable_output(false);
+                // ISR context must never take m_lock (enable_output does).
+                // Only stop TX; RX must remain active for incoming commands.
+                uart_irq_tx_disable(uart_dev);
+                pm_device_busy_clear(uart_dev);
+                m_tx_enabled = false;
             }
         }
     }

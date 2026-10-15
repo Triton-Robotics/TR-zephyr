@@ -1,5 +1,6 @@
 #include "util/communications/jetson/Jetson.h"
 #include <util/algorithms/general_functions.h>
+#include <cstdio>
 
 #define JETSON_READ_STACK_SIZE 4096
 #define JETSON_WRITE_STACK_SIZE 2048
@@ -100,7 +101,6 @@ void Jetson::readThread() {
                     mutex_read_.lock();
                     // clang-format off
                     bytes_consumed = packet->parse_buff(&buff[buff_head], buff_tail - buff_head, read_state_);
-                    read_state_.stamp_us = now_us();
                     // clang-format on
                     mutex_read_.unlock();
 
@@ -147,32 +147,21 @@ int Jetson::writeIO(char *buff, int write_size) {
 }
 
 void Jetson::writeThread() {
-    // unsigned long curr_time = now_us();
-    // unsigned long prev_time = now_us();
     while (1) {
         char buff[256];
         int buff_pos = 0;
-
-        // curr_time = now_us();
-
-        // if ((curr_time - prev_time) / 1000 >= WRITE_THREAD_LOOP_DT_MS) {
-        //     prev_time = curr_time;
-
-            for (auto &packet : write_packets_) {
-                mutex_write_.lock();
-                int bytes_wrote =
-                    packet->write_data_to_buff(write_state_, buff + buff_pos, 256);
-                mutex_write_.unlock();
-
-                if (bytes_wrote < 0) {
-                    continue;
-                }
-
+        // One consistent, latest snapshot; never queue historical states.
+        mutex_write_.lock();
+        auto snapshot = write_state_;
+        mutex_write_.unlock();
+        for (auto &packet : write_packets_) {
+            int bytes_wrote = packet->write_data_to_buff(
+                snapshot, buff + buff_pos, sizeof(buff) - buff_pos);
+            if (bytes_wrote > 0) {
                 buff_pos += bytes_wrote;
             }
-
-            writeIO(buff, buff_pos);
-        // }
+        }
+        writeIO(buff, buff_pos);
         k_sleep(K_MSEC(WRITE_THREAD_LOOP_DT_MS));
     }
 }

@@ -2,6 +2,9 @@
 #include <zephyr/kernel.h>
 #include <util/algorithms/mbedMutex.cpp>
 #include <util/communications/mbedSerial.h>
+#include <util/algorithms/general_functions.h>
+#include <cmath>
+#include <cstring>
 #include <cstdint>
 #include <memory>
 #include <vector>
@@ -31,6 +34,9 @@ class Jetson {
 
     struct ReadState {
         unsigned long long stamp_us;
+        // Local receipt times for independently expiring command streams.
+        uint64_t turret_stamp_us;
+        uint64_t chassis_stamp_us;
         float desired_pitch_rads;
         float desired_yaw_rads;
         char shoot_status;
@@ -60,8 +66,8 @@ class Jetson {
     std::vector<std::unique_ptr<WritePacket>> write_packets_;
     std::vector<std::unique_ptr<ReadPacket>> read_packets_;
 
-    ReadState read_state_;
-    WriteState write_state_;
+    ReadState read_state_{};
+    WriteState write_state_{};
 
     // Thread write_thread_;
     void writeThread();
@@ -95,7 +101,11 @@ class Jetson {
 
     mode jetsonMode;
 
-    static constexpr unsigned long WRITE_THREAD_LOOP_DT_MS = 2;
+    // A telemetry group is 40 bytes (referee + robot state + user input).
+    // At 115200 8N1 this takes 3.47 ms on the wire. A 2 ms producer
+    // saturates the queue; 10 ms leaves idle time for the Jetson RX DMA
+    // end-of-receive interrupt and sends the latest snapshot at <=100 Hz.
+    static constexpr unsigned long WRITE_THREAD_LOOP_DT_MS = 10;
 };
 
 // ------
@@ -208,10 +218,10 @@ class ReadPacket {
 
     // returns the amount of bytes consumed or -1 if invalid
     int parse_buff(char *buff, int buff_size, Jetson::ReadState &read_state) {
-        if (buff[0] != header_) {
+        if (buff_size < payload_size_ + 2) {
             return -1;
         }
-        if (buff_size < payload_size_ + 2) {
+        if (buff[0] != header_) {
             return -1;
         }
 
@@ -224,14 +234,21 @@ class ReadPacket {
             return -1;
         }
 
-        extract_payload(&buff[1], read_state);
+        auto next_state = read_state;
+        const uint64_t stamp_us = now_us();
+        if (!extract_payload(&buff[1], next_state, stamp_us)) {
+            return -1;
+        }
+        next_state.stamp_us = stamp_us;
+        read_state = next_state;
 
         // consumed header + payload + checksum bytes
         return payload_size_ + 2;
     }
 
   private:
-    virtual void extract_payload(char *buff, Jetson::ReadState &read_state) = 0;
+    virtual bool extract_payload(char *buff, Jetson::ReadState &read_state,
+                                 uint64_t stamp_us) = 0;
 };
 
 class TurretPacket : public ReadPacket {
@@ -241,12 +258,19 @@ class TurretPacket : public ReadPacket {
     TurretPacket() : ReadPacket(HEADER, PAYLOAD_SIZE) {};
 
   private:
-    void extract_payload(char *buff, Jetson::ReadState &read_state) override {
+    bool extract_payload(char *buff, Jetson::ReadState &read_state,
+                         uint64_t stamp_us) override {
 
-        // 4 byte pitch, 4 byte yaw, 1 byte shoot
+        // 4 byte yaw, 4 byte pitch, 1 byte shoot
         memcpy(&read_state.desired_yaw_rads, &buff[0], sizeof(float));
         memcpy(&read_state.desired_pitch_rads, &buff[4], sizeof(float));
         memcpy(&read_state.shoot_status, &buff[8], sizeof(char));
+        if (!std::isfinite(read_state.desired_yaw_rads) ||
+            !std::isfinite(read_state.desired_pitch_rads)) {
+            return false;
+        }
+        read_state.turret_stamp_us = stamp_us;
+        return true;
     }
 };
 
@@ -258,7 +282,8 @@ class ChassisReadPacket : public ReadPacket {
     ChassisReadPacket() : ReadPacket(HEADER, PAYLOAD_SIZE) {};
 
   private:
-    void extract_payload(char *buff, Jetson::ReadState &read_state) override {
+    bool extract_payload(char *buff, Jetson::ReadState &read_state,
+                         uint64_t stamp_us) override {
 
         // 4 x vel bytes, 4 y vel bytes, 4 rotation vel bytes, 1 localization
         // calibration byte
@@ -267,5 +292,12 @@ class ChassisReadPacket : public ReadPacket {
         memcpy(&read_state.desired_angular_vel, &buff[8], sizeof(float));
         memcpy(&read_state.localization_calibration, &buff[12],
                     sizeof(uint8_t));
+        if (!std::isfinite(read_state.desired_x_vel) ||
+            !std::isfinite(read_state.desired_y_vel) ||
+            !std::isfinite(read_state.desired_angular_vel)) {
+            return false;
+        }
+        read_state.chassis_stamp_us = stamp_us;
+        return true;
     }
 };
