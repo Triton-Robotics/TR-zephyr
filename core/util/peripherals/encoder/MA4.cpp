@@ -33,14 +33,14 @@ int MA4::init() {
 // }
 
 void MA4::on_capture(uint32_t period_cycles, uint32_t pulse_cycles, int status) {
-    _cb_count++;                    // volatile uint32_t member
-    _last_status = status;          // volatile int member
+    _cb_count++;                    
+    // _last_status = status;        // Used for debugging
     if (status != 0 || period_cycles == 0) return;
-    _duty = (float)pulse_cycles / (float)period_cycles;   // volatile float member
+    _duty = (float)pulse_cycles / (float)period_cycles;   
 }
 
 float MA4::getEncoderYawPosition() {
-    if (_cb_count == 0) return -1.0f;                     // no data yet
+    if (_cb_count == 0) return -1.0f;                     // Protects against the erroneous 11.26 deg readings
 
 
     float duty_raw = dutycycle();
@@ -58,8 +58,16 @@ float MA4::getEncoderYawPosition() {
         _filtered -= 360.0f * floorf(_filtered / 360.0f);
     }
 
-    float out = _invert ? 360.0f - _filtered : _filtered;
-    if (out >= 360.0f) out -= 360.0f;
+    // float out = _invert ? 360.0f - _filtered : _filtered;
+    
+    float out = _filtered;
+    if (_invert) {
+        out = 360.0f - _filtered;
+    }
+
+    if (out >= 360.0f) {
+        out -= 360.0f;
+    }
     return out;
 }
 

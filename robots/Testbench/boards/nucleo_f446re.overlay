@@ -50,7 +50,7 @@
 
 &timers3 { // Encoder | PWM is done thru timer node, PB_4 is timer3 channel 1
     status = "okay";
-    st,prescaler = <83>;   // tune below
+    st,prescaler = <3>;   // This decides how coarse the ticks are; see notion for details
 
     pwm3: pwm {
         compatible = "st,stm32-pwm";
