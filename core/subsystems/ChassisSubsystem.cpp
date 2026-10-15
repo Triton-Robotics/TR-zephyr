@@ -229,10 +229,13 @@ float ChassisSubsystem::setWheelSpeeds(WheelSpeeds wheelSpeeds)
     int p4 = abs(powers[3]);
 
     // Ignore Warning, we're casting to ints anyway so its fine
-    int r1 = abs(getMotorSpeed(MotorLocation::LEFT_FRONT, RPM));
-    int r2 = abs(getMotorSpeed(MotorLocation::RIGHT_FRONT, RPM));
-    int r3 = abs(getMotorSpeed(MotorLocation::LEFT_BACK, RPM));
-    int r4 = abs(getMotorSpeed(MotorLocation::RIGHT_BACK, RPM));
+
+    //r1 - r4 are never used within current code, originally used as inputs for bisection()
+
+    // int r1 = abs(getMotorSpeed(MotorLocation::LEFT_FRONT, RPM));
+    // int r2 = abs(getMotorSpeed(MotorLocation::RIGHT_FRONT, RPM));
+    // int r3 = abs(getMotorSpeed(MotorLocation::LEFT_BACK, RPM));
+    // int r4 = abs(getMotorSpeed(MotorLocation::RIGHT_BACK, RPM));
 
     float totalEstimatedWatts = estimatePowerWatts(LF.getData(TORQUE))
                                + estimatePowerWatts(RF.getData(TORQUE))
