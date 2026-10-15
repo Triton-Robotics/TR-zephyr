@@ -40,6 +40,8 @@ public:
     
     // Return game progress
     uint8_t get_game_progress();
+
+    float get_shoot_data();
     
     
     robot_status_t                          robot_status;

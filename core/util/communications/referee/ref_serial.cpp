@@ -759,6 +759,10 @@ uint8_t Referee::get_game_progress()
     return game_status.game_progress;
 }
 
+float Referee::get_shoot_data(){
+    return shoot_data.initial_speed;
+}
+
 
 /**
   * @brief  判断自己红蓝方
