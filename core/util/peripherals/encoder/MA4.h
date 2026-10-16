@@ -58,6 +58,9 @@ public:
     uint32_t cbCount() const { return _cb_count; }
     int lastStatus() const { return _last_status; }
 
+    uint32_t periodCycles() const;
+    uint32_t pulseCycles() const;
+
 protected:
 
     // Capture Callback
@@ -80,6 +83,8 @@ protected:
     volatile float    _duty = 0.0f;
     volatile uint32_t _cb_count = 0;
     volatile int      _last_status = 0;
+
+    volatile uint32_t _period_cycles = 0, _pulse_cycles = 0;
 
     float _filtered = 0.0f;
     bool  _have_filter = false;

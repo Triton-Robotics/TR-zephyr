@@ -32,12 +32,32 @@ int MA4::init() {
 //     _pulsewidth = pulse_ns / 1.0e6f;
 // }
 
+// void MA4::on_capture(uint32_t period_cycles, uint32_t pulse_cycles, int status) {
+//     _cb_count++;                    
+//     // _last_status = status;        // Used for debugging
+//     if (status != 0 || period_cycles == 0) return;
+//     _duty = (float)pulse_cycles / (float)period_cycles;   
+// }
+
+// in MA4: volatile uint32_t _period_cycles = 0, _pulse_cycles = 0;
 void MA4::on_capture(uint32_t period_cycles, uint32_t pulse_cycles, int status) {
-    _cb_count++;                    
-    // _last_status = status;        // Used for debugging
+    _cb_count++;
+    _last_status = status;
     if (status != 0 || period_cycles == 0) return;
-    _duty = (float)pulse_cycles / (float)period_cycles;   
+    _period_cycles = period_cycles;
+    _pulse_cycles = pulse_cycles;
+    _duty = (float)pulse_cycles / (float)period_cycles;
 }
+// plus getters: periodCycles(), pulseCycles()
+
+uint32_t MA4::periodCycles() const {
+    return _period_cycles;
+}
+
+uint32_t MA4::pulseCycles() const {
+    return _pulse_cycles;
+}
+
 
 float MA4::getEncoderYawPosition() {
     if (_cb_count == 0) return -1.0f;                     // Protects against the erroneous 11.26 deg readings

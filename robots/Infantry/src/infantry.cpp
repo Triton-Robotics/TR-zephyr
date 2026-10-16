@@ -176,10 +176,11 @@ class Infantry : public BaseRobot {
 
     void init() override {
         // timer = us_ticker_read();
-            if (!device_is_ready(controllerUart)) {
-    printf("[ERROR] controllerUart (usart1) not ready!\n");
-    }
+        if (!device_is_ready(controllerUart)) {
+            printf("[ERROR] controllerUart (usart1) not ready!\n");
+            }
         imu_.begin(0.9, 0);
+        encoder_.init();
     }
 
     void periodic(unsigned long dt_us) override {
@@ -287,7 +288,7 @@ class Infantry : public BaseRobot {
         // remote_.getSwitch(Remote::Switch::RIGHT_SWITCH));
         // %.2f\n", imu.getImuAngles().yaw);
         // printf("%d\n", referee_.get_game_progress());
-        printf("yp %.2f \n", encoder_.getEncoderYawPosition());
+        printf("yp %.2f \n", encoder_.encoderMovingAverage());
         // printf("%.2f, %.2f, %.2f\n", imuAngles.roll, imuAngles.pitch, imuAngles.yaw);
         // printf("remote state: %d\n", remote_.getMode());
         // printf("remote jx: %.2f, jy: %.2f, jpitch: %.2f, jyaw: %.2f\n", jx, jy, jpitch, jyaw);

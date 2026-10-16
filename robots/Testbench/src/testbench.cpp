@@ -67,6 +67,10 @@ void periodic() {
     // printk("cb_count=%u status=%d\n", encoder_.cbCount(), encoder_.lastStatus());
 
     encodersYaw = encoder_.encoderMovingAverage();
+    printk("cb=%u st=%d period=%u pulse=%u SR=%08x\n",
+       encoder_.cbCount(), encoder_.lastStatus(),
+       encoder_.periodCycles(), encoder_.pulseCycles(),
+       (unsigned)TIM3->SR);
     // dump_tim3();
     
 }
@@ -84,6 +88,6 @@ int main(void)
 
     while (true) {
         periodic();
-        k_sleep(K_MSEC(20));
+        k_sleep(K_MSEC(2));
     }
 }
