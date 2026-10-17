@@ -65,6 +65,11 @@ private:
     struct k_mutex m_lock;
     struct k_sem m_rx_sem;
     struct k_sem m_tx_space_sem;
+
+    // Making this so that our ISRs are not cooked hopefully :) 
+    struct k_sem m_tx_idle_sem;
+    struct k_work m_tx_idle_work;
+    static void tx_idle_work_handler(struct k_work *work);
     
     struct ring_buf m_rx_rb;
     struct ring_buf m_tx_rb;

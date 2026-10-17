@@ -8,7 +8,7 @@
 #include "crc.h"
 #include "ref_constants.h"
 #include <util/algorithms/mbedMutex.cpp>
-#include <util/communications/mbedSerial.h>
+#include <util/communications/serialBase.h>
 #include <util/algorithms/general_functions.h>
 #include <stm32_ll_usart.h>
 

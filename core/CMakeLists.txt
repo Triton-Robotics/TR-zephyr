@@ -16,7 +16,7 @@ zephyr_library_sources(
     
     util/communications/referee/ref_serial.cpp
     util/communications/referee/crc.cpp
-    util/communications/mbedSerial.cpp
+    util/communications/serialBase.cpp
     util/communications/DMAUart.cpp
     
     util/communications/jetson/Jetson.cpp
