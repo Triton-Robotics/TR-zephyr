@@ -357,7 +357,7 @@ void Referee::Judge_GetMessage(uint16_t Data_Length)
                     const uint8_t *d = &JudgeSystem_rxBuff[n + 7];
 
                     shoot_rx_count++;
-                    printk("0207 #%u raw: %02x %02x %02x | %02x %02x %02x %02x\n",
+                    printf("0207 #%u raw: %02x %02x %02x | %02x %02x %02x %02x\n",
                         shoot_rx_count, d[0], d[1], d[2], d[3], d[4], d[5], d[6]);
 
                     mutex_data_.lock();
