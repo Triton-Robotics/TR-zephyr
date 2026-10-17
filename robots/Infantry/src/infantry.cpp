@@ -288,7 +288,11 @@ class Infantry : public BaseRobot {
 
         // printf("Left Flywheel Velocity: %f\n", left_flywheel_vel);
         // printf("Right Flywheel Velocity: %f\n", right_flywheel_vel);
-    
+        if (ball_exit_speed > 0) {
+            printk("Ball Exit Speed: %.2f\n", ball_exit_speed);
+        }
+        // printk("Flywheel On: %d\n", referee_.is_flywheel_on); // sanity test for referee data
+
         // printf("des: %.2f, %.2f, %.2f %d \n", jetson.read().desired_x_vel,
         // jetson.read().desired_y_vel, jetson.read().desired_angular_vel,
         // jetson.read().localization_calibration); printf("y: %.2f\n",
@@ -342,6 +346,7 @@ int main(void)
     config.led2_dev = &led2_dev;
     config.controller_uart_dev = controllerUart;
     config.referee_uart_dev = refUartDev;
+    config.referee_usart_type = USART3;
     static Infantry infantry(config);
 
 

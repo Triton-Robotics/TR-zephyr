@@ -51,8 +51,6 @@ public:
     bool is_cv_on = false;
     bool is_aligned = false;
 private:
-    int shoot_rx_count = 0;
-    
     SerialBase ref;
     Mutex mutex_write_;
     Mutex mutex_read_;

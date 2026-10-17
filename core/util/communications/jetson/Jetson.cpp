@@ -137,7 +137,8 @@ void Jetson::readThread() {
             }
         }
         // ThisThread::yield();
-        k_yield();
+        // k_yield(); // doesn't sleep, blocks ref thread
+        k_sleep(K_MSEC(1));
     }
 }
 
