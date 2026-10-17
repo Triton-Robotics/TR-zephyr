@@ -291,6 +291,9 @@ ChassisSpeeds ChassisSubsystem::getChassisSpeeds() const
 
 float ChassisSubsystem::allocateBeybladeOmega(float jx, float jy, float omega_max, float k1, float k2)
 {
+    //check to ensure that vOmega(rotational) scale coefficient isnt less than 0
+    //hard caps rotational scale to 0 if negative, so no counter rotation (robot should only spin in one direction)
+    //keeps translation:rotational ratio working since both values can only be positive
     if (k2 <= 0.0f) {
         return 0.0f; // invalid tuning; fail safe with no spin
     }
