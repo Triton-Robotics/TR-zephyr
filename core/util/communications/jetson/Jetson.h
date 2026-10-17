@@ -1,7 +1,7 @@
 #pragma once
 #include <zephyr/kernel.h>
 #include <util/algorithms/mbedMutex.cpp>
-#include <util/communications/mbedSerial.h>
+#include <util/communications/serialBase.h>
 #include <cstdint>
 #include <memory>
 #include <vector>

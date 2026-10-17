@@ -2,7 +2,8 @@
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/uart.h>
 #include <zephyr/pm/device.h>
-#include "mbedSerial.h"
+#include "serialBase.h"
+#include <errno.h>
 
 SerialBase::SerialBase(const struct device *dev, USART_TypeDef *ll_usart) : uart_dev(dev), m_ll_usart(ll_usart) {
     k_mutex_init(&m_lock);
@@ -11,6 +12,10 @@ SerialBase::SerialBase(const struct device *dev, USART_TypeDef *ll_usart) : uart
     // And Mutexes can't be called in an interupt 
     k_sem_init(&m_rx_sem, 0, 1); 
     k_sem_init(&m_tx_space_sem, 0, 1);
+    k_sem_init(&m_tx_idle_sem, 0, 1);
+
+    k_work_init(&m_tx_idle_work, &SerialBase::tx_idle_work_handler);
+
     ring_buf_init(&m_rx_rb, sizeof(m_rx_buf), m_rx_buf);
     ring_buf_init(&m_tx_rb, sizeof(m_tx_buf), m_tx_buf);
 
@@ -26,9 +31,27 @@ USART_TypeDef *SerialBase::usart_getter() const {
 
 // equivalent of enable_output from Serialbase in mbedOS
 int SerialBase::enable_output(bool enable) {
+
+    if (k_is_in_isr()) { //This protects against this being called in an ISR 
+        
+        if (enable) { // Disabling output in ISR is fine, but enabling is cooked 
+            return -EWOULDBLOCK;
+        }
+
+        uart_irq_tx_disable(uart_dev);
+        if (k_work_submit(&m_tx_idle_work) < 0) {
+            return -EIO;
+        }
+        else {
+            return 0;
+        }
+    }
+
     k_mutex_lock(&m_lock, K_FOREVER);
 
-    if (m_tx_enabled != enable) {
+    const bool state_changed = (m_tx_enabled != enable);
+
+    if (state_changed && m_tx_enabled != enable) {
         if (enable && !m_rx_enabled) {
             init_peripheral();
         }
@@ -37,10 +60,12 @@ int SerialBase::enable_output(bool enable) {
                                         // Basically makes a save state (key) and makes sure that the 
                                         // following steps are NOT interrupted
         if (enable) {
-            uart_irq_tx_enable(uart_dev);
             pm_device_busy_set(uart_dev);       // lock deep sleep
+            m_tx_enabled = true;
+            uart_irq_tx_enable(uart_dev);
         } else {
             uart_irq_tx_disable(uart_dev);
+            m_tx_enabled = false;
             pm_device_busy_clear(uart_dev);     // unlock deep sleep
         }
         irq_unlock(key); // Restores our savestate (key) and everything resumes as normal 
@@ -55,6 +80,20 @@ int SerialBase::enable_output(bool enable) {
     k_mutex_unlock(&m_lock);
     return 0;
 }
+
+void SerialBase::tx_idle_work_handler(struct k_work *work)
+{
+    auto *self = CONTAINER_OF(work, SerialBase, m_tx_idle_work);
+
+    k_mutex_lock(&self->m_lock, K_FOREVER);
+
+    if (ring_buf_is_empty(&self->m_tx_rb)) {
+        self->enable_output(false);
+    }
+
+    k_mutex_unlock(&self->m_lock);
+}
+
 
 bool SerialBase::readable() {
         return !ring_buf_is_empty(&m_rx_rb);
@@ -120,8 +159,8 @@ ssize_t SerialBase::write(const void *buffer, size_t length) {
         }
         size_t n = ring_buf_put(&m_tx_rb, buf_ptr + data_written, length - data_written);
         data_written += n;
-        enable_output(true);    // This also locks the mutex, but that doesn't matter. Zephyr doesn't have like a 
-                                        // double lock system here, the unlock at the end undoes everything
+        enable_output(true);    // Zephyr mutexes are recursive, 
+        // but in this case enable output balances its own lock so we're good 
     }
     k_mutex_unlock(&m_lock);
     return (ssize_t)data_written; 
