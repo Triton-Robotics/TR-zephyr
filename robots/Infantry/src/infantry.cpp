@@ -17,7 +17,7 @@
 
 // Globals (testing)
 float left_flywheel_vel = -1.0f, right_flywheel_vel = -1.0f;
-float initial_ball_vel = -1.0f;
+float ball_exit_speed = -1.0f;
 
 // Robot Constants
 constexpr float PITCH_LOWER_BOUND{-22.0};
@@ -284,7 +284,7 @@ class Infantry : public BaseRobot {
         // Debug print statements
         left_flywheel_vel = shooter_.getFlywheelL();
         right_flywheel_vel = shooter_.getFlywheelR();
-        initial_ball_vel = referee_.get_shoot_data();
+        ball_exit_speed = referee_.get_ball_exit_speed();
 
         // printf("Left Flywheel Velocity: %f\n", left_flywheel_vel);
         // printf("Right Flywheel Velocity: %f\n", right_flywheel_vel);

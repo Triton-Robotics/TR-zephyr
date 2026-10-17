@@ -351,22 +351,26 @@ void Referee::Judge_GetMessage(uint16_t Data_Length)
                     n++;
                 }
                 break;
-            case Judge_RealTime_Shoot: //实时射击数据
+            case Judge_RealTime_Shoot:
                 if (Verify_CRC16_Check_Sum(JudgeSystem_rxBuff + n, JudgeLength_RealTime_Shoot))
                 {
-                    #if REF_DEBUG
-                    printf("RE[%d]\n", n);
-                    #endif
-                    memcpy(&shoot_data, &JudgeSystem_rxBuff[n + 7], sizeof(uint8_t[JudgeLength_RealTime_Shoot - JUDGE_EXTRA]));
-                    n += JudgeLength_RealTime_Shoot;
+                    const uint8_t *d = &JudgeSystem_rxBuff[n + 7];
+
+                    shoot_rx_count++;
+                    printk("0207 #%u raw: %02x %02x %02x | %02x %02x %02x %02x\n",
+                        shoot_rx_count, d[0], d[1], d[2], d[3], d[4], d[5], d[6]);
+
+                    mutex_data_.lock();
+                    shoot_data.bullet_type         = d[0];
+                    shoot_data.shooter_number      = d[1];
+                    shoot_data.launching_frequency = d[2];
+                    memcpy(&shoot_data.initial_speed, &d[3], sizeof(float));
                     shoot_data.InfoUpdataFlag = 1;
+                    mutex_data_.unlock();
+
+                    n += JudgeLength_RealTime_Shoot;
                 }
-                else{
-                    #if REF_DEBUG
-                    printf("RE_NO[%d]\n", n);
-                    #endif
-                    n++;
-                }
+                else { n++; }
                 break;
             case Judge_Remaining_Rounds: //子弹剩余数
                 if (Verify_CRC16_Check_Sum(JudgeSystem_rxBuff + n, JudgeLength_Remaining_Rounds))
@@ -759,8 +763,11 @@ uint8_t Referee::get_game_progress()
     return game_status.game_progress;
 }
 
-float Referee::get_shoot_data(){
-    return shoot_data.initial_speed;
+float Referee::get_ball_exit_speed(){
+    mutex_data_.lock();
+    float v = shoot_data.initial_speed;
+    mutex_data_.unlock();
+    return v;
 }
 
 
