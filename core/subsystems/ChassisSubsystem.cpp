@@ -265,8 +265,8 @@ WheelSpeeds ChassisSubsystem::normalizeWheelSpeeds(WheelSpeeds wheelSpeeds) cons
     float max_speed = m_OmniKinematicsLimits.max_Vel;
 
     for (float speed : speeds)
-        if (speed > max_speed)
-            max_speed = speed;
+        if (fabsf(speed) > max_speed)
+            max_speed = fabsf(speed);
 
     if (max_speed > m_OmniKinematicsLimits.max_Vel)
         for (float &speed : speeds)
