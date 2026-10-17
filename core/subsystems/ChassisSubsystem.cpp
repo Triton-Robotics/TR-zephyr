@@ -289,6 +289,26 @@ ChassisSpeeds ChassisSubsystem::getChassisSpeeds() const
     return m_chassisSpeeds;
 }
 
+float ChassisSubsystem::allocateBeybladeOmega(float jx, float jy, float omega_max, float k1, float k2)
+{
+    if (k2 <= 0.0f) {
+        return 0.0f; // invalid tuning; fail safe with no spin
+    }
+
+    float v = fminf(sqrtf(jx * jx + jy * jy), 1.0f);
+
+    // Ellipse: k1*v^2 + k2*w^2 = 1  ->  w = sqrt((1 - k1*v^2) / k2)
+    float remaining = 1.0f - k1 * v * v;
+    if (remaining <= 0.0f) {
+        return 0.0f; // past the ellipse's cutoff (only possible when k1 > 1)
+    }
+
+    float w = sqrtf(remaining / k2);
+    w = fminf(w, 1.0f); // plateau: never exceed omega_max (only active when k2 < 1)
+
+    return omega_max * w;
+}
+
 float ChassisSubsystem::setChassisSpeeds(ChassisSpeeds desiredChassisSpeeds_, DRIVE_MODE mode)
 {
     float yawCurrent = 0;

@@ -239,12 +239,6 @@ class BaseRobot {
             max_omega = 6.1f;
         }
 
-        float linear_hypo = sqrtf(jx * jx + jy * jy);
-        if(linear_hypo > 0.8f){
-            linear_hypo = 0.8f;
-        }
-
-        float available_beyblade = 1.0f - linear_hypo;
-        omega_speed = max_omega * available_beyblade;
+        omega_speed = ChassisSubsystem::allocateBeybladeOmega(jx, jy, max_omega);
     }
 };
