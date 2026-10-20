@@ -28,32 +28,44 @@ const struct gpio_dt_spec led1_dev = GPIO_DT_SPEC_GET(DT_ALIAS(led1), gpios);
 const struct gpio_dt_spec led2_dev = GPIO_DT_SPEC_GET(DT_ALIAS(led2), gpios);
 const struct device *canbus1_dev = DEVICE_DT_GET(DT_NODELABEL(can1));
 
-short constexpr MOTOR_ID = 2;
+short constexpr MOTOR_ID = 7;
 int constexpr SWAP_TIME = 1000;
 int curr_time = 0;
 short current_motor_power = 1000;
 
-DJIMotor::config motorConfig = {canbus1_dev, MOTOR_ID, CANHandler::CANBUS_2, M3508};
-DJIMotor motor(motorConfig);
+// DJIMotor::config motorConfig = {canbus1_dev, MOTOR_ID, CANHandler::CANBUS_2, M2006};
+// DJIMotor motor(motorConfig);
+
+DJIMotor::config indexerConfig = {
+    canbus1_dev,
+    MOTOR_ID,
+    CANHandler::CANBUS_2,
+    M2006,
+    "indexer",
+    {2.7, 0.001, 0},
+    {0.1, 0, 0.001}
+};
+DJIMotor indexer(indexerConfig);
 
 
 double AG[6];
 
 void periodic() {
 
-    DJIMotor::getCanHandler(CANHandler::CANBUS_2)->readAllCan();
+    DJIMotor::getCanHandler(CANHandler::CANBUS_1)->readAllCan();
+    indexer.setPower(1000);
 
-    if(curr_time > SWAP_TIME) {
-        motor.setPower(current_motor_power);
-        current_motor_power *= -1;
-        DJIMotor::sendValues(true);
-        curr_time = 0;
-        printf("current time is : %d, swapping power to %d\n", curr_time, current_motor_power);
+    // if(curr_time > SWAP_TIME) {
+    //     motor.setPower(current_motor_power);
+    //     current_motor_power *= -1;
+    //     DJIMotor::sendValues(true);
+    //     curr_time = 0;
+    //     printf("current time is : %d, swapping power to %d\n", curr_time, current_motor_power);
 
-    } else {
-        curr_time += 200;
-        // printf("current time is : %d\n", curr_time);
-    }
+    // } else {
+    //     curr_time += 200;
+    //     // printf("current time is : %d\n", curr_time);
+    // }
 }
 
 int main(void)
@@ -81,7 +93,7 @@ int main(void)
     DJIMotor::getCanHandler(CANHandler::CANBUS_1)->registerCallback(
     0x201, 0x208, DJIMotor::getCanOneFeedback);
 
-    
+
     while (true) {
         periodic();
         k_sleep(K_MSEC(200));
