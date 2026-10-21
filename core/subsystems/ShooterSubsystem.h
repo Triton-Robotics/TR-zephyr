@@ -9,8 +9,14 @@
 
 // Constants
 constexpr int NUM_BALLS_SHOT = 3;
+constexpr int NUM_INDEXER_SLOTS = 7;
 constexpr int FLYWHEEL_VELO = 550;
 constexpr int HERO_FLYWHEEL_VELO = 450;
+
+constexpr float TICKS_PER_OUTPUT_DEG = 8192.0f * M2006_GEAR_RATIO / 360.0f;
+constexpr float INDEXER_TOLERANCE_DEG = 1.0f;
+constexpr int INDEXER_TOLERANCE_TICKS = (int) (INDEXER_TOLERANCE_DEG * TICKS_PER_OUTPUT_DEG);
+constexpr float FLYWHEEL_VELO_MIN_PERCENTAGE = 0.8f;
 
 // enum for states
 enum ShootState {OFF, FLYWHEEL, SHOOT, JAM};

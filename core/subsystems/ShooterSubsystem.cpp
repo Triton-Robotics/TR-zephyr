@@ -1,4 +1,5 @@
 #include "ShooterSubsystem.h"
+#include "ChassisSubsystem.h"
 #include "util/motor/DJIMotor.h"
 #include <util/algorithms/general_functions.h>
 
@@ -122,7 +123,8 @@ void ShooterSubsystem::periodic(int curr_heat, int heat_limit)
         setFlywheels();
         
         // stop if not flywheels not fast enough 
-        if (abs(flywheelR >> VELOCITY) < fabsf(FLYWHEEL_VELO * 0.75f) || abs(flywheelL >> VELOCITY) < fabsf(FLYWHEEL_VELO * 0.75f)) {
+        if (abs(flywheelR >> VELOCITY) < fabsf(FLYWHEEL_VELO * FLYWHEEL_VELO_MIN_PERCENTAGE) || 
+            abs(flywheelL >> VELOCITY) < fabsf(FLYWHEEL_VELO * FLYWHEEL_VELO_MIN_PERCENTAGE)) {
             return;
         }
 
@@ -133,13 +135,13 @@ void ShooterSubsystem::periodic(int curr_heat, int heat_limit)
             if(barrel_heat_limit < 10 || barrel_heat < barrel_heat_limit - 40) {
                 shootReady = false; // Cant shoot twice immediately
 
-                shootTargetPosition = (8192 * M2006_GEAR_RATIO / 9 * NUM_BALLS_SHOT) + (indexer>>MULTITURNANGLE);
-                backfeedPosition = (indexer>>MULTITURNANGLE) - (8192 * M2006_GEAR_RATIO / 9 * NUM_BALLS_SHOT);
+                shootTargetPosition = (TICKS_PER_ROTATION * M2006_GEAR_RATIO / NUM_INDEXER_SLOTS * NUM_BALLS_SHOT) + (indexer>>MULTITURNANGLE);
+                backfeedPosition = (indexer>>MULTITURNANGLE) - (TICKS_PER_ROTATION * M2006_GEAR_RATIO / NUM_INDEXER_SLOTS * NUM_BALLS_SHOT);
             }
         }
 
         // TODO fix to 1 degree of error allowed (this is more than 1 degree)
-        if (abs((indexer >> MULTITURNANGLE) - shootTargetPosition) <= 819)
+        if (abs((indexer >> MULTITURNANGLE) - shootTargetPosition) <= INDEXER_TOLERANCE_TICKS)
         {
             shoot = FLYWHEEL; // Move to neutral state after shooting
         }
@@ -148,7 +150,7 @@ void ShooterSubsystem::periodic(int curr_heat, int heat_limit)
 
             // Preventative Backfeeding logic
             
-            if ((fabsf(float(indexer>>TORQUE) / 5596) > 1.65f && (abs((indexer >> MULTITURNANGLE) - shootTargetPosition) > int(8192/360)))) {
+            if ((fabsf(float(indexer>>TORQUE) / 5596) > 1.65f && (abs((indexer >> MULTITURNANGLE) - shootTargetPosition) > int(TICKS_PER_ROTATION/360)))) {
                 printf("%.2f, %d BACKFEED TIME\n", fabs(static_cast<double>(indexer>>TORQUE) / 5596), abs((indexer >> MULTITURNANGLE) - shootTargetPosition));
                 indexer.pidSpeed.feedForward = (-(indexer>>VELOCITY) / 4788.0) * 630 * 6; // todo what are these magic numbers?
                 //indexer.setSpeed(-60 * M2006_GEAR_RATIO);
