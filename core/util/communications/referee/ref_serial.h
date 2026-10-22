@@ -40,6 +40,8 @@ public:
     
     // Return game progress
     uint8_t get_game_progress();
+
+    float get_ball_exit_speed();
     
     
     robot_status_t                          robot_status;
@@ -49,10 +51,10 @@ public:
     bool is_cv_on = false;
     bool is_aligned = false;
 private:
-    
     SerialBase ref;
     Mutex mutex_write_;
     Mutex mutex_read_;
+    Mutex mutex_data_;
     // Thread readThread_;
     // Thread writeThread_;
 

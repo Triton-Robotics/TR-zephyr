@@ -11,6 +11,21 @@
 K_THREAD_STACK_DEFINE(referee_read_stack, REFEREE_READ_STACK_SIZE);
 K_THREAD_STACK_DEFINE(referee_write_stack, REFEREE_WRITE_STACK_SIZE);
 
+// Print at most once per `period_ms` for the given timestamp variable.
+// Unsigned subtraction handles the 32-bit uptime wraparound correctly.
+#define PRINT_EVERY_MS(last_ms, period_ms, ...)                  \
+    do {                                                         \
+        uint32_t now_ms_ = k_uptime_get_32();                    \
+        if ((uint32_t)(now_ms_ - (last_ms)) >= (period_ms)) {    \
+            (last_ms) = now_ms_;                                 \
+            printf(__VA_ARGS__);                                 \
+        }                                                        \
+    } while (0)
+
+// One timestamp per print site (only touched by the read thread)
+static uint32_t last_speed_print_ms = 0;
+static uint32_t last_0207_fail_print_ms = 0;
+
 // -------------------------------------
 // From South China University of Technology 华南理工大学广州学院-野狼战队-步兵代码 ----------------------------------
 // https://github.com/wuzjun/2021RM_Infantry/blob/master/Devices/Devices.c/RM_JudgeSystem.c
@@ -351,20 +366,27 @@ void Referee::Judge_GetMessage(uint16_t Data_Length)
                     n++;
                 }
                 break;
-            case Judge_RealTime_Shoot: //实时射击数据
+            case Judge_RealTime_Shoot: //实时射击数据 = real time shooting data
                 if (Verify_CRC16_Check_Sum(JudgeSystem_rxBuff + n, JudgeLength_RealTime_Shoot))
                 {
-                    #if REF_DEBUG
-                    printf("RE[%d]\n", n);
-                    #endif
-                    memcpy(&shoot_data, &JudgeSystem_rxBuff[n + 7], sizeof(uint8_t[JudgeLength_RealTime_Shoot - JUDGE_EXTRA]));
-                    n += JudgeLength_RealTime_Shoot;
+                    const uint8_t *d = &JudgeSystem_rxBuff[n + 7];
+                    mutex_data_.lock();
+                    shoot_data.bullet_type         = d[0];
+                    shoot_data.shooter_number      = d[1];
+                    shoot_data.launching_frequency = d[2];
+                    memcpy(&shoot_data.initial_speed, &d[3], sizeof(float));
                     shoot_data.InfoUpdataFlag = 1;
+                    mutex_data_.unlock();
+
+                    n += JudgeLength_RealTime_Shoot;
                 }
                 else{
                     #if REF_DEBUG
                     printf("RE_NO[%d]\n", n);
                     #endif
+                    PRINT_EVERY_MS(last_0207_fail_print_ms, 1000,
+                                "0207 CRC fail n=%d len=%u declared=%u\n", n, Data_Length,
+                                JudgeSystem_rxBuff[n+1] | (JudgeSystem_rxBuff[n+2] << 8));
                     n++;
                 }
                 break;
@@ -544,13 +566,15 @@ void Referee::referee_data_pack_handle(uint8_t sof,uint16_t cmd_id, uint8_t *p_d
 Referee::Referee(const struct device *uart, USART_TypeDef *ll_usart) : ref(uart, ll_usart) {
     memset(JudgeSystem_rxBuff, 0, JUDGESYSTEM_PACKSIZE);
 
-    k_thread_create(&m_read_tdata, referee_read_stack, REFEREE_READ_STACK_SIZE,
+    k_tid_t rt = k_thread_create(&m_read_tdata, referee_read_stack, REFEREE_READ_STACK_SIZE,
                     &Referee::readThreadEntry, this, NULL, NULL, //These 3 pointers are put into the readThreadEntry function, which basically just 
                     THREAD_PRIORITY, 0, K_NO_WAIT);          // Directs us to the particular thread we're talking about 
+    k_thread_name_set(rt, "ref_rx");
 
-    k_thread_create(&m_write_tdata, referee_write_stack, REFEREE_WRITE_STACK_SIZE, 
+    k_tid_t wt = k_thread_create(&m_write_tdata, referee_write_stack, REFEREE_WRITE_STACK_SIZE, 
                     &Referee::writeThreadEntry, this, NULL, NULL,  
                     THREAD_PRIORITY, 0, K_NO_WAIT);
+    k_thread_name_set(wt, "ref_tx");
 }
 
 void Referee::readThreadEntry(void *p1, void *p2, void *p3) {
@@ -757,6 +781,15 @@ uint16_t Referee::get_remain_hp()
 uint8_t Referee::get_game_progress()
 {
     return game_status.game_progress;
+}
+
+float Referee::get_ball_exit_speed(){
+    mutex_data_.lock();
+    // PRINT_EVERY_MS(last_speed_print_ms, 1000, "flag=%d speed=%.2f\n", shoot_data.InfoUpdataFlag, (double)shoot_data.initial_speed);
+    // PRINT_EVERY_MS(last_speed_print_ms, 1000, "id=%d hp=%d flag=%d\n", robot_status.robot_id, robot_status.current_HP, shoot_data.InfoUpdataFlag);
+    float v = shoot_data.initial_speed;
+    mutex_data_.unlock();
+    return v;
 }
 
 

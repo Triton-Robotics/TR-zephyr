@@ -1,4 +1,5 @@
 #include "ShooterSubsystem.h"
+#include "ChassisSubsystem.h"
 #include "util/motor/DJIMotor.h"
 #include <util/algorithms/general_functions.h>
 
@@ -50,6 +51,14 @@ void ShooterSubsystem::setFlywheels() {
             flywheelL.setSpeed(FLYWHEEL_VELO);
             flywheelR.setSpeed(-FLYWHEEL_VELO);
         }
+}
+
+float ShooterSubsystem::getFlywheelL(){
+    return -flywheelL.getData(VELOCITY);
+}
+
+float ShooterSubsystem::getFlywheelR(){
+    return flywheelR.getData(VELOCITY);
 }
 
 void ShooterSubsystem::reverseFlywheels() {
@@ -113,7 +122,9 @@ void ShooterSubsystem::periodic(int curr_heat, int heat_limit)
     {
         setFlywheels();
         
-        if (abs(flywheelR >> VELOCITY) < fabs(FLYWHEEL_VELO * 0.75) || abs(flywheelL >> VELOCITY) < fabs(FLYWHEEL_VELO * 0.75)) {
+        // stop if not flywheels not fast enough 
+        if (abs(flywheelR >> VELOCITY) < fabsf(FLYWHEEL_VELO * FLYWHEEL_VELO_MIN_PERCENTAGE) || 
+            abs(flywheelL >> VELOCITY) < fabsf(FLYWHEEL_VELO * FLYWHEEL_VELO_MIN_PERCENTAGE)) {
             return;
         }
 
@@ -124,13 +135,13 @@ void ShooterSubsystem::periodic(int curr_heat, int heat_limit)
             if(barrel_heat_limit < 10 || barrel_heat < barrel_heat_limit - 40) {
                 shootReady = false; // Cant shoot twice immediately
 
-                shootTargetPosition = (8192 * M2006_GEAR_RATIO / 9 * NUM_BALLS_SHOT) + (indexer>>MULTITURNANGLE);
-                backfeedPosition = (indexer>>MULTITURNANGLE) - (8192 * M2006_GEAR_RATIO / 9 * NUM_BALLS_SHOT);
+                shootTargetPosition = (TICKS_PER_ROTATION * M2006_GEAR_RATIO / NUM_INDEXER_SLOTS * NUM_BALLS_SHOT) + (indexer>>MULTITURNANGLE);
+                backfeedPosition = (indexer>>MULTITURNANGLE) - (TICKS_PER_ROTATION * M2006_GEAR_RATIO / NUM_INDEXER_SLOTS * NUM_BALLS_SHOT);
             }
         }
 
         // TODO fix to 1 degree of error allowed (this is more than 1 degree)
-        if (abs((indexer >> MULTITURNANGLE) - shootTargetPosition) <= 819)
+        if (abs((indexer >> MULTITURNANGLE) - shootTargetPosition) <= INDEXER_TOLERANCE_TICKS)
         {
             shoot = FLYWHEEL; // Move to neutral state after shooting
         }
@@ -139,7 +150,7 @@ void ShooterSubsystem::periodic(int curr_heat, int heat_limit)
 
             // Preventative Backfeeding logic
             
-            if ((fabs(float(indexer>>TORQUE) / 5596) > 1.65 && (abs((indexer >> MULTITURNANGLE) - shootTargetPosition) > int(8192/360)))) {
+            if ((fabsf(float(indexer>>TORQUE) / 5596) > 1.65f && (abs((indexer >> MULTITURNANGLE) - shootTargetPosition) > int(TICKS_PER_ROTATION/360)))) {
                 printf("%.2f, %d BACKFEED TIME\n", fabs(static_cast<double>(indexer>>TORQUE) / 5596), abs((indexer >> MULTITURNANGLE) - shootTargetPosition));
                 indexer.pidSpeed.feedForward = (-(indexer>>VELOCITY) / 4788.0) * 630 * 6; // todo what are these magic numbers?
                 //indexer.setSpeed(-60 * M2006_GEAR_RATIO);
@@ -168,6 +179,7 @@ void ShooterSubsystem::periodic(int curr_heat, int heat_limit)
     }
     else if (shoot == SHOOT && shooter_type == AUTO) 
     {
+        // flywheels
         if (!invert_flywheel) {
             flywheelL.setSpeed(-FLYWHEEL_VELO);
             flywheelR.setSpeed(FLYWHEEL_VELO);
@@ -177,12 +189,17 @@ void ShooterSubsystem::periodic(int curr_heat, int heat_limit)
             flywheelR.setSpeed(-FLYWHEEL_VELO);
         }
 
+        // indexer
         if(barrel_heat_limit < 10 || barrel_heat < barrel_heat_limit - 30) {
             indexer.setSpeed(-5 * 16 * M2006_GEAR_RATIO);
         }
         else {
             indexer.setSpeed(0);
         }
+
+        // feeder
+        // TODO - calibrated delay
+        // TODO - advance feeder state
     }
     else if (shoot == JAM || jammed) { // Dedicated Unjamming state
         if (!jammed) {

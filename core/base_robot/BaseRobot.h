@@ -12,6 +12,14 @@
 #include <subsystems/TurretSubsystem.h>
 #include <subsystems/ShooterSubsystem.h>
 
+static void dump_thread(const struct k_thread *t, void *) {
+    const char *name = k_thread_name_get((k_tid_t)t);
+    printk("thread %p name=%s prio=%d state=%s\n", (void *)t,
+           name ? name : "?",
+           k_thread_priority_get((k_tid_t)t),
+           k_thread_state_str((k_tid_t)t, nullptr, 0));
+}
+
 class BaseRobot {
   public:
     struct Config {
@@ -130,6 +138,8 @@ class BaseRobot {
 
         init();
 
+        int loop_count = 0;
+
         while (true) {
             loop_clock_us = now_us();
 
@@ -157,6 +167,11 @@ class BaseRobot {
             // canHandler2_.readAllCan();
             if (can1) can1->readAllCan();
             if (can2) can2->readAllCan();
+
+            // prints all the threads and their states
+            // if (++loop_count == 20) {            // once, after ~200 ms
+            //     k_thread_foreach(dump_thread, nullptr);
+            // }
 
             k_sleep(K_MSEC(10));
         }
