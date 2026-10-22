@@ -289,25 +289,25 @@ ChassisSpeeds ChassisSubsystem::getChassisSpeeds() const
     return m_chassisSpeeds;
 }
 
-float ChassisSubsystem::allocateBeybladeOmega(float jx, float jy, float omega_max, float k1, float k2)
+float ChassisSubsystem::allocateBeybladeOmega(float jx, float jy, float omega_max, float translational_bias, float rotational_bias)
 {
     //check to ensure that vOmega(rotational) scale coefficient isnt less than 0
-    // k2 is a divisor below; k2 <= 0 would give inf/NaN, so fail safe with no spin
+    // rotational_bias is a divisor below; rotational_bias <= 0 would give inf/NaN, so fail safe with no spin
     //keeps translation:rotational ratio working since both values can only be positive
-    if (k2 <= 0.0f) {
+    if (rotational_bias <= 0.0f) {
         return 0.0f; // invalid tuning; fail safe with no spin
     }
 
     float v = fminf(sqrtf(jx * jx + jy * jy), 1.0f);
 
-    // Ellipse: k1*v^2 + k2*w^2 = 1  ->  w = sqrt((1 - k1*v^2) / k2)
-    float remaining = 1.0f - k1 * v * v;
+    // Ellipse: translational_bias*v^2 + rotational_bias*w^2 = 1  ->  w = sqrt((1 - translational_bias*v^2) / rotational_bias)
+    float remaining = 1.0f - translational_bias * v * v;
     if (remaining <= 0.0f) {
-        return 0.0f; // past the ellipse's cutoff (only possible when k1 > 1)
+        return 0.0f; // past the ellipse's cutoff (only possible when translational_bias > 1)
     }
 
-    float w = sqrtf(remaining / k2);
-    w = fminf(w, 1.0f); // plateau: never exceed omega_max (only active when k2 < 1)
+    float w = sqrtf(remaining / rotational_bias);
+    w = fminf(w, 1.0f); // plateau: never exceed omega_max (only active when rotational_bias < 1)
 
     return omega_max * w;
 }
