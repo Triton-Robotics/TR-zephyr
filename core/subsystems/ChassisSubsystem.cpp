@@ -278,6 +278,11 @@ WheelSpeeds ChassisSubsystem::normalizeWheelSpeeds(WheelSpeeds wheelSpeeds) cons
 
 void ChassisSubsystem::setWheelPower(WheelSpeeds wheelPower)
 {
+    // Chassis is being driven open-loop (e.g. disabled); restart the pacer from rest
+    for (float &rpm : previousRPM) rpm = 0.0f;
+    //
+
+
     setMotorPower(LEFT_FRONT, wheelPower.LF);
     setMotorPower(RIGHT_FRONT, wheelPower.RF);
     setMotorPower(LEFT_BACK, wheelPower.LB);
@@ -643,7 +648,8 @@ void ChassisSubsystem::setMotorSpeedRPM(MotorLocation location, float speed)
     setSpeedFeedforward(location, FF_Ks * sgn_speed);
 }
 
-int ChassisSubsystem::motorPIDtoPower(MotorLocation location, float speed, uint32_t dt)
+//new changes 
+int ChassisSubsystem::motorPIDtoPower(MotorLocation location, float speed, float dt_ms)
 {
     if (brakeMode == COAST && speed == 0)
     {
@@ -654,7 +660,7 @@ int ChassisSubsystem::motorPIDtoPower(MotorLocation location, float speed, uint3
     int power = 0;
     PID* pids[4] = {&pid_LF, &pid_RF, &pid_LB, &pid_RB};
     
-    power = pids[location]->calculate(speed, getMotorSpeed(location, RPM), dt);
+    power = pids[location]->calculate(speed, getMotorSpeed(location, RPM), dt_ms);
     // printf("[%d]",power);
 
     if(speed == 0) {
