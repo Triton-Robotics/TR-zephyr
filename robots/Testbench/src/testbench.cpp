@@ -28,18 +28,12 @@ const struct gpio_dt_spec led1_dev = GPIO_DT_SPEC_GET(DT_ALIAS(led1), gpios);
 const struct gpio_dt_spec led2_dev = GPIO_DT_SPEC_GET(DT_ALIAS(led2), gpios);
 const struct device *canbus1_dev = DEVICE_DT_GET(DT_NODELABEL(can1));
 
-short constexpr MOTOR_ID = 7;
-int constexpr SWAP_TIME = 1000;
-int curr_time = 0;
-short current_motor_power = 1000;
-
-// DJIMotor::config motorConfig = {canbus1_dev, MOTOR_ID, CANHandler::CANBUS_2, M2006};
-// DJIMotor motor(motorConfig);
+short constexpr MOTOR_ID = 1;
 
 DJIMotor::config indexerConfig = {
     canbus1_dev,
     MOTOR_ID,
-    CANHandler::CANBUS_2,
+    CANHandler::CANBUS_1,
     M2006,
     "indexer",
     {2.7, 0.001, 0},
@@ -51,48 +45,19 @@ DJIMotor indexer(indexerConfig);
 double AG[6];
 
 void periodic() {
-
-    DJIMotor::getCanHandler(CANHandler::CANBUS_1)->readAllCan();
-    indexer.setPower(1000);
-
-    // if(curr_time > SWAP_TIME) {
-    //     motor.setPower(current_motor_power);
-    //     current_motor_power *= -1;
-    //     DJIMotor::sendValues(true);
-    //     curr_time = 0;
-    //     printf("current time is : %d, swapping power to %d\n", curr_time, current_motor_power);
-
-    // } else {
-    //     curr_time += 200;
-    //     // printf("current time is : %d\n", curr_time);
-    // }
+    indexer.setSpeed(500);
+    DJIMotor::sendValues(false);   // true = debug prints
 }
 
 int main(void)
 {
-    printk("HERROoooo\n");
-
-    
-    printk("CAN SET MODE %d\n", can_set_mode(canbus1_dev, CAN_MODE_NORMAL));
-    printk("EBUSY %d, EIO %d, ENOTSUP %d\n", -EBUSY, -EIO, -ENOTSUP);
-    
-    
-    can_state state;
-    can_bus_err_cnt err_cnt;
-    can_get_state(canbus1_dev, &state, &err_cnt);
-    printk("STATE %d, RX ERROR %d, TX ERROR %d\n", state, err_cnt.rx_err_cnt, err_cnt.tx_err_cnt);
-
-    if (device_is_ready(canbus1_dev)) {
-        printk("CANBUS 1 device is ready\n");
-    } else {
+    if (!device_is_ready(canbus1_dev)) {
         printk("CANBUS 1 device is not ready\n");
         return -1;
     }
+    printk("CANBUS 1 device is ready\n");
 
-    DJIMotor::setCanHandlers();
-    DJIMotor::getCanHandler(CANHandler::CANBUS_1)->registerCallback(
-    0x201, 0x208, DJIMotor::getCanOneFeedback);
-
+    DJIMotor::setCanHandlers();   // must happen before any send/read
 
     while (true) {
         periodic();
