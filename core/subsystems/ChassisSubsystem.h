@@ -144,14 +144,14 @@ public:
 
     float power_limit;
 
-    // Beyblade ellipse: k1*v^2 + k2*w^2 <= 1  (v = stick 0-1, w = omega/omega_max)
+    // Beyblade ellipse: translational_bias*v^2 + rotational_bias*w^2 <= 1  (v = stick 0-1, w = omega/omega_max)
     // Spin at full stick = sqrt((1 - k1) / k2), so k1 = 1 - 0.7^2 gives 70%
-    static constexpr float BEYBLADE_K1 = 0.51f;
-    static constexpr float BEYBLADE_K2 = 1.0f;
+    static constexpr float BEYBLADE_TRANSLATIONAL_BIAS = 0.51f;
+    static constexpr float BEYBLADE_ROTATIONAL_BIAS = 1.0f;
 
     // Returns beyblade omega for the given stick input (jx, jy in [-1, 1])
     static float allocateBeybladeOmega(float jx, float jy, float omega_max,
-                                       float k1 = BEYBLADE_K1, float k2 = BEYBLADE_K2);
+                                       float k1 = BEYBLADE_TRANSLATIONAL_BIAS, float k2 = BEYBLADE_ROTATIONAL_BIAS);
 
     /**
      * Gets the chassis's current WheelSpeeds
