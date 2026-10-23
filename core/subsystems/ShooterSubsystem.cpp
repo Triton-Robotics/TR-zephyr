@@ -96,11 +96,11 @@ void ShooterSubsystem::periodic(int curr_heat, int heat_limit)
     //     return;
     // }
 
+    // update barrel heat vars
     barrel_heat = curr_heat;
     barrel_heat_limit = heat_limit;
 
-    if (shoot == OFF) 
-    {
+    if (shoot == OFF) {
         flywheelL.setSpeed(0);
         flywheelR.setSpeed(0);
         // flywheelL.setPower(0);
@@ -110,16 +110,14 @@ void ShooterSubsystem::periodic(int curr_heat, int heat_limit)
         shootReady = true;
         shooter_time = 0;
     }
-    else if (shoot == FLYWHEEL)
-    {
+    else if (shoot == FLYWHEEL) {
         setFlywheels();
 
         indexer.pidSpeed.feedForward = 0;
         indexer.setSpeed(0);
         shootReady = true;
     }
-    else if (shoot == SHOOT && shooter_type == BURST)
-    {
+    else if (shoot == SHOOT && shooter_type == BURST) {
         setFlywheels();
         
         // stop if not flywheels not fast enough 
@@ -129,24 +127,22 @@ void ShooterSubsystem::periodic(int curr_heat, int heat_limit)
         }
 
         // Set target position
-        if (shootReady && (abs(flywheelR>>VELOCITY) > (FLYWHEEL_VELO - 500) && abs(flywheelL>>VELOCITY) > (FLYWHEEL_VELO - 500))) 
-        {
+        if (shootReady && (abs(flywheelR>>VELOCITY) > (FLYWHEEL_VELO - 500) && abs(flywheelL>>VELOCITY) > (FLYWHEEL_VELO - 500))) {
             // heat limit
             if(barrel_heat_limit < 10 || barrel_heat < barrel_heat_limit - 40) {
                 shootReady = false; // Cant shoot twice immediately
 
+                // calculate target pos of indexer
                 shootTargetPosition = (TICKS_PER_ROTATION * M2006_GEAR_RATIO / NUM_INDEXER_SLOTS * NUM_BALLS_SHOT) + (indexer>>MULTITURNANGLE);
                 backfeedPosition = (indexer>>MULTITURNANGLE) - (TICKS_PER_ROTATION * M2006_GEAR_RATIO / NUM_INDEXER_SLOTS * NUM_BALLS_SHOT);
             }
         }
 
-        // TODO fix to 1 degree of error allowed (this is more than 1 degree)
-        if (abs((indexer >> MULTITURNANGLE) - shootTargetPosition) <= INDEXER_TOLERANCE_TICKS)
-        {
+        // 1 degree of error btwn indexer current and target pos
+        if (abs((indexer >> MULTITURNANGLE) - shootTargetPosition) <= INDEXER_TOLERANCE_TICKS) {
             shoot = FLYWHEEL; // Move to neutral state after shooting
         }
-        else
-        {
+        else {
 
             // Preventative Backfeeding logic
             
@@ -173,12 +169,12 @@ void ShooterSubsystem::periodic(int curr_heat, int heat_limit)
 
             }
 
+            // update indexer
             indexer.pidSpeed.feedForward = (indexer >> VELOCITY) / 4788.0f * 630;
             indexer.setPosition(shootTargetPosition);
         }
     }
-    else if (shoot == SHOOT && shooter_type == AUTO) 
-    {
+    else if (shoot == SHOOT && shooter_type == AUTO) {
         // flywheels
         if (!invert_flywheel) {
             flywheelL.setSpeed(-FLYWHEEL_VELO);

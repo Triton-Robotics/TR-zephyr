@@ -15,7 +15,7 @@ constexpr int HERO_FLYWHEEL_VELO = 450;
 
 constexpr float TICKS_PER_OUTPUT_DEG = 8192.0f * M2006_GEAR_RATIO / 360.0f;
 constexpr float INDEXER_TOLERANCE_DEG = 1.0f;
-constexpr int INDEXER_TOLERANCE_TICKS = (int) (INDEXER_TOLERANCE_DEG * TICKS_PER_OUTPUT_DEG);
+constexpr int INDEXER_TOLERANCE_TICKS = (int) (INDEXER_TOLERANCE_DEG * TICKS_PER_OUTPUT_DEG); // 1 deg of error
 constexpr float FLYWHEEL_VELO_MIN_PERCENTAGE = 0.8f;
 
 // enum for states
