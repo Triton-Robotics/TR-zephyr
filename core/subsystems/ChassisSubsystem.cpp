@@ -57,6 +57,126 @@ WheelSpeeds ChassisSubsystem::getWheelSpeeds() const
     return m_wheelSpeeds;
 }
 
+//STEP 1 — Elliptical allocation (Infantry calls allocateBeybladeOmega())
+//Purpose: decide the beyblade omega based on how much translation the driver 
+//is requesting. Curves down elliptically, never below 70% with our tuning
+float ChassisSubsystem::allocateBeybladeOmega(float jx, float jy, float omega_max, float translational_bias, float rotational_bias)
+{
+    //check to ensure that vOmega(rotational) scale coefficient isnt less than 0
+    //rotational_bias is a divisor below; rotational_bias <= 0 would give inf/NaN, so fail safe with no spin
+    //keeps translation:rotational ratio working since both values can only be positive
+    if (rotational_bias <= 0.0f) {
+        return 0.0f; // invalid tuning; fail safe with no spin
+    }
+
+    // Normalize joystick magnitude to 0-1
+    float v = fminf(sqrtf(jx * jx + jy * jy), 1.0f);
+
+    // Ellipse: translational_bias*v^2 + rotational_bias*w^2 = 1  ->  w = sqrt((1 - translational_bias*v^2) / rotational_bias)
+    // Elliptical tradeoff: more translation → less rotation
+    float remaining = 1.0f - translational_bias * v * v;
+    if (remaining <= 0.0f) {
+        return 0.0f; // past the ellipse's cutoff (only possible when translational_bias > 1)
+    }
+
+    // Compute rotation fraction (0 to 1)
+    float w = sqrtf(remaining / rotational_bias);
+    w = fminf(w, 1.0f); // plateau: never exceed omega_max (only active when rotational_bias < 1)
+
+    return omega_max * w;
+}
+
+//STEP 2 — Rotate joystick input (inside setChassisSpeeds())
+float ChassisSubsystem::setChassisSpeeds(ChassisSpeeds desiredChassisSpeeds_, DRIVE_MODE mode)
+{
+    float yawCurrent = 0;
+    if (mode == REVERSE_YAW_ORIENTED)
+    {
+        yawCurrent = encoder->encoderMovingAverage();
+        if (yawCurrent < 0.0f) {
+            yawCurrent += 360.0f;
+        }
+        else if (yawCurrent > 360.0f) {
+            yawCurrent -= 360.0f;
+        }
+        desiredChassisSpeeds = rotateChassisSpeed(desiredChassisSpeeds_, yawCurrent);
+    }
+    else if (mode == YAW_ORIENTED)
+    {
+        yawCurrent = encoder->encoderMovingAverage();
+        if (yawCurrent < 0.0f) {
+            yawCurrent += 360.0f;
+        }
+        else if (yawCurrent > 360.0f) {
+            yawCurrent -= 360.0f;
+        }
+        desiredChassisSpeeds = rotateChassisSpeed(desiredChassisSpeeds_, yawCurrent);
+    }
+    else if (mode == ROBOT_ORIENTED)
+    {
+        desiredChassisSpeeds = desiredChassisSpeeds_; // ChassisSpeeds in m/s
+    }
+    else if (mode == ODOM_ORIENTED) 
+    {
+        yawCurrent = encoder->encoderMovingAverage();
+        if (yawCurrent < 0.0f) {
+            yawCurrent += 360.0f;
+        }
+        else if (yawCurrent > 360.0f) {
+            yawCurrent -= 360.0f;
+        }
+
+        float yawDelta = yawOdom - yawCurrent;
+        float imuDelta = imuOdom - imuAngles.yaw;
+        float delta = imuDelta - yawDelta;
+        float del = yawOdom + delta;
+        while (del > 360.0f) del -= 360;
+        while (del < 0) del += 360;
+        desiredChassisSpeeds = rotateChassisSpeed(desiredChassisSpeeds_, yawOdom + delta);
+    }
+    else if (mode == YAW_ALIGN)
+    {
+        yawCurrent = encoder->encoderMovingAverage();
+        if (yawCurrent < 0.0f) {
+            yawCurrent += 360.0f;
+        }
+        else if (yawCurrent > 360.0f) {
+            yawCurrent -= 360.0f;
+        }
+
+        // Compute yaw error(how much the yaw needs to recorrect)
+        float yawError = (yawCurrent - yawPhase);
+        while (yawError > 180) yawError -= 360;
+        while (yawError < -180) yawError += 360;
+        
+        if (fabsf(yawError) < 5) yawError = 0;
+
+        if (yawError > 90) yawError -= 180;
+        else if (yawError < -90) yawError += 180;
+
+        float yaw_velo = (yawCurrent - yawPrior);
+        float deg2rad = PI/180; // convert to rad and just run at 2x that rad/s
+        pid_align.feedForward = yaw_velo * yaw_velo_gain;
+        float omegaCmd = pid_align.calculatePeriodic(yawError, 1000) * deg2rad;
+
+        if (fabsf(omegaCmd) < 0.1f) omegaCmd = 0;
+
+        ChassisSpeeds xAlignSpeeds = {desiredChassisSpeeds_.vX, desiredChassisSpeeds_.vY, omegaCmd};
+        desiredChassisSpeeds = rotateChassisSpeed(xAlignSpeeds, yawCurrent);
+    }
+    yawPrior = encoder->encoderMovingAverage();
+    //one chassis velocity (vX, vY, vOmega) becomes four wheel speeds in m/s.
+    WheelSpeeds wheelSpeeds = chassisSpeedsToWheelSpeeds(desiredChassisSpeeds); // in m/s (for now)
+    //STEP 4 — Speed normalization (inside setChassisSpeeds())
+    wheelSpeeds = normalizeWheelSpeeds(wheelSpeeds);
+    //STEP 5 — Unit conversion (inside setChassisSpeeds())
+    //Purpose: m/s → motor RPM so PID can compare against motor encoder feedback.
+    wheelSpeeds *= (1 / (WHEEL_DIAMETER_METERS / 2) / (2 * PI / 60) * M3508_GEAR_RATIO);
+    float scale = setWheelSpeeds(wheelSpeeds);
+    return scale;
+}
+
+
 WheelSpeeds ChassisSubsystem::paceWheelSpeeds(WheelSpeeds desired, float dt_s)
 {
     float target[4] = {desired.LF, desired.RF, desired.LB, desired.RB};
@@ -216,6 +336,9 @@ float ChassisSubsystem::setWheelSpeeds(WheelSpeeds wheelSpeeds)
     int powers[4] = {0,0,0,0};
 
     uint32_t time = now_us();
+    //STEP 6 — Acceleration pacing (inside setWheelSpeeds())
+    //Purpose: limit how fast all four wheels change speed per cycle. 
+    //All wheels scale together so ratios are preserved during transitions.
     float dt_s = fminf((time - lastPIDTime) / 1e6f, MAX_PACER_DT_S);
     float dt_ms = dt_s * 1000.0f; // PID expects milliseconds
     lastPIDTime = time;
@@ -340,114 +463,6 @@ ChassisSpeeds ChassisSubsystem::getChassisSpeeds() const
     return m_chassisSpeeds;
 }
 
-float ChassisSubsystem::allocateBeybladeOmega(float jx, float jy, float omega_max, float translational_bias, float rotational_bias)
-{
-    //check to ensure that vOmega(rotational) scale coefficient isnt less than 0
-    // rotational_bias is a divisor below; rotational_bias <= 0 would give inf/NaN, so fail safe with no spin
-    //keeps translation:rotational ratio working since both values can only be positive
-    if (rotational_bias <= 0.0f) {
-        return 0.0f; // invalid tuning; fail safe with no spin
-    }
-
-    float v = fminf(sqrtf(jx * jx + jy * jy), 1.0f);
-
-    // Ellipse: translational_bias*v^2 + rotational_bias*w^2 = 1  ->  w = sqrt((1 - translational_bias*v^2) / rotational_bias)
-    float remaining = 1.0f - translational_bias * v * v;
-    if (remaining <= 0.0f) {
-        return 0.0f; // past the ellipse's cutoff (only possible when translational_bias > 1)
-    }
-
-    float w = sqrtf(remaining / rotational_bias);
-    w = fminf(w, 1.0f); // plateau: never exceed omega_max (only active when rotational_bias < 1)
-
-    return omega_max * w;
-}
-
-float ChassisSubsystem::setChassisSpeeds(ChassisSpeeds desiredChassisSpeeds_, DRIVE_MODE mode)
-{
-    float yawCurrent = 0;
-    if (mode == REVERSE_YAW_ORIENTED)
-    {
-        yawCurrent = encoder->encoderMovingAverage();
-        if (yawCurrent < 0.0f) {
-            yawCurrent += 360.0f;
-        }
-        else if (yawCurrent > 360.0f) {
-            yawCurrent -= 360.0f;
-        }
-        desiredChassisSpeeds = rotateChassisSpeed(desiredChassisSpeeds_, yawCurrent);
-    }
-    else if (mode == YAW_ORIENTED)
-    {
-        yawCurrent = encoder->encoderMovingAverage();
-        if (yawCurrent < 0.0f) {
-            yawCurrent += 360.0f;
-        }
-        else if (yawCurrent > 360.0f) {
-            yawCurrent -= 360.0f;
-        }
-        desiredChassisSpeeds = rotateChassisSpeed(desiredChassisSpeeds_, yawCurrent);
-    }
-    else if (mode == ROBOT_ORIENTED)
-    {
-        desiredChassisSpeeds = desiredChassisSpeeds_; // ChassisSpeeds in m/s
-    }
-    else if (mode == ODOM_ORIENTED) 
-    {
-        yawCurrent = encoder->encoderMovingAverage();
-        if (yawCurrent < 0.0f) {
-            yawCurrent += 360.0f;
-        }
-        else if (yawCurrent > 360.0f) {
-            yawCurrent -= 360.0f;
-        }
-
-        float yawDelta = yawOdom - yawCurrent;
-        float imuDelta = imuOdom - imuAngles.yaw;
-        float delta = imuDelta - yawDelta;
-        float del = yawOdom + delta;
-        while (del > 360.0f) del -= 360;
-        while (del < 0) del += 360;
-        desiredChassisSpeeds = rotateChassisSpeed(desiredChassisSpeeds_, yawOdom + delta);
-    }
-    else if (mode == YAW_ALIGN)
-    {
-        yawCurrent = encoder->encoderMovingAverage();
-        if (yawCurrent < 0.0f) {
-            yawCurrent += 360.0f;
-        }
-        else if (yawCurrent > 360.0f) {
-            yawCurrent -= 360.0f;
-        }
-
-        // Compute yaw error(how much the yaw needs to recorrect)
-        float yawError = (yawCurrent - yawPhase);
-        while (yawError > 180) yawError -= 360;
-        while (yawError < -180) yawError += 360;
-        
-        if (fabsf(yawError) < 5) yawError = 0;
-
-        if (yawError > 90) yawError -= 180;
-        else if (yawError < -90) yawError += 180;
-
-        float yaw_velo = (yawCurrent - yawPrior);
-        float deg2rad = PI/180; // convert to rad and just run at 2x that rad/s
-        pid_align.feedForward = yaw_velo * yaw_velo_gain;
-        float omegaCmd = pid_align.calculatePeriodic(yawError, 1000) * deg2rad;
-
-        if (fabsf(omegaCmd) < 0.1f) omegaCmd = 0;
-
-        ChassisSpeeds xAlignSpeeds = {desiredChassisSpeeds_.vX, desiredChassisSpeeds_.vY, omegaCmd};
-        desiredChassisSpeeds = rotateChassisSpeed(xAlignSpeeds, yawCurrent);
-    }
-    yawPrior = encoder->encoderMovingAverage();
-    
-    WheelSpeeds wheelSpeeds = chassisSpeedsToWheelSpeeds(desiredChassisSpeeds); // in m/s (for now)
-    wheelSpeeds = normalizeWheelSpeeds(wheelSpeeds);
-    wheelSpeeds *= (1 / (WHEEL_DIAMETER_METERS / 2) / (2 * PI / 60) * M3508_GEAR_RATIO);
-    float scale = setWheelSpeeds(wheelSpeeds);
-    return scale;
-}
 
 /**
  * There's no setChassisPower because it doesn't make sense.
@@ -543,15 +558,20 @@ void ChassisSubsystem::readImu()
 {
     imu.getImuAngles();
 }
-
+//STEP -0 Sensor update (Infantry calls chassis_.periodic())
+//Purpose: “what is the robot actually doing right now?”
 void ChassisSubsystem::periodic(IMU::EulerAngles *imuCurr)
 {   
+    // Store latest IMU angles
     imuAngles.yaw = imuCurr->yaw;
     imuAngles.pitch = imuCurr->pitch;
     imuAngles.roll = imuCurr->roll;
+
+    // Read actual motor speeds, convert to m/s ground speed
     m_wheelSpeeds = {getMotorSpeed(LEFT_FRONT, METER_PER_SECOND), getMotorSpeed(RIGHT_FRONT, METER_PER_SECOND),
                      getMotorSpeed(LEFT_BACK, METER_PER_SECOND), getMotorSpeed(RIGHT_BACK, METER_PER_SECOND)};
 
+    // Forward kinematics: four wheel speeds → one chassis velocity
     m_chassisSpeeds = wheelSpeedsToChassisSpeeds(m_wheelSpeeds);
 }
 
