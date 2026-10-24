@@ -79,7 +79,7 @@
 
 &timers3 { // Encoder | PWM is done thru timer node, PB_4 is timer3 channel 1
     status = "okay";
-    st,prescaler = <3>;   // tune below
+    st,prescaler = <3>;
 
     pwm3: pwm {
         compatible = "st,stm32-pwm";

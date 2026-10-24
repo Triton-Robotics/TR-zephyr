@@ -61,18 +61,37 @@ static void dump_tim3() {
        (unsigned)TIM3->CCMR1);
 }
 
-void periodic() {
+// void periodic() {
 
-    printk("Encoder: %.2f\n", static_cast<double>(encoder_.getEncoderYawPosition()));
-    // printk("cb_count=%u status=%d\n", encoder_.cbCount(), encoder_.lastStatus());
+//     printk("Encoder: %.2f\n", static_cast<double>(encoder_.getEncoderYawPosition()));
+//     // printk("cb_count=%u status=%d\n", encoder_.cbCount(), encoder_.lastStatus());
 
-    encodersYaw = encoder_.encoderMovingAverage();
-    printk("cb=%u st=%d period=%u pulse=%u SR=%08x\n",
-       encoder_.cbCount(), encoder_.lastStatus(),
-       encoder_.periodCycles(), encoder_.pulseCycles(),
-       (unsigned)TIM3->SR);
-    // dump_tim3();
+//     encodersYaw = encoder_.encoderMovingAverage();
+//     printk("cb=%u st=%d period=%u pulse=%u SR=%08x, PSC: %u, ARR: %u\n",
+//        encoder_.cbCount(), encoder_.lastStatus(),
+//        encoder_.periodCycles(), encoder_.pulseCycles(),
+//        (unsigned)TIM3->SR, (unsigned)TIM3->PSC, (unsigned)TIM3->ARR);
+//     dump_tim3();
     
+// }
+
+void periodic() {
+    unsigned int key = irq_lock();
+    uint32_t p = encoder_.periodCycles();
+    uint32_t pulse = encoder_.pulseCycles();
+    uint32_t count = encoder_.cbCount();
+    int status = encoder_.lastStatus();
+
+    uint32_t psc = TIM3->PSC;
+    uint32_t arr = TIM3->ARR;
+    uint32_t smcr = TIM3->SMCR;
+    uint32_t ccer = TIM3->CCER;
+    uint32_t sr = TIM3->SR;
+    irq_unlock(key);
+
+    printk("p=%u pulse=%u cb=%u st=%d PSC=%u ARR=%u "
+           "SMCR=%08x CCER=%08x SR=%08x\n",
+           p, pulse, count, status, psc, arr, smcr, ccer, sr);
 }
 
 int main(void)
@@ -88,6 +107,6 @@ int main(void)
 
     while (true) {
         periodic();
-        k_sleep(K_MSEC(2));
+        k_sleep(K_MSEC(1000));
     }
 }

@@ -90,6 +90,10 @@ protected:
     bool  _have_filter = false;
     float _alpha = 0.2f;
 
+    static constexpr int windowSize = 20;
+    float _readings[windowSize] = {};
+    int _index = 0;
+    int _count = 0;
 
 };
 

@@ -39,16 +39,23 @@ int MA4::init() {
 //     _duty = (float)pulse_cycles / (float)period_cycles;   
 // }
 
-// in MA4: volatile uint32_t _period_cycles = 0, _pulse_cycles = 0;
+
 void MA4::on_capture(uint32_t period_cycles, uint32_t pulse_cycles, int status) {
+    
     _cb_count++;
     _last_status = status;
+    
+    // Basically do nothing if something is invalid 
+    if (status != 0 || period_cycles == 0 || pulse_cycles == 0 || pulse_cycles >= period_cycles) {
+    return;
+    }
+
     if (status != 0 || period_cycles == 0) return;
     _period_cycles = period_cycles;
     _pulse_cycles = pulse_cycles;
     _duty = (float)pulse_cycles / (float)period_cycles;
 }
-// plus getters: periodCycles(), pulseCycles()
+
 
 uint32_t MA4::periodCycles() const {
     return _period_cycles;
@@ -61,12 +68,12 @@ uint32_t MA4::pulseCycles() const {
 
 float MA4::getEncoderYawPosition() {
     if (_cb_count == 0) return -1.0f;                     // Protects against the erroneous 11.26 deg readings
-
+    if (_period_cycles == 0) return -1.0f;
 
     float duty_raw = dutycycle();
     float duty_min = 0.02943f;   // 2.943%
     float duty_max = 0.97058f;   // 97.058%
-    float angle = (_duty - duty_min) / (duty_max - duty_min) * 360.0f;
+    float angle = (duty_raw - duty_min) / (duty_max - duty_min) * 360.0f;
     angle -= 360.0f * floorf(angle / 360.0f);             // wrap into [0, 360)
 
     if (!_have_filter) { _filtered = angle; _have_filter = true; }
@@ -105,10 +112,7 @@ float MA4::pulsewidth() {
 }
 
 float MA4::dutycycle() {
-    if (_period == 0.0f) {
-        return 0.0f;  // Return 0 until first valid PWM cycle
-    }
-    return _pulsewidth / _period;
+    return _duty;
 }
 
 // void MA4::rise() {
@@ -138,39 +142,70 @@ float MA4::dutycycle() {
 //     return filtered_yaw;
 // }
 
-float MA4::encoderMovingAverage() {
-    const int windowSize = 20;
-    static float readings[windowSize] = {0};
-    static int index = 0;
-    static bool filled = false;
+// float MA4::encoderMovingAverage() {
+//     const int windowSize = 20;
+//     static float readings[windowSize] = {0};
+//     static int index = 0;
+//     static bool filled = false;
 
-    float newReading = getEncoderYawPosition();
-    if (newReading < 0) {
+//     float newReading = getEncoderYawPosition();
+//     if (newReading < 0) {
+//         return -1.0f; // Encoder not available
+//     }
+
+//     readings[index] = newReading;
+//     index = (index + 1) % windowSize;
+//     if (index == 0) {
+//         filled = true;
+//     }
+
+//     float sum = 0.0;
+//     float result = 0.0;
+
+//     if (filled) {
+//         for (int i = 0; i < windowSize; i++) {
+//             sum += readings[i];
+//         }
+//         result = sum / windowSize;
+//     } 
+//     else {
+//         for (int i = 0; i < index; i++) {
+//             sum += readings[i];
+//         }
+//         result = sum / index;
+//     }
+//     // printf("%.2f\n",result);
+//     return result;
+
+// }
+
+float MA4::encoderMovingAverage() {
+    float angle = getEncoderYawPosition();
+    if (angle < 0.0f) {
         return -1.0f; // Encoder not available
     }
 
-    readings[index] = newReading;
-    index = (index + 1) % windowSize;
-    if (index == 0) {
-        filled = true;
+    _readings[_index] = angle;
+    _index = (_index + 1) % windowSize;
+    if (_count < windowSize) {
+        _count++;
     }
 
-    float sum = 0.0;
-    float result = 0.0;
+    float sumSin = 0.0f;
+    float sumCos = 0.0f;
 
-    if (filled) {
-        for (int i = 0; i < windowSize; i++) {
-            sum += readings[i];
-        }
-        result = sum / windowSize;
-    } else {
-        for (int i = 0; i < index; i++) {
-            sum += readings[i];
-        }
-        result = sum / index;
+    for (int i = 0; i < _count; i++) {
+        float radians = _readings[i] * (PI / 180.0f);
+        sumSin += sinf(radians);
+        sumCos += cosf(radians);
     }
-    // printf("%.2f\n",result);
+
+    float result = atan2f(sumSin / _count, sumCos / _count) * 180.0f / PI;
+    if (result < 0.0f) {
+        result += 360.0f;
+    }
+    else if (result >= 360.0f) {
+        result -= 360.0f;
+    }
     return result;
-
-}
-
+    }

@@ -158,7 +158,7 @@ class BaseRobot {
             if (can1) can1->readAllCan();
             if (can2) can2->readAllCan();
 
-            k_sleep(K_MSEC(10));
+            k_sleep(K_MSEC(2));
         }
     }
 

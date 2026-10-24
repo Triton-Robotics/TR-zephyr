@@ -288,13 +288,35 @@ class Infantry : public BaseRobot {
         // remote_.getSwitch(Remote::Switch::RIGHT_SWITCH));
         // %.2f\n", imu.getImuAngles().yaw);
         // printf("%d\n", referee_.get_game_progress());
-        printf("yp %.2f \n", encoder_.encoderMovingAverage());
+        // printf("yp %.2f \n", encoder_.encoderMovingAverage());
         // printf("%.2f, %.2f, %.2f\n", imuAngles.roll, imuAngles.pitch, imuAngles.yaw);
         // printf("remote state: %d\n", remote_.getMode());
         // printf("remote jx: %.2f, jy: %.2f, jpitch: %.2f, jyaw: %.2f\n", jx, jy, jpitch, jyaw);
         // remote_.printMissedPackets();
         // printf("Chassis motor speeds: %.2f, %.2f, %.2f, %.2f\n", chassis_.getMotorSpeed(ChassisSubsystem::LEFT_FRONT, ChassisSubsystem::METER_PER_SECOND), chassis_.getMotorSpeed(ChassisSubsystem::RIGHT_FRONT, ChassisSubsystem::METER_PER_SECOND), chassis_.getMotorSpeed(ChassisSubsystem::LEFT_BACK, ChassisSubsystem::METER_PER_SECOND), chassis_.getMotorSpeed(ChassisSubsystem::RIGHT_BACK, ChassisSubsystem::METER_PER_SECOND));
         // printf("Chassis speeds: %.2f, %.2f, %.2f, %.2f\n", chassis_.LF.getData(VELOCITY), chassis_.RF.getData(VELOCITY), chassis_.LB.getData(VELOCITY), chassis_.RB.getData(VELOCITY));
+    
+            static int64_t lastPrint = 0;
+int64_t now = k_uptime_get();
+
+if (now - lastPrint >= 100) {
+    lastPrint = now;
+
+    unsigned int key = irq_lock();
+    uint32_t period = encoder_.periodCycles();
+    uint32_t pulse = encoder_.pulseCycles();
+    uint32_t callbacks = encoder_.cbCount();
+    int status = encoder_.lastStatus();
+    irq_unlock(key);
+
+    float duty = period ? float(pulse) / float(period) : 0.0f;
+    float rawAngle =
+        (duty - 0.02943f) / (0.97058f - 0.02943f) * 360.0f;
+
+    printf("p=%u pulse=%u duty=%.5f raw=%.2f cb=%u status=%d\n",
+           period, pulse, duty, rawAngle, callbacks, status);
+}
+    
     }
 
     void end_of_loop() override {}
