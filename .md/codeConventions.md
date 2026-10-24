@@ -14,7 +14,7 @@ Memory becomes especially important when running on an embedded device.
 <br>
 
 ## Code comments
-+ Ideally, your code should be concise and readable enough to not warrant needing any comments; however, given the inherent complexity of our codebase, there will inevitably be times where inline comments are indeed necessary. Something to consider is that there will be a lot of people varying in backgrounds and expertise, and so generally comments should be targeted towards the average member: generally familiar with C++ and the codebase, but not intimately familiar with the particular file you're writing.  
++ Ideally, your code should be concise and readable enough to not warrant needing any comments; however, there will inevitably be times where inline comments are indeed necessary. Something to consider is that the people reading your code will vary in experience, and so generally comments should be targeted towards the average member: generally familiar with C++ and the codebase, but not intimately familiar with the particular file you're writing.  
 + When it comes to comments in class headers, ideally you should use doxygen to document the functions, as shown below; however for simpler functions, a simple inline comment is fine. 
 
 ```C++
@@ -115,15 +115,43 @@ unsigned long elapsed_u;     // microseconds
 ```
 <br>
 
-+ Avoid using doubles unless your Lead/TA explicitly tells you to. Floats are significantly faster to compute on our Nucleo (since it has an FPU), and generally the increased precision is superfluous. Be careful when using functions from the math library, as for example, functions like `fabs()`, `sin()`, and `sqrt()` all return doubles. Instead, append an f to the function to use the version that returns a float (i.e. `fabsf()`, `sinf()`, `sqrtf()`). Note that your clangd/compiler will have warnings when you build for implicit double promotions, which should help you catch these mistakes. 
++ Avoid using doubles unless your Lead/TA explicitly tells you to. Floats are significantly faster to compute on our Nucleo (since it has an FPU), and generally the increased precision is superfluous. Be careful when using functions from the math library, as for example, functions like `fabs()`, `sin()`, and `sqrt()` all return doubles. Instead, append an f to the function to use the version that returns a float (i.e. `fabsf()`, `sinf()`, `sqrtf()`). Note that your clangd will have warnings when you build about implicit double promotions, which should help you catch these mistakes. 
 ## Functions
 + `static` functions should be prepended with the `s_` prefix.<br>
 ```C++
 static void s_getFeedback(){/* ... */}
 ```
+
++ Use `get` in a function name **only** when it returns something without updating it. See the example below
+```
+❌❌❌
+float MA4::getEncoderYawPosition() {
+    static float filtered_yaw = 0.0f;
+    float filter_alpha = 0.2f;  // 0.0-1.0: lower = more smoothing, higher = more responsive
+
+    float duty_raw = dutycycle();
+    float duty_min = 0.02943f;   // 2.943%
+    float duty_max = 0.97058f;   // 97.058%
+
+    //low pass filter 
+    float yaw_position = (fabsf(((duty_raw - duty_min) / (duty_max - duty_min)) * 360.0f));
+    filtered_yaw = filtered_yaw * (1.0f - filter_alpha) + yaw_position *  filter_alpha;
+    // printf("%.2f\n",yaw_position);
+    if (_invert) {
+        return (360.0f - filtered_yaw);
+    }
+    return filtered_yaw;
+}
+```
+```C++
+// ✅✅✅
+float MA4::getEncoderYaw() const{
+    return this->curr_yaw; // Returns curr_yaw private variable in MA4
+}
+```
+
 + Use `inline` for very short and often called functions and operator overloading.
 ```C++
-inline int operator>>(motorDataType data)                { return getData(data); }
 inline void setSpeedPID(float kP, float kI, float kD)    { pidSpeed.setPID(kP, kI, kD); }
 ```
 + When needed, declare boolean debugging variables as default false parameters.
