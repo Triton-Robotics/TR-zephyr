@@ -139,6 +139,8 @@ class Infantry : public BaseRobot {
     ChassisSubsystem chassis_;
 
     bool imu_initialized{false};
+    float translation_scale{1.0f};
+    float last_chassis_scale{1.0f};
 
     Infantry(Config &config)
         : BaseRobot(config),
@@ -188,8 +190,9 @@ class Infantry : public BaseRobot {
         imuAngles = imu_.getImuAngles();
         // TODO: use this in code correctly to drive faster
         max_linear_vel = MAX_VEL;
-        des_chassis_state.vX = jy * max_linear_vel;
-        des_chassis_state.vY = jx * max_linear_vel;
+        //CHANGED
+        //des_chassis_state.vX = jy * max_linear_vel;
+        //des_chassis_state.vY = jx * max_linear_vel;
 
         // Read jetson
         jetson_state = jetson.read();
@@ -211,24 +214,106 @@ class Infantry : public BaseRobot {
         des_turret_state.pitch_angle_degs = pitch_desired_angle;
 
         // Chassis logic
+        // if (drive == 'u' || (drive == 'o' && remote_.getMode() == DJIRemote2::ModeSwitch::MODE_N)) {
+        //     des_chassis_state.vOmega = 0;
+        //     chassis_.setChassisSpeeds(des_chassis_state, ChassisSubsystem::DRIVE_MODE::YAW_ORIENTED);
+        //     des_turret_state.turret_mode = TurretState::AIM;
+        //     referee_.is_aligned = false;
+        //     referee_.is_cv_on = false;
+        //     referee_.is_spinning = false;
+        // }  else if (drive == 'd' || 
+        //            (drive == 'o' &&
+        //             remote_.getMode() == DJIRemote2::ModeSwitch::MODE_S)) {
+        //     des_chassis_state.vOmega = omega_speed;
+        //     chassis_.setChassisSpeeds(des_chassis_state, ChassisSubsystem::DRIVE_MODE::YAW_ORIENTED);
+        //     des_turret_state.turret_mode = TurretState::AIM;
+        //     referee_.is_aligned = false;
+        //     referee_.is_cv_on = false;
+        //     referee_.is_spinning = true;
+        // } else {
+        //     chassis_.setWheelPower({0, 0, 0, 0});
+        //     des_turret_state.turret_mode = TurretState::SLEEP;
+        //     des_turret_state.yaw_angle_degs = turret_.getState().yaw_angle_degs;
+        //     yaw_desired_angle = turret_.getState().yaw_angle_degs;
+        //     des_turret_state.pitch_angle_degs = 0;
+        //     referee_.is_aligned = false;
+        //     referee_.is_cv_on = false;
+        //     referee_.is_spinning = false;
+        // }
+        // Chassis logic
         if (drive == 'u' || (drive == 'o' && remote_.getMode() == DJIRemote2::ModeSwitch::MODE_N)) {
+            // Normal drive: full translation, no rotation, no allocation needed
+            des_chassis_state.vX = jy * max_linear_vel;
+            des_chassis_state.vY = jx * max_linear_vel;
             des_chassis_state.vOmega = 0;
             chassis_.setChassisSpeeds(des_chassis_state, ChassisSubsystem::DRIVE_MODE::YAW_ORIENTED);
+
+            // Reset beyblade feedback state so it starts fresh next time
+            translation_scale = 1.0f;
+            last_chassis_scale = 1.0f;
+
             des_turret_state.turret_mode = TurretState::AIM;
             referee_.is_aligned = false;
             referee_.is_cv_on = false;
             referee_.is_spinning = false;
-        }  else if (drive == 'd' || 
-                   (drive == 'o' &&
+
+        } else if (drive == 'd' ||
+                (drive == 'o' &&
                     remote_.getMode() == DJIRemote2::ModeSwitch::MODE_S)) {
-            des_chassis_state.vOmega = omega_speed;
-            chassis_.setChassisSpeeds(des_chassis_state, ChassisSubsystem::DRIVE_MODE::YAW_ORIENTED);
+
+            // --- STEP 1: Elliptical allocation ---
+            // Decide omega based on joystick magnitude.
+            // At zero stick: omega = 100% of omega_speed
+            // At full stick: omega = 70% of omega_speed
+            float omega = chassis_.allocateBeybladeOmega(jx, jy, omega_speed, chassis_.BEYBLADE_TRANSLATIONAL_BIAS, chassis_.BEYBLADE_ROTATIONAL_BIAS);
+            float omega_floor = 0.7f * omega_speed;
+
+            // --- STEP 2: Feedback check ---
+            // Use last cycle's scale to adjust commands.
+            // If we were over budget, someone has to give.
+            if (last_chassis_scale < 1.0f) {
+                float cut_needed = 1.0f - last_chassis_scale;
+
+                if (omega > omega_floor) {
+                    // Rotation is above the floor. Both share the cut.
+                    // But rotation stops at the floor.
+                    float omega_headroom = (omega - omega_floor) / omega;
+                    float omega_cut = fminf(omega_headroom, cut_needed * 0.5f);
+                    omega *= (1.0f - omega_cut);
+
+                    // Translation absorbs the rest
+                    float remaining_cut = cut_needed - omega_cut;
+                    translation_scale *= (1.0f - remaining_cut);
+                } else {
+                    // Rotation is already at the floor. Only translation absorbs.
+                    translation_scale *= last_chassis_scale;
+                }
+                translation_scale = fmaxf(translation_scale, 0.0f);
+            } else {
+                // Under budget. Gradually restore translation toward full.
+                translation_scale = fminf(translation_scale * 1.05f, 1.0f);
+            }
+
+            // --- STEP 3: Build the command ---
+            des_chassis_state.vX = jy * max_linear_vel * translation_scale;
+            des_chassis_state.vY = jx * max_linear_vel * translation_scale;
+            des_chassis_state.vOmega = omega;
+
+            // --- STEP 4: Send to pipeline, store scale for next cycle ---
+            last_chassis_scale = chassis_.setChassisSpeeds(des_chassis_state, ChassisSubsystem::DRIVE_MODE::YAW_ORIENTED);
+
             des_turret_state.turret_mode = TurretState::AIM;
             referee_.is_aligned = false;
             referee_.is_cv_on = false;
             referee_.is_spinning = true;
+
         } else {
             chassis_.setWheelPower({0, 0, 0, 0});
+
+            // Reset beyblade feedback state
+            translation_scale = 1.0f;
+            last_chassis_scale = 1.0f;
+
             des_turret_state.turret_mode = TurretState::SLEEP;
             des_turret_state.yaw_angle_degs = turret_.getState().yaw_angle_degs;
             yaw_desired_angle = turret_.getState().yaw_angle_degs;
