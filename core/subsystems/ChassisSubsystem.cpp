@@ -57,39 +57,67 @@ WheelSpeeds ChassisSubsystem::getWheelSpeeds() const
     return m_wheelSpeeds;
 }
 
-float ChassisSubsystem::limitAcceleration(float desiredRPM, float previousRPM, int power)
+WheelSpeeds ChassisSubsystem::paceWheelSpeeds(WheelSpeeds desired, float dt_s)
 {
-    float maxAccel = 100;
-    float diff = desiredRPM - previousRPM;
+    float target[4] = {desired.LF, desired.RF, desired.LB, desired.RB};
+    float delta[4];
+    float largestDelta = 0.0f;
 
-    
-    if ((desiredRPM > 0 && previousRPM < 0) || (desiredRPM < 0 && previousRPM > 0)) { // if robot trying to sudden change direction
-        return 0;
-    }
-    
-    
-    if (diff > maxAccel){   // if the difference is greater than the max acceleration
-
-
-        if(power == 0) {
-            return desiredRPM; // let robot do its thing b/c it wont take power
-        }
-
-        return previousRPM + maxAccel;
-
-    }
-    else if (diff < -maxAccel) {
-        if(power == 0) {
-            return desiredRPM; // let robot do its thing b/c it wont take power
-        }
-
-        return previousRPM - maxAccel;
+    for (int i = 0; i < 4; i++) {
+        delta[i] = target[i] - previousRPM[i];
+        largestDelta = fmaxf(largestDelta, fabsf(delta[i]));
     }
 
-    else {
-        return desiredRPM; // under acceleration cap
+    // Scale every wheel's change by the same factor so they all arrive together
+    float maxStep = MAX_WHEEL_ACCEL_RPM_PER_S * dt_s;
+    float scale = 1.0f;
+    if (largestDelta > maxStep) {
+        scale = maxStep / largestDelta;
     }
+
+    for (int i = 0; i < 4; i++) {
+        previousRPM[i] += delta[i] * scale;
+    }
+
+    return {previousRPM[0], previousRPM[1], previousRPM[2], previousRPM[3]};
 }
+
+
+// limitAcceleration function IS REPLACED BY paceWheelSpeeds
+
+// float ChassisSubsystem::limitAcceleration(float desiredRPM, float previousRPM, int power)
+// {
+//     float maxAccel = 100;
+//     float diff = desiredRPM - previousRPM;
+
+    
+//     if ((desiredRPM > 0 && previousRPM < 0) || (desiredRPM < 0 && previousRPM > 0)) { // if robot trying to sudden change direction
+//         return 0;
+//     }
+    
+    
+//     if (diff > maxAccel){   // if the difference is greater than the max acceleration
+
+
+//         if(power == 0) {
+//             return desiredRPM; // let robot do its thing b/c it wont take power
+//         }
+
+//         return previousRPM + maxAccel;
+
+//     }
+//     else if (diff < -maxAccel) {
+//         if(power == 0) {
+//             return desiredRPM; // let robot do its thing b/c it wont take power
+//         }
+
+//         return previousRPM - maxAccel;
+//     }
+
+//     else {
+//         return desiredRPM; // under acceleration cap
+//     }
+// }
 
 float ChassisSubsystem::p_theory(int LeftFrontPower, int RightFrontPower, int LeftBackPower, int RightBackPower, int LeftFrontRpm, int RightFrontRpm, int LeftBackRpm, int RightBackRpm){
     float krpm2 = 0.000000000616869908524917;
@@ -183,21 +211,44 @@ float ChassisSubsystem::estimatePowerWatts(int torqueCounts)
 
 float ChassisSubsystem::setWheelSpeeds(WheelSpeeds wheelSpeeds)
 {
-    desiredWheelSpeeds = wheelSpeeds; // WheelSpeeds in RPM
+
+    desiredWheelSpeeds = wheelSpeeds; // WheelSpeeds in RPM (unpaced target)
     int powers[4] = {0,0,0,0};
+
     uint32_t time = now_us();
+    float dt_s = fminf((time - lastPIDTime) / 1e6f, MAX_PACER_DT_S);
+    float dt_ms = dt_s * 1000.0f; // PID expects milliseconds
+    lastPIDTime = time;
+
+    WheelSpeeds paced = paceWheelSpeeds(wheelSpeeds, dt_s);
+
+    powers[0] = motorPIDtoPower(LEFT_FRONT, paced.LF, dt_ms);
+    powers[1] = motorPIDtoPower(RIGHT_FRONT, paced.RF, dt_ms);
+    powers[2] = motorPIDtoPower(LEFT_BACK, paced.LB, dt_ms);
+    powers[3] = motorPIDtoPower(RIGHT_BACK, paced.RB, dt_ms);
+
+    int p1 = abs(powers[0]);
+    int p2 = abs(powers[1]);
+    int p3 = abs(powers[2]);
+    int p4 = abs(powers[3]);
+
+    // OLD IMPLEMENTATION FOUND BELOW
+
+    // desiredWheelSpeeds = wheelSpeeds; // WheelSpeeds in RPM
+    // int powers[4] = {0,0,0,0};
+    // uint32_t time = now_us();
 
 
-    powers[0] = motorPIDtoPower(LEFT_FRONT,wheelSpeeds.LF, (time - lastPIDTime));
-    powers[1] = motorPIDtoPower(RIGHT_FRONT,wheelSpeeds.RF, (time - lastPIDTime));
-    powers[2] = motorPIDtoPower(LEFT_BACK,wheelSpeeds.LB, (time - lastPIDTime));
-    powers[3] = motorPIDtoPower(RIGHT_BACK,wheelSpeeds.RB, (time - lastPIDTime));
+    // powers[0] = motorPIDtoPower(LEFT_FRONT,wheelSpeeds.LF, (time - lastPIDTime));
+    // powers[1] = motorPIDtoPower(RIGHT_FRONT,wheelSpeeds.RF, (time - lastPIDTime));
+    // powers[2] = motorPIDtoPower(LEFT_BACK,wheelSpeeds.LB, (time - lastPIDTime));
+    // powers[3] = motorPIDtoPower(RIGHT_BACK,wheelSpeeds.RB, (time - lastPIDTime));
     
 
-    float LFrpm = limitAcceleration(wheelSpeeds.LF, previousRPM[0], powers[0]);
-    float RFrpm = limitAcceleration(wheelSpeeds.RF, previousRPM[1], powers[1]);
-    float LBrpm = limitAcceleration(wheelSpeeds.LB, previousRPM[2], powers[2]);
-    float RBrpm = limitAcceleration(wheelSpeeds.RB, previousRPM[3], powers[3]);
+    // float LFrpm = limitAcceleration(wheelSpeeds.LF, previousRPM[0], powers[0]);
+    // float RFrpm = limitAcceleration(wheelSpeeds.RF, previousRPM[1], powers[1]);
+    // float LBrpm = limitAcceleration(wheelSpeeds.LB, previousRPM[2], powers[2]);
+    // float RBrpm = limitAcceleration(wheelSpeeds.RB, previousRPM[3], powers[3]);
 
     // float LFrpm = wheelSpeeds.LF;
     // float RFrpm = wheelSpeeds.RF;
@@ -210,10 +261,10 @@ float ChassisSubsystem::setWheelSpeeds(WheelSpeeds wheelSpeeds)
     // float LBrpm = limitAcceleration(wheelSpeeds.LB, previousRPM[2], LB.getData(POWEROUT));
     // float RBrpm = limitAcceleration(wheelSpeeds.RB, previousRPM[3], RB.getData(POWEROUT));
 
-    previousRPM[0] = LFrpm;
-    previousRPM[1] = RFrpm;
-    previousRPM[2] = LBrpm;
-    previousRPM[3] = RBrpm;
+    // previousRPM[0] = LFrpm;
+    // previousRPM[1] = RFrpm;
+    // previousRPM[2] = LBrpm;
+    // previousRPM[3] = RBrpm;
 
     // Seems to be somewhat  redundant to do PID twice; HOWEVER, we should profile exactly how long the limit acceleration takes
 
@@ -222,11 +273,6 @@ float ChassisSubsystem::setWheelSpeeds(WheelSpeeds wheelSpeeds)
     // powers[2] = motorPIDtoPower(LEFT_BACK,LBrpm, (time - lastPIDTime));
     // powers[3] = motorPIDtoPower(RIGHT_BACK,RBrpm, (time - lastPIDTime));
     // lastPIDTime = time;
-
-    int p1 = abs(powers[0]);
-    int p2 = abs(powers[1]);
-    int p3 = abs(powers[2]);
-    int p4 = abs(powers[3]);
 
     // Ignore Warning, we're casting to ints anyway so its fine
 

@@ -134,7 +134,10 @@ public:
 
     float previousRPM[4] = {0, 0, 0, 0};
 
-    static float limitAcceleration(float desiredRPM, float previousRPM, int power);
+    // chassis-level accel pacer: all four wheels reach their target together
+    static constexpr float MAX_WHEEL_ACCEL_RPM_PER_S = 10000.0f; // motor-shaft RPM/s; starting value, tune on robot
+    static constexpr float MAX_PACER_DT_S = 0.05f;               // caps dt after a stall or first call
+    WheelSpeeds paceWheelSpeeds(WheelSpeeds desired, float dt_s);
 
     static float p_theory(int LeftFrontPower, int RightFrontPower, int LeftBackPower, int RightBackPower, int LeftFrontRpm, int RightFrontRpm, int LeftBackRpm, int RightBackRpm);
 
@@ -145,13 +148,13 @@ public:
     float power_limit;
 
     // Beyblade ellipse: translational_bias*v^2 + rotational_bias*w^2 <= 1  (v = stick 0-1, w = omega/omega_max)
-    // Spin at full stick = sqrt((1 - k1) / k2), so k1 = 1 - 0.7^2 gives 70%
+    // Spin at full stick = sqrt((1 - translational_bias) / rotational_bias), so k1 = 1 - 0.7^2 gives 70%
     static constexpr float BEYBLADE_TRANSLATIONAL_BIAS = 0.51f;
     static constexpr float BEYBLADE_ROTATIONAL_BIAS = 1.0f;
 
     // Returns beyblade omega for the given stick input (jx, jy in [-1, 1])
     static float allocateBeybladeOmega(float jx, float jy, float omega_max,
-                                       float k1 = BEYBLADE_TRANSLATIONAL_BIAS, float k2 = BEYBLADE_ROTATIONAL_BIAS);
+                                       float translational_bias = BEYBLADE_TRANSLATIONAL_BIAS, float rotational_bias = BEYBLADE_ROTATIONAL_BIAS);
 
     /**
      * Gets the chassis's current WheelSpeeds
@@ -386,7 +389,7 @@ private:
     // void setMotorSpeedTicksPerSecond(int index, float speed);
 
     float getMotorSpeedRPM(MotorLocation location);
-    int motorPIDtoPower(MotorLocation location, float speed, uint32_t dt);
+    int motorPIDtoPower(MotorLocation location, float speed, float dt_ms);
 
     // ChassisKalman chassisKalman;
     float testAngle;
