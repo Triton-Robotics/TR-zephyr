@@ -19,8 +19,8 @@ DJIMotor::config indexerConfig = {
     CANHandler::CANBUS_1,
     M2006,
     "indexer",
-    {0.5, 0, 0, 10000, 500},
-    {0.1, 0, 0.001, 10000, 500}
+    {2.0, 0.1, 0, 5000, 500},
+    {0.03, 0, 0, 3000, 0}
 };
 
 
@@ -33,17 +33,18 @@ int target;
 float INDEXER_ANGLE = -1.0f;
 float start_angle = -1.0f;
 
-void periodic(const unsigned long dt_us) {
+void periodic(const uint64_t dt_us) {
     INDEXER_ANGLE = (indexer >> MULTITURNANGLE) - start_angle;
     indexer.setPosition(target);
+    // indexer.setPower(500);
 }
 
 int main(void)
 {
-    unsigned long loop_clock_us = now_us();
-    unsigned long prev_loop_time_us = loop_clock_us;
+    uint64_t loop_clock_us = now_us();
+    uint64_t prev_loop_time_us = loop_clock_us;
 
-    unsigned long main_loop_dt_ms = 2;
+    uint64_t main_loop_dt_ms = 2;
 
     // CAN2 is the bxCAN slave, so CAN1 must be up too
     if (!device_is_ready(canbus1_dev) || !device_is_ready(canbus2_dev)) {
@@ -55,29 +56,36 @@ int main(void)
 
     CANHandler *can1 = DJIMotor::getCanHandler(CANHandler::CANBUS_1);
     CANHandler *can2 = DJIMotor::getCanHandler(CANHandler::CANBUS_2);
-    if (can1) can1->registerCallback(0x201, 0x20D, DJIMotor::getCanOneFeedback);
-    if (can2) can2->registerCallback(0x201, 0x20D, DJIMotor::getCanTwoFeedback);
+    if (can1) can1->registerCallback(0x201, 0x208, DJIMotor::getCanOneFeedback);
+    if (can2) can2->registerCallback(0x201, 0x208, DJIMotor::getCanTwoFeedback);
 
-    for (int i = 0; i < 20; i++) {
+    // enum can_state st; struct can_bus_err_cnt cnt;
+    // can_get_state(canbus1_dev, &st, &cnt);
+    // printf("can1 state=%d tx_err=%u rx_err=%u\n", st, cnt.tx_err_cnt, cnt.rx_err_cnt);
+
+
+    for (int i = 0; i < 50; i++) {
         can1->readAllCan();
-        can2->readAllCan();
-        k_sleep(K_MSEC(5));
+        k_sleep(K_MSEC(2));
     }
 
-    start_angle = indexer >> MULTITURNANGLE;
-    INDEXER_ANGLE = 0;
-    target = static_cast<double>((TICKS_PER_ROTATION * M2006_GEAR_RATIO / 4.0f) + (indexer>>MULTITURNANGLE));
 
-    
-    printf("multiturn start: %d\n", indexer>>MULTITURNANGLE);
-    printf("target: %d\n", target);
+    start_angle = indexer >> MULTITURNANGLE;
+
+    INDEXER_ANGLE = 0;
+    target = static_cast<int>(start_angle + TICKS_PER_SLOT);
+
+    indexer.setPower(0);
+    // indexer.printAngle = true;
 
     uint64_t startTime = now_us();
+
+    printf("warmup angle=%d\n", (int)(indexer >> MULTITURNANGLE));
 
     while (true) {
         loop_clock_us = now_us();
 
-        if (loop_clock_us - startTime > 5e6) {
+        if (loop_clock_us - startTime > 10e6) {
             indexer.setPower(0.0f);
             DJIMotor::sendValues(false);
             break;
@@ -90,11 +98,7 @@ int main(void)
             // Motor updates
             DJIMotor::sendValues();
         }
-        if (can1) can1->readAllCan();
-        if (can2) can2->readAllCan();
 
         k_sleep(K_MSEC(10));
     }
-    
-    printf("multiturn end: %d\n", indexer>>MULTITURNANGLE);
 }

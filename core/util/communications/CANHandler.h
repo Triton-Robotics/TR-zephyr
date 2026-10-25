@@ -90,15 +90,19 @@ public:
         }
     }
 
+    static void tx_done(const struct device *dev, int error, void *user_data) { }
+
     bool rawSend(uint32_t id, const uint8_t bytes[], uint8_t length = 8) {
-        // CANMsg tx(id, bytes, length);
-        struct can_frame tx = {
-            .id = id,
-            .dlc = length,
-            .flags = 0,
-        };
-        memcpy(tx.data,bytes,length);
-        int ret = can_send(dev_, &tx, K_MSEC(100), nullptr, nullptr);
+        struct can_frame tx = {};
+        tx.id = id;
+        tx.dlc = length;
+        tx.flags = 0;
+        memcpy(tx.data, bytes, length);
+
+        int ret = can_send(dev_, &tx, K_MSEC(2), tx_done, nullptr);
+        if (ret != 0) {
+            printk("can_send failed: %d\n", ret);
+        }
         return ret == 0;
     }
 
