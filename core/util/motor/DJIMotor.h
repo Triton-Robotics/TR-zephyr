@@ -78,6 +78,40 @@ public:
     PID pidPosition;
 
     int multiTurn = 0;
+    int multiTurnFancy = 0;
+    int lastMotorSpeedFancy = 0;
+    long lastMotorTimeFancy = 0;
+    long lastMotorAngleFancy = 0;
+
+
+    long curr_time_frame = 0;
+    long curr_loop_counter = 0;
+
+    int curr_case_one_low_frame = 0;
+    int curr_case_two_low_frame = 0;
+    int curr_case_three_low_frame = 0;
+    int curr_case_one_high_frame = 0;
+    int curr_case_two_high_frame = 0;
+    int curr_case_three_high_frame = 0;
+    int last_motor_angle_frame = 0;
+    int curr_motor_angle_frame = 0;
+    int curr_motor_speed_frame = 0;
+    int curr_delta_angle_frame = 0;
+    int curr_multiturn_frame = 0;
+
+    int alt_curr_case_one_low_frame = 0;
+    int alt_curr_case_two_low_frame = 0;
+    int alt_curr_case_three_low_frame = 0;
+    int alt_curr_case_one_high_frame = 0;
+    int alt_curr_case_two_high_frame = 0;
+    int alt_curr_case_three_high_frame = 0;
+    int alt_last_motor_angle_frame = 0;
+    int alt_curr_motor_angle_frame = 0;
+    int alt_curr_motor_speed_frame = 0;
+    int alt_curr_delta_angle_frame = 0;
+    int alt_curr_multiturn_frame = 0;
+    
+
     int outputCap = INT16_T_MAX;
     bool useAbsEncoder = false; // false for everything except gm6020s
     bool printAngle = false;
