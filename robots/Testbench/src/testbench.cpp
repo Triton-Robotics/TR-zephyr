@@ -19,8 +19,8 @@ DJIMotor::config indexerConfig = {
     CANHandler::CANBUS_1,
     M2006,
     "indexer",
-    {2.0, 0.1, 0, 5000, 500},
-    {0.03, 0, 0, 3000, 0}
+    {0.05, 0, 0, 5000, 500},
+    {0.05, 0, 0, 3000, 0}
 };
 
 
@@ -98,6 +98,9 @@ int main(void)
             // Motor updates
             DJIMotor::sendValues();
         }
+
+        if (can1) can1->readAllCan();
+        if (can2) can2->readAllCan();
 
         k_sleep(K_MSEC(10));
     }
