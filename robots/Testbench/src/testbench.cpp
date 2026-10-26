@@ -34,9 +34,9 @@ float INDEXER_ANGLE = -1.0f;
 float start_angle = -1.0f;
 
 void periodic(const uint64_t dt_us) {
-    INDEXER_ANGLE = (indexer >> MULTITURNANGLE) - start_angle;
-    indexer.setPosition(target);
-    // indexer.setPower(500);
+    // INDEXER_ANGLE = (indexer >> MULTITURNANGLE) - start_angle;
+    // indexer.setPosition(target);
+    indexer.setPower(500);
 }
 
 int main(void)
@@ -88,6 +88,7 @@ int main(void)
         if (loop_clock_us - startTime > 10e6) {
             indexer.setPower(0.0f);
             DJIMotor::sendValues(false);
+            printf("stopped motor, exit main loop\n");
             break;
         }
 

@@ -99,7 +99,7 @@ public:
         tx.flags = 0;
         memcpy(tx.data, bytes, length);
 
-        int ret = can_send(dev_, &tx, K_MSEC(2), tx_done, nullptr);
+        int ret = can_send(dev_, &tx, K_MSEC(100), tx_done, nullptr);
         if (ret != 0) {
             printk("can_send failed: %d\n", ret);
         }
