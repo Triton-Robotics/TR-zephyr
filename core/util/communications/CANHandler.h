@@ -31,12 +31,18 @@ struct RangeCallback {
 class CANHandler{
     
 public:
+    int rxQueueDepth() const {
+        return k_msgq_num_used_get(
+            const_cast<struct k_msgq*>(&rx_msgq_)
+        );
+    }
 
     ~CANHandler() {
-    if (filter_id >= 0) {
-        can_remove_rx_filter(dev_, filter_id);
+        if (filter_id >= 0) {
+            can_remove_rx_filter(dev_, filter_id);
+        }
     }
-}
+
     enum CANBus{CANBUS_1, CANBUS_2, NOBUS}; // Somewhat vestigal, makes porting mbedOS code a little easier - Dil 
 
     explicit CANHandler(const struct device *can_dev)

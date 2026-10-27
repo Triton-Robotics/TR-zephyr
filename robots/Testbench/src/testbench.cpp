@@ -1,11 +1,10 @@
+#include "subsystems/ShooterSubsystem.h"
 #include <zephyr/drivers/i2c.h>
 #include <stdio.h>
 #include <util/communications/CANHandler.h>
 #include <util/algorithms/PID.h>
 #include <base_robot/BaseRobot.h>
 #include <util/motor/DJIMotor.h>
-
-
 
 // Devices from DT
 static const struct device *canbus2_dev = DEVICE_DT_GET(DT_NODELABEL(can2));
@@ -19,8 +18,8 @@ DJIMotor::config indexerConfig = {
     CANHandler::CANBUS_1,
     M2006,
     "indexer",
-    {0.05, 0, 0, 5000, 500},
-    {0.05, 0, 0, 3000, 0}
+    {0.5, 0, 0, 5000, 500},
+    {1.0, 0, 0, 3000, 0}
 };
 
 
@@ -35,8 +34,8 @@ float start_angle = -1.0f;
 
 void periodic(const uint64_t dt_us) {
     // INDEXER_ANGLE = (indexer >> MULTITURNANGLE) - start_angle;
-    // indexer.setPosition(target);
-    indexer.setPower(500);
+    indexer.setPosition(target);
+    // indexer.setPower(500);
 }
 
 int main(void)
@@ -64,12 +63,6 @@ int main(void)
     // printf("can1 state=%d tx_err=%u rx_err=%u\n", st, cnt.tx_err_cnt, cnt.rx_err_cnt);
 
 
-    for (int i = 0; i < 50; i++) {
-        can1->readAllCan();
-        k_sleep(K_MSEC(2));
-    }
-
-
     start_angle = indexer >> MULTITURNANGLE;
 
     INDEXER_ANGLE = 0;
@@ -83,13 +76,15 @@ int main(void)
     printf("warmup angle=%d\n", (int)(indexer >> MULTITURNANGLE));
 
     while (true) {
+        printk("CAN RX queue: %d / 128\n",
+            can1->rxQueueDepth());
         loop_clock_us = now_us();
 
         if (loop_clock_us - startTime > 10e6) {
             indexer.setPower(0.0f);
             DJIMotor::sendValues(false);
             printf("stopped motor, exit main loop\n");
-            break;
+            continue;
         }
 
         if ((loop_clock_us - prev_loop_time_us) / 1000 >= main_loop_dt_ms) {
