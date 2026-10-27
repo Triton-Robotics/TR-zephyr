@@ -1,100 +1,70 @@
-
-#include <zephyr/kernel.h>
-#include <zephyr/device.h>
-#include <zephyr/devicetree.h>
-#include <zephyr/drivers/pwm.h>
-#include <util/algorithms/general_functions.h>
 #ifndef MA4_H
 #define MA4_H
 
-/** PwmIn class to read PWM inputs
- * 
- * Uses InterruptIn to measure the changes on the input
- * and record the time they occur
- *
- * @note uses InterruptIn, so not available on p19/p20
- */
+#include <zephyr/kernel.h>
+#include <zephyr/drivers/pwm.h>
+
+/** MA4 PWM input. Capture callbacks publish measurements; reads never advance filters. */
 class MA4 {
 public:
-    /** Constructor
-     *
-     * @param pwm Struct with both dev and channel 
-     * @param invert invert cw and ccw cuz ma4 is a hoe
-     */ 
-    MA4(const struct pwm_dt_spec *pwm, bool invert=false);
-    
+    MA4(const struct pwm_dt_spec *pwm, bool invert = false);
     int init();
 
-    /** Read the current period
-     *
-     * @returns the period in seconds
-     */
+    struct Reading {
+        // Most recent callback, including rejected measurements.
+        uint32_t callbacks = 0;
+        uint32_t accepted = 0;
+        uint32_t rejected = 0;
+        uint32_t period_cycles = 0;
+        uint32_t pulse_cycles = 0;
+        int status = 0;
+        int64_t age_ms = -1;
+        bool valid = false;
+
+        // Most recent accepted measurement; angles are -1 when unavailable.
+        float period_seconds = 0.0f;
+        float pulse_seconds = 0.0f;
+        float duty = 0.0f;
+        float raw_angle = -1.0f;
+        float filtered_angle = -1.0f;
+        float average_angle = -1.0f;
+    };
+
+    /** Consistent diagnostic snapshot. Measurements expire after 100 ms. */
+    Reading reading() const;
+    /** Period and pulse width in seconds; zero when unavailable. */
     float period();
-    
-    /** Read the current pulsewidth
-     *
-     * @returns the pulsewidth in seconds
-     */
     float pulsewidth();
-    
-    /** Read the current dutycycle
-     *
-     * @returns the dutycycle as a percentage, represented between 0.0-1.0
-     */
+    /** Duty ratio in [0, 1]; zero when unavailable. */
     float dutycycle();
-
-    /**
-     * Gets the yaw position from encoder (PWM) input in degrees (0-360)
-     * @return yaw position in degrees, or -1 if encoder not available
-     */
+    /** Exponentially filtered angle in [0, 360), or -1 when unavailable. */
     float getEncoderYawPosition();
-
-    /**
-     * A helper method to calculate the moving average of the encoder readings for yaw position
-     * @return the moving average of the encoder readings for yaw position
-     */
+    /** Circular mean of the last 20 accepted raw angles, or -1 when unavailable. */
     float encoderMovingAverage();
-    
-    uint32_t cbCount() const { return _cb_count; }
-    int lastStatus() const { return _last_status; }
-
+    uint32_t cbCount() const;
+    int lastStatus() const;
     uint32_t periodCycles() const;
     uint32_t pulseCycles() const;
 
 protected:
-
-    // Capture Callback
     static void capture_cb(const struct device *dev, uint32_t channel,
-                            uint32_t period_cycles, uint32_t pulse_cycles,
-                            int status, void *user_data);
-    
-    // Update _period and _pulse
+                           uint32_t period_cycles, uint32_t pulse_cycles,
+                           int status, void *user_data);
     void on_capture(uint32_t period_cycles, uint32_t pulse_cycles, int status);
 
-    // void rise();
-    // void fall();
-    
-    // InterruptIn _p;
-    const struct pwm_dt_spec *_pwm; 
-    // Timer _t;
+private:
+    static constexpr int64_t stale_ms = 100;
+    static constexpr unsigned window_size = 20;
+    const struct pwm_dt_spec *_pwm;
     bool _invert;
-    volatile float _pulsewidth, _period; // Volatile since Zephyr does PWM stuff thru interrupts, and so we're basically telling the compiler
-                                         // that we want to actually check what these are and not use any cache'd results
-    volatile float    _duty = 0.0f;
-    volatile uint32_t _cb_count = 0;
-    volatile int      _last_status = 0;
-
-    volatile uint32_t _period_cycles = 0, _pulse_cycles = 0;
-
-    float _filtered = 0.0f;
-    bool  _have_filter = false;
-    float _alpha = 0.2f;
-
-    static constexpr int windowSize = 20;
-    float _readings[windowSize] = {};
-    int _index = 0;
-    int _count = 0;
-
+    uint64_t _cycles_per_second = 0;
+    mutable struct k_spinlock _lock = {};
+    Reading _reading;
+    int64_t _last_valid_ms = 0;
+    bool _have_filter = false;
+    float _angles[window_size] = {};
+    unsigned _index = 0;
+    unsigned _count = 0;
 };
 
 #endif

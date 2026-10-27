@@ -1,211 +1,137 @@
 #include "MA4.h"
 
-MA4::MA4(const struct pwm_dt_spec *pwm, bool invert) 
-    : _pwm(pwm), _invert(invert), _pulsewidth(0.0f), _period(0.0f) {
-                 
+#include <cerrno>
+#include <cmath>
+
+namespace {
+constexpr float duty_min = 128.0f / 4351.0f;
+constexpr float duty_max = 4223.0f / 4351.0f;
+// Allow one sensor clock of endpoint quantization from the capture timer.
+constexpr float duty_tolerance = 1.0f / 4351.0f;
+constexpr float radians_per_degree = 0.017453292519943295f;
+constexpr float alpha = 0.2f;
+
+float wrap(float angle) {
+    const float result = angle - 360.0f * floorf(angle / 360.0f);
+    return result >= 360.0f ? 0.0f : result;
 }
+}
+
+MA4::MA4(const struct pwm_dt_spec *pwm, bool invert)
+    : _pwm(pwm), _invert(invert) {}
 
 int MA4::init() {
-    if (!pwm_is_ready_dt(_pwm)) { printk("MA4: pwm dev not ready\n"); return -ENODEV; }
-
-    int ret = pwm_configure_capture(_pwm->dev, _pwm->channel,
-                  _pwm->flags | PWM_CAPTURE_TYPE_BOTH | PWM_CAPTURE_MODE_CONTINUOUS,
-                  MA4::capture_cb, this);
-    if (ret) { printk("MA4: configure_capture failed: %d\n", ret); return ret; }
-
+    if (!_pwm || !pwm_is_ready_dt(_pwm)) {
+        printk("MA4: pwm dev not ready\n");
+        return -ENODEV;
+    }
+    int ret = pwm_get_cycles_per_sec(_pwm->dev, _pwm->channel, &_cycles_per_second);
+    if (ret || _cycles_per_second == 0) {
+        printk("MA4: cannot get capture clock: %d\n", ret);
+        return ret ? ret : -EINVAL;
+    }
+    ret = pwm_configure_capture(_pwm->dev, _pwm->channel,
+                               _pwm->flags | PWM_CAPTURE_TYPE_BOTH |
+                               PWM_CAPTURE_MODE_CONTINUOUS, capture_cb, this);
+    if (ret) {
+        printk("MA4: configure_capture failed: %d\n", ret);
+        return ret;
+    }
     ret = pwm_enable_capture(_pwm->dev, _pwm->channel);
-    if (ret) { printk("MA4: enable_capture failed: %d\n", ret); return ret; }
-    return 0;
+    if (ret) printk("MA4: enable_capture failed: %d\n", ret);
+    return ret;
 }
-
-// void MA4::on_capture(uint32_t period_cycles, uint32_t pulse_cycles, int status) {
-//     if (status != 0) { //Means that we're not ready 
-//         return;
-//     }
-
-//     uint64_t period_ns, pulse_ns;
-//     pwm_cycles_to_nsec(_pwm->dev, _pwm->channel, period_cycles, &period_ns);
-//     pwm_cycles_to_nsec(_pwm->dev, _pwm->channel, pulse_cycles, &pulse_ns);
-
-//     // Unit Conversion
-//     _period = period_ns / 1.0e6f;
-//     _pulsewidth = pulse_ns / 1.0e6f;
-// }
-
-// void MA4::on_capture(uint32_t period_cycles, uint32_t pulse_cycles, int status) {
-//     _cb_count++;                    
-//     // _last_status = status;        // Used for debugging
-//     if (status != 0 || period_cycles == 0) return;
-//     _duty = (float)pulse_cycles / (float)period_cycles;   
-// }
-
 
 void MA4::on_capture(uint32_t period_cycles, uint32_t pulse_cycles, int status) {
-    
-    _cb_count++;
-    _last_status = status;
-    
-    // Basically do nothing if something is invalid 
-    if (status != 0 || period_cycles == 0 || pulse_cycles == 0 || pulse_cycles >= period_cycles) {
-    return;
+    const int64_t now = k_uptime_get();
+    const auto key = k_spin_lock(&_lock);
+    ++_reading.callbacks;
+    _reading.period_cycles = period_cycles;
+    _reading.pulse_cycles = pulse_cycles;
+    if (status == 0 && (period_cycles == 0 || pulse_cycles > period_cycles)) {
+        status = -ERANGE;
+    }
+    const float duty = period_cycles ? static_cast<float>(pulse_cycles) / period_cycles : 0.0f;
+    if (status == 0 && (duty < duty_min - duty_tolerance ||
+                        duty > duty_max + duty_tolerance)) {
+        status = -ERANGE;
+    }
+    _reading.status = status;
+    if (status != 0 || _cycles_per_second == 0) {
+        if (status == 0) _reading.status = -EIO;
+        ++_reading.rejected;
+        k_spin_unlock(&_lock, key);
+        return;
     }
 
-    if (status != 0 || period_cycles == 0) return;
-    _period_cycles = period_cycles;
-    _pulse_cycles = pulse_cycles;
-    _duty = (float)pulse_cycles / (float)period_cycles;
-}
-
-
-uint32_t MA4::periodCycles() const {
-    return _period_cycles;
-}
-
-uint32_t MA4::pulseCycles() const {
-    return _pulse_cycles;
-}
-
-
-float MA4::getEncoderYawPosition() {
-    if (_cb_count == 0) return -1.0f;                     // Protects against the erroneous 11.26 deg readings
-    if (_period_cycles == 0) return -1.0f;
-
-    float duty_raw = dutycycle();
-    float duty_min = 0.02943f;   // 2.943%
-    float duty_max = 0.97058f;   // 97.058%
-    float angle = (duty_raw - duty_min) / (duty_max - duty_min) * 360.0f;
-    angle -= 360.0f * floorf(angle / 360.0f);             // wrap into [0, 360)
-
-    if (!_have_filter) { _filtered = angle; _have_filter = true; }
-    else {
-        float err = angle - _filtered;
-        if (err >  180.0f) err -= 360.0f;                 // shortest path across the seam
-        if (err < -180.0f) err += 360.0f;
-        _filtered += _alpha * err;
-        _filtered -= 360.0f * floorf(_filtered / 360.0f);
+    // Restart filters after a signal outage rather than blending in old positions.
+    if (!_have_filter || now - _last_valid_ms > stale_ms) {
+        _have_filter = false;
+        _index = 0;
+        _count = 0;
     }
-
-    // float out = _invert ? 360.0f - _filtered : _filtered;
-    
-    float out = _filtered;
-    if (_invert) {
-        out = 360.0f - _filtered;
+    _last_valid_ms = now;
+    ++_reading.accepted;
+    _reading.period_seconds = static_cast<float>(period_cycles) / _cycles_per_second;
+    _reading.pulse_seconds = static_cast<float>(pulse_cycles) / _cycles_per_second;
+    _reading.duty = duty;
+    // Clamp endpoint quantization instead of wrapping an invalid duty into a plausible angle.
+    float angle = (duty - duty_min) * (360.0f / (duty_max - duty_min));
+    angle = fminf(360.0f, fmaxf(0.0f, angle));
+    angle = wrap(_invert ? 360.0f - angle : angle);
+    _reading.raw_angle = angle;
+    if (!_have_filter) {
+        _reading.filtered_angle = angle;
+        _have_filter = true;
+    } else {
+        const float error = wrap(angle - _reading.filtered_angle + 180.0f) - 180.0f;
+        _reading.filtered_angle = wrap(_reading.filtered_angle + alpha * error);
     }
-
-    if (out >= 360.0f) {
-        out -= 360.0f;
-    }
-    return out;
+    _angles[_index] = angle;
+    _index = (_index + 1) % window_size;
+    if (_count < window_size) ++_count;
+    k_spin_unlock(&_lock, key);
 }
 
-void MA4::capture_cb(const struct device *dev, uint32_t channel, uint32_t period_cycles, uint32_t pulse_cycles, int status, void *user_data) {
+MA4::Reading MA4::reading() const {
+    float angles[window_size];
+    const auto key = k_spin_lock(&_lock);
+    Reading result = _reading;
+    const unsigned count = _count;
+    for (unsigned i = 0; i < count; ++i) angles[i] = _angles[i];
+    result.age_ms = _have_filter ? k_uptime_get() - _last_valid_ms : -1;
+    result.valid = _have_filter && result.status == 0 && result.age_ms <= stale_ms;
+    k_spin_unlock(&_lock, key);
+
+    if (!result.valid) {
+        result.raw_angle = result.filtered_angle = result.average_angle = -1.0f;
+        result.period_seconds = result.pulse_seconds = result.duty = 0.0f;
+        return result;
+    }
+    // Calculate outside the interrupt lock. Each instance owns its own window.
+    float sum_sin = 0.0f;
+    float sum_cos = 0.0f;
+    for (unsigned i = 0; i < count; ++i) {
+        sum_sin += sinf(angles[i] * radians_per_degree);
+        sum_cos += cosf(angles[i] * radians_per_degree);
+    }
+    if (sum_sin * sum_sin + sum_cos * sum_cos > 1.0e-8f) {
+        result.average_angle = wrap(atan2f(sum_sin, sum_cos) / radians_per_degree);
+    }
+    return result;
+}
+
+void MA4::capture_cb(const struct device *, uint32_t, uint32_t period_cycles,
+                     uint32_t pulse_cycles, int status, void *user_data) {
     static_cast<MA4 *>(user_data)->on_capture(period_cycles, pulse_cycles, status);
 }
 
-
-float MA4::period() {
-    return _period;
-}
-
-float MA4::pulsewidth() {
-    return _pulsewidth;
-}
-
-float MA4::dutycycle() {
-    return _duty;
-}
-
-// void MA4::rise() {
-//     _period = chrono::duration_cast<chrono::microseconds>(_t.elapsed_time()).count() / 1000.0f;
-//     _t.reset();
-// }
-
-// void MA4::fall() {
-//     _pulsewidth = chrono::duration_cast<chrono::microseconds>(_t.elapsed_time()).count() / 1000.0f;
-// }
-
-// float MA4::getEncoderYawPosition() {
-//     static float filtered_yaw = 0.0f;
-//     float filter_alpha = 0.2f;  // 0.0-1.0: lower = more smoothing, higher = more responsive
-
-//     float duty_raw = dutycycle();
-//     float duty_min = 0.02943f;   // 2.943%
-//     float duty_max = 0.97058f;   // 97.058%
-
-//     //low pass filter 
-//     float yaw_position = (fabsf(((duty_raw - duty_min) / (duty_max - duty_min)) * 360.0f));
-//     filtered_yaw = filtered_yaw * (1.0f - filter_alpha) + yaw_position *  filter_alpha;
-//     // printf("%.2f\n",yaw_position);
-//     if (_invert) {
-//         return (360.0f - filtered_yaw);
-//     }
-//     return filtered_yaw;
-// }
-
-// float MA4::encoderMovingAverage() {
-//     const int windowSize = 20;
-//     static float readings[windowSize] = {0};
-//     static int index = 0;
-//     static bool filled = false;
-
-//     float newReading = getEncoderYawPosition();
-//     if (newReading < 0) {
-//         return -1.0f; // Encoder not available
-//     }
-
-//     readings[index] = newReading;
-//     index = (index + 1) % windowSize;
-//     if (index == 0) {
-//         filled = true;
-//     }
-
-//     float sum = 0.0;
-//     float result = 0.0;
-
-//     if (filled) {
-//         for (int i = 0; i < windowSize; i++) {
-//             sum += readings[i];
-//         }
-//         result = sum / windowSize;
-//     } 
-//     else {
-//         for (int i = 0; i < index; i++) {
-//             sum += readings[i];
-//         }
-//         result = sum / index;
-//     }
-//     // printf("%.2f\n",result);
-//     return result;
-
-// }
-
-float MA4::encoderMovingAverage() {
-    float angle = getEncoderYawPosition();
-    if (angle < 0.0f) {
-        return -1.0f; // Encoder not available
-    }
-
-    _readings[_index] = angle;
-    _index = (_index + 1) % windowSize;
-    if (_count < windowSize) {
-        _count++;
-    }
-
-    float sumSin = 0.0f;
-    float sumCos = 0.0f;
-
-    for (int i = 0; i < _count; i++) {
-        float radians = _readings[i] * (PI / 180.0f);
-        sumSin += sinf(radians);
-        sumCos += cosf(radians);
-    }
-
-    float result = atan2f(sumSin / _count, sumCos / _count) * 180.0f / PI;
-    if (result < 0.0f) {
-        result += 360.0f;
-    }
-    else if (result >= 360.0f) {
-        result -= 360.0f;
-    }
-    return result;
-    }
+float MA4::period() { return reading().period_seconds; }
+float MA4::pulsewidth() { return reading().pulse_seconds; }
+float MA4::dutycycle() { return reading().duty; }
+float MA4::getEncoderYawPosition() { return reading().filtered_angle; }
+float MA4::encoderMovingAverage() { return reading().average_angle; }
+uint32_t MA4::cbCount() const { return reading().callbacks; }
+int MA4::lastStatus() const { return reading().status; }
+uint32_t MA4::periodCycles() const { return reading().period_cycles; }
+uint32_t MA4::pulseCycles() const { return reading().pulse_cycles; }
