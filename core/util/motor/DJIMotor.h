@@ -78,38 +78,44 @@ public:
     PID pidPosition;
 
     int multiTurn = 0;
-    int multiTurnFancy = 0;
-    int lastMotorSpeedFancy = 0;
-    long lastMotorTimeFancy = 0;
-    long lastMotorAngleFancy = 0;
+    int multiTurnLowSpeeds = 0;
+    int lastMotorSpeedLowSpeeds = 0;
+    long lastMotorTimeLowSpeeds = 0;
+    long lastMotorAngleLowSpeeds = 0;
 
+    // ----------------------- DEBUGGING VARS ----------------------- 
 
-    long curr_time_frame = 0;
-    long curr_loop_counter = 0;
+    long curr_time = 0; // current time of now_us()
+    long function_call_counter = 0; // records how many times the multiturn angle has been called
 
-    int curr_case_one_low_frame = 0;
-    int curr_case_two_low_frame = 0;
-    int curr_case_three_low_frame = 0;
-    int curr_case_one_high_frame = 0;
-    int curr_case_two_high_frame = 0;
-    int curr_case_three_high_frame = 0;
-    int last_motor_angle_frame = 0;
-    int curr_motor_angle_frame = 0;
-    int curr_motor_speed_frame = 0;
-    int curr_delta_angle_frame = 0;
-    int curr_multiturn_frame = 0;
+    int high_speeds_case_one_false = 0; // records cases in which a specific if statementa should NOT be running
+    int high_speeds_case_two_false = 0; // records cases in which a specific if statementa should NOT be running
+    int high_speeds_case_three_false = 0; // records cases in which a specific if statementa should NOT be running
+    int high_speeds_neg_skip_log = 0;
+    int high_speeds_pos_skip_log = 0;
+    int high_speeds_default_log = 0;
+    int high_speeds_last_angle = 0;
+    int high_speeds_curr_angle = 0;
+    int high_speeds_velocity = 0;
+    int high_speeds_delta_angle = 0;
+    int high_speeds_multiturn_angle = 0;
 
-    int alt_curr_case_one_low_frame = 0;
-    int alt_curr_case_two_low_frame = 0;
-    int alt_curr_case_three_low_frame = 0;
-    int alt_curr_case_one_high_frame = 0;
-    int alt_curr_case_two_high_frame = 0;
-    int alt_curr_case_three_high_frame = 0;
-    int alt_last_motor_angle_frame = 0;
-    int alt_curr_motor_angle_frame = 0;
-    int alt_curr_motor_speed_frame = 0;
-    int alt_curr_delta_angle_frame = 0;
-    int alt_curr_multiturn_frame = 0;
+    int low_speeds_neg_skip_log = 0;
+    int low_speeds_pos_skip_log = 0;
+    int low_speeds_default_log = 0;
+    int low_speeds_case_one_false = 0; // records cases in which a specific if statementa should NOT be running 
+    int low_speeds_case_two_false = 0; // records cases in which a specific if statementa should NOT be running
+    int low_speeds_case_three_false = 0; // records cases in which a specific if statementa should NOT be running
+    int low_speeds_last_angle = 0;
+    int low_speeds_curr_angle = 0;
+    int low_speeds_velocity = 0;
+    int low_speeds_delta_angle = 0;
+    int low_speeds_multiturn_angle = 0;
+    int log_size = 15; // size of record
+    int log_index = 0; // next index to log data to (LAST RECORDED DATA IS STORED IN curr_index - 1!!!)
+    int last_multiturn_angles_log[15]; // last 15 records for angles
+    int last_encoder_angles_log[15]; // last 15 record for raw encoder value
+    int last_time_log[15]; // last 15 record for time
     
 
     int outputCap = INT16_T_MAX;
