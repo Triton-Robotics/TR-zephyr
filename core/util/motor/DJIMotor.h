@@ -152,17 +152,9 @@ public:
     inline void setSpeedDerivativeCap(double cap)                                                   { pidSpeed.setDerivativeCap((float)cap); }
     inline void setSpeedOutputCap(double cap)                                                       { pidSpeed.setOutputCap((float)cap); }
 
-    inline float calculateSpeedPID(float desired, float current, double dt) {
-        return pidSpeed.calculate(desired, current, dt);
-    }
-    inline float calculatePositionPID(float desired, float current, double dt) {
-        return pidSpeed.calculate(pidPosition.calculate(desired, current, dt),
-        (float)motorData[VELOCITY], dt);
-    }
-    inline float calculatePeriodicPosition(float dE, double dt) {
-        return pidSpeed.calculate(pidPosition.calculatePeriodic(dE, dt),
-        (float)motorData[VELOCITY], dt);
-    }
+    inline float calculateSpeedPID(float desired, float current, double dt)                               { return pidSpeed.calculate(desired, current, dt); }
+    inline float calculatePositionPID(float desired, float current, double dt)                            { return pidSpeed.calculate(pidPosition.calculate(desired, current, dt), getData(VELOCITY), dt); }
+    inline float calculatePeriodicPosition(float dE, double dt)                                       { return pidSpeed.calculate(pidPosition.calculatePeriodic(dE, dt), getData(VELOCITY), dt); }
 
 private:
     static DJIMotor* s_allMotors  [CAN_HANDLER_NUMBER][3][4];

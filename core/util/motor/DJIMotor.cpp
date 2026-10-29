@@ -87,22 +87,22 @@ DJIMotor::~DJIMotor() {
 
 void DJIMotor::setOutput() {
     uint32_t time = now_us();
-
-    // PID expects milliseconds; skip huge first-call dt
-    double dt_ms = (timeOfLastPID == 0) ? 0.0
-                 : static_cast<double>(time - timeOfLastPID) / 1000.0;
+    double dt_ms = static_cast<double>(time - timeOfLastPID) / 1000.0;
 
     if (mode == SPD)
-        powerOut = (short) calculateSpeedPID(value, (float) motorData[VELOCITY], dt_ms);
+        powerOut = (short) calculateSpeedPID(value, getData(VELOCITY),
+                                     dt_ms);
 
-    else if (mode == POS) {
+    else if (mode == POS)
         if (!useAbsEncoder)
-            powerOut = (short) calculatePositionPID(value, getData(MULTITURNANGLE), dt_ms);
+            powerOut = (short) calculatePositionPID(value, getData(MULTITURNANGLE),
+                                     dt_ms);
 
         else
             powerOut = (short) calculatePeriodicPosition(
-                static_cast<float>(calculateDeltaPhase(value, getData(ANGLE))), dt_ms);
-    }
+                static_cast<float>(calculateDeltaPhase(value, getData(ANGLE))),
+                dt_ms);
+
     else if (mode == POW)
         powerOut = (short) value;
 
@@ -116,10 +116,11 @@ void DJIMotor::setOutput() {
                canBus + 1, motorID_0 + 1, name.c_str());
 
     if (type == M3508_FLYWHEEL || type == M3508 || type == M2006) {
-        int hardCap = (type == M2006) ? 10000 : INT15_T_MAX;
-        short cap = (short) std::min(outputCap, hardCap);
-        if (powerOut > cap) powerOut = cap;
-        else if (powerOut < -cap) powerOut = -cap;
+        if (powerOut > outputCap || powerOut > INT15_T_MAX)
+            powerOut = (short) std::min(outputCap, INT15_T_MAX);
+
+        else if (powerOut < -outputCap || powerOut < -INT15_T_MAX)
+            powerOut = (short) std::max(-outputCap, -INT15_T_MAX);
 
     } else {
         if (powerOut > outputCap || powerOut > INT16_T_MAX)
@@ -345,14 +346,8 @@ void DJIMotor::updateOneMultiTurn(int canBus, int can_line, int motor_id) {
         // Update data from most recent frame
         curAngle = curMotor->getData(ANGLE);
         lastAngle = curMotor->lastMotorAngle;
-        speed = curMotor->motorData[VELOCITY];
+        speed = curMotor->getData(VELOCITY);
         deltaAngle = curAngle - lastAngle;
-
-        // seed on first frame so it doesn't add the whole starting angle
-        if (curMotor->lastIntegrationTime == -1) {
-            lastAngle = curAngle;
-            deltaAngle = 0;
-        }
 
         // Update multiturn data using latest data
         double dt = 0;
@@ -376,21 +371,21 @@ void DJIMotor::updateOneMultiTurn(int canBus, int can_line, int motor_id) {
         }
 
         if (abs(speed) < 100) {
-            if (deltaAngle > 4096)
-                curMotor->multiTurn += deltaAngle - 8192;
-            else if (deltaAngle < -4096)
-                curMotor->multiTurn += deltaAngle + 8192;
+            if (curAngle > (8191 - Threshold) && lastAngle < Threshold)
+                curMotor->multiTurn -= deltaAngle - 8191;
+            else if (curAngle < Threshold && lastAngle > (8191 - Threshold))
+                curMotor->multiTurn += deltaAngle + 8191;
             else
                 curMotor->multiTurn += deltaAngle;
         } else {
             if (speed < 0 && deltaAngle > 0) {
                 // neg skip
                 // printf("positive overclock: %i\n", (int) speed);
-                curMotor->multiTurn += deltaAngle - 8192;
+                curMotor->multiTurn += deltaAngle - 8191;
             } else if (speed > 0 && deltaAngle < 0) {
                 // pos skip
                 // printf("negative overclock: %i\n", (int) speed);
-                curMotor->multiTurn += deltaAngle + 8192;
+                curMotor->multiTurn += deltaAngle + 8191;
             } else
                 curMotor->multiTurn += deltaAngle;
         }

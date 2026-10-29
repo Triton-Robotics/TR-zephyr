@@ -18,24 +18,32 @@ DJIMotor::config indexerConfig = {
     CANHandler::CANBUS_1,
     M2006,
     "indexer",
-    {0.5, 0, 0, 5000, 500},
-    {1.0, 0, 0, 3000, 0}
+    {2.7, 0.001, 0.0},
+    {0.0155, 0.0, 0.0007}
 };
 
 
 DJIMotor indexer(indexerConfig);
 
 
-constexpr double TICKS_PER_SLOT = static_cast<double>(TICKS_PER_ROTATION * (M2006_GEAR_RATIO) / NUM_INDEXER_SLOTS);
+constexpr double TICKS_PER_SLOT = static_cast<double>(TICKS_PER_ROTATION * (M2006_GEAR_RATIO) / NUM_INDEXER_SLOTS * NUM_BALLS_SHOT);
 
 int target;
 float INDEXER_ANGLE = -1.0f;
+float INDEXER_SPEED = -1.0f;
 float start_angle = -1.0f;
 
+void updateOzone() {
+    INDEXER_ANGLE = (indexer >> MULTITURNANGLE) - start_angle;
+    INDEXER_SPEED = indexer.getData(VELOCITY);
+}
+
 void periodic(const uint64_t dt_us) {
-    // INDEXER_ANGLE = (indexer >> MULTITURNANGLE) - start_angle;
-    indexer.setPosition(target);
+    indexer.setSpeed(200);
+    // indexer.setPosition(target);
     // indexer.setPower(500);
+
+    updateOzone();
 }
 
 int main(void)
@@ -68,22 +76,19 @@ int main(void)
     INDEXER_ANGLE = 0;
     target = static_cast<int>(start_angle + TICKS_PER_SLOT);
 
-    indexer.setPower(0);
-    // indexer.printAngle = true;
-
     uint64_t startTime = now_us();
 
     printf("warmup angle=%d\n", (int)(indexer >> MULTITURNANGLE));
 
     while (true) {
-        printk("CAN RX queue: %d / 128\n",
-            can1->rxQueueDepth());
+        // printk("CAN RX queue: %d / 128\n", can1->rxQueueDepth());
         loop_clock_us = now_us();
 
         if (loop_clock_us - startTime > 10e6) {
             indexer.setPower(0.0f);
             DJIMotor::sendValues(false);
-            printf("stopped motor, exit main loop\n");
+            updateOzone();
+            // printf("stopped motor\n");
             continue;
         }
 
