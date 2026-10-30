@@ -1,3 +1,4 @@
+#include "subsystems/ChassisSubsystem.h"
 #include "subsystems/ShooterSubsystem.h"
 #include <zephyr/drivers/i2c.h>
 #include <stdio.h>
@@ -25,22 +26,27 @@ DJIMotor::config indexerConfig = {
 
 DJIMotor indexer(indexerConfig);
 
-
-constexpr double TICKS_PER_SLOT = static_cast<double>(TICKS_PER_ROTATION * (M2006_GEAR_RATIO) / NUM_INDEXER_SLOTS * NUM_BALLS_SHOT);
+constexpr double TICKS_PER_OUTPUT_REV = static_cast<double>(TICKS_PER_ROTATION) * static_cast<double>(M2006_GEAR_RATIO);
+constexpr double TICKS_PER_SLOT = static_cast<double>(TICKS_PER_ROTATION * (M2006_GEAR_RATIO) / NUM_INDEXER_SLOTS);
 
 int target;
 float INDEXER_ANGLE = -1.0f;
 float INDEXER_SPEED = -1.0f;
-float start_angle = -1.0f;
+float INDEXER_TORQUE = -1.0f;
+float INDEXER_POWEROUT = -1.0f;
+double start_angle = -1.0;
 
 void updateOzone() {
-    INDEXER_ANGLE = (indexer >> MULTITURNANGLE) - start_angle;
-    INDEXER_SPEED = indexer.getData(VELOCITY);
+    double ticks_from_start = static_cast<double>(indexer >> MULTITURNANGLE) - start_angle;
+    INDEXER_ANGLE = ticks_from_start / TICKS_PER_OUTPUT_REV * 360.0;  // degrees
+    INDEXER_SPEED = indexer.getData(VELOCITY) / M2006_GEAR_RATIO; // rad/s
+    INDEXER_TORQUE = indexer.getData(TORQUE);
+    INDEXER_POWEROUT = indexer.getData(POWEROUT);
 }
 
 void periodic(const uint64_t dt_us) {
-    indexer.setSpeed(200);
-    // indexer.setPosition(target);
+    // indexer.setSpeed(200);
+    indexer.setPosition(target);
     // indexer.setPower(500);
 
     updateOzone();
@@ -70,11 +76,18 @@ int main(void)
     // can_get_state(canbus1_dev, &st, &cnt);
     // printf("can1 state=%d tx_err=%u rx_err=%u\n", st, cnt.tx_err_cnt, cnt.rx_err_cnt);
 
+    uint64_t wait_start = now_us();
+    while (now_us() - wait_start < 500000) { // 500 ms
+        if (can1) can1->readAllCan();
+        if (can2) can2->readAllCan();
+        k_sleep(K_MSEC(5));
+    }
+
 
     start_angle = indexer >> MULTITURNANGLE;
 
     INDEXER_ANGLE = 0;
-    target = static_cast<int>(start_angle + TICKS_PER_SLOT);
+    target = static_cast<int>(start_angle + (TICKS_PER_SLOT * NUM_BALLS_SHOT));
 
     uint64_t startTime = now_us();
 
