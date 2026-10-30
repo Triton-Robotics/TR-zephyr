@@ -30,7 +30,8 @@ enum motorDataType {
     TEMPERATURE,
     MULTITURNANGLE,
     POWEROUT,
-    VALUE
+    VALUE,
+    VELOCITY_RAW
 };
 
 
@@ -96,7 +97,8 @@ public:
     int high_speeds_default_log = 0;
     int high_speeds_last_angle = 0;
     int high_speeds_curr_angle = 0;
-    int high_speeds_velocity = 0;
+    float high_speeds_velocity = 0;
+    float high_speeds_velocity_raw = 0;
     int high_speeds_delta_angle = 0;
     int high_speeds_multiturn_angle = 0;
 

@@ -342,7 +342,8 @@ void DJIMotor::updateOneMultiTurn(int canBus, int can_line, int motor_id) {
 
     int Threshold = 3000; // From 0 to 8191
     int ENCODER_WRAP = 8192;
-    int curAngle, lastAngle, deltaAngle, speed;
+    int curAngle, lastAngle, deltaAngle;
+    float speed, raw_speed;
     DJIMotor *curMotor;
 
     unsigned long time = now_us();
@@ -354,6 +355,7 @@ void DJIMotor::updateOneMultiTurn(int canBus, int can_line, int motor_id) {
         curAngle = curMotor->getData(ANGLE);
         lastAngle = curMotor->lastMotorAngle;
         speed = curMotor->getData(VELOCITY);
+        raw_speed = curMotor->getData(VELOCITY_RAW);
         deltaAngle = curAngle - lastAngle;
 
         // Update multiturn data using latest data
@@ -390,19 +392,34 @@ void DJIMotor::updateOneMultiTurn(int canBus, int can_line, int motor_id) {
         }
 
         // "slow speed mode"
-        if (abs(speed) < 100 && false) {
+        if (abs(speed) < 0.5) {
             // speed is negative, deltaAngle = positive, so make negative to do neg skip
-            if (curAngle > (ENCODER_WRAP - Threshold) && lastAngle < Threshold) {
-                curMotor->multiTurn += deltaAngle - ENCODER_WRAP; // 
-                curMotor->high_speeds_case_one_false++;
-            }
-            else if (curAngle < Threshold && lastAngle > (ENCODER_WRAP - Threshold)) {
-                curMotor->multiTurn += deltaAngle + ENCODER_WRAP; // speed is positive, deltaAngle = negative, so make angle do pos skip
-                curMotor->high_speeds_case_two_false++;
-            }
-            else {
+            // if (curAngle > (ENCODER_WRAP - Threshold) && lastAngle < Threshold) {
+            //     curMotor->multiTurn += deltaAngle - ENCODER_WRAP; // 
+            //     curMotor->high_speeds_case_one_false++;
+            // }
+            // else if (curAngle < Threshold && lastAngle > (ENCODER_WRAP - Threshold)) {
+            //     curMotor->multiTurn += deltaAngle + ENCODER_WRAP; // speed is positive, deltaAngle = negative, so make angle do pos skip
+            //     curMotor->high_speeds_case_two_false++;
+            // }
+            // else {
+            //     curMotor->multiTurn += deltaAngle; // Regular
+            //     curMotor->high_speeds_case_three_false++;
+            // }
+
+            if (speed < 0 && deltaAngle > Threshold) { 
+                // speed is backwards, deltaAngle = positive, so make do neg skip
+                // Only do neg skip if delta angle is greater than a threshold
+                // that way can eliminate small
+                curMotor->multiTurn += deltaAngle - ENCODER_WRAP;
+                curMotor->high_speeds_neg_skip_log++;
+            } else if (speed > 0 && deltaAngle < Threshold) { 
+                // speed is forwards, deltaAngle is negative, so make do pos skip
+                curMotor->multiTurn += deltaAngle + ENCODER_WRAP;
+                curMotor->high_speeds_pos_skip_log++;
+            } else {
                 curMotor->multiTurn += deltaAngle; // Regular
-                curMotor->high_speeds_case_three_false++;
+                curMotor->high_speeds_default_log++;
             }
         } else {
             if (speed < 0 && deltaAngle > 0) { 
@@ -426,6 +443,7 @@ void DJIMotor::updateOneMultiTurn(int canBus, int can_line, int motor_id) {
         curMotor->high_speeds_last_angle = lastAngle;
         curMotor->high_speeds_curr_angle = curAngle;
         curMotor->high_speeds_velocity = speed;
+        curMotor->high_speeds_velocity_raw = raw_speed;
         curMotor->high_speeds_delta_angle = deltaAngle;
         curMotor->high_speeds_multiturn_angle = curMotor->multiTurn;
         curMotor->curr_time = time;
@@ -433,7 +451,7 @@ void DJIMotor::updateOneMultiTurn(int canBus, int can_line, int motor_id) {
         // log current data into data
         curMotor->last_multiturn_angles_log[curMotor->log_index] = curMotor->high_speeds_multiturn_angle;
         curMotor->last_encoder_angles_log[curMotor->log_index] = curAngle;
-        curMotor->last_time_log[curMotor->log_index] = now_us();
+        curMotor->last_time_log[curMotor->log_index] = raw_speed; //now_us();
 
         curMotor->log_index = (curMotor->log_index + 1) % curMotor->log_size;
         
@@ -520,6 +538,10 @@ float DJIMotor::getData(motorDataType data) {
 
     else if (data == VALUE)
         return (float)value;
+
+    else if(data == VELOCITY_RAW) {
+        return (float)(motorData[VELOCITY]);  
+    } 
 
     return 0;
 }
