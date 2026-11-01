@@ -19,8 +19,8 @@ DJIMotor::config indexerConfig = {
     CANHandler::CANBUS_1,
     M2006,
     "indexer",
-    {2.7, 0.001, 0.0},
-    {0.0155, 0.0, 0.0007}
+    {3.0, 0.001, 0.0},
+    {0.032, 0.001, 0.0015}
 };
 
 
