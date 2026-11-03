@@ -42,6 +42,7 @@ static const uint8_t tReg[] = {0x20, 0x21}; //Temperature register values
 static const uint8_t gyroLowPassFilter[] = {CTRL6_C, 0x03}; // Low pass filter
 static const uint8_t blockUpdate[] = {CTRL3_C, 0x44}; // Block update for reading consistent data
 
+ISM330::EulerAngles::EulerAngles(float roll, float pitch, float yaw) : roll(roll), pitch(pitch), yaw(yaw) {}
 
 // Constructor
 ISM330::ISM330(const struct i2c_dt_spec &i2c) noexcept : i2c_(i2c) {}; // Just makes the i2c_ attribute store the i2c_dt_spec
@@ -284,27 +285,6 @@ float ISM330::gyroTempScale(float temp) {
 
 float ISM330::gyroTempOffset(float temp) {
     return temp * 0.005f * dpsToRad; // Datasheet says 0.005 dps/C, but we're working in rad
-}
-
-//----? Do I need this
-
-// The original Mahony algorithm used a fast inverse square root approx, but for accuracy we can just do the real thing I think
-// If we need speed later, we can always switch to the approx
-float ISM330::invSqrt(float x) 
-{ 
-    return 1/sqrt(x);
-
-    //For easy access later, here's the approx
-
-//     float halfx = 0.5f * x;
-//   union {
-//     float f;
-//     long i;
-//   } conv = {x};
-//   conv.i = 0x5f3759df - (conv.i >> 1);
-//   conv.f *= 1.5f - (halfx * conv.f * conv.f);
-//   conv.f *= 1.5f - (halfx * conv.f * conv.f);
-//   return conv.f;
 }
 
 
@@ -632,13 +612,49 @@ void ISM330::initQuaternionFromAccel()
 
 
 
-
-void ISM330::computeAnglesEKF(IMU::EulerAngles& angles) 
+int main(void)
 {
-    angles.roll = atan2f(ekfq0 * ekfq1 + ekfq2 * ekfq3, 0.5f - ekfq1 * ekfq1 - ekfq2 * ekfq2)*radToDeg;
-    angles.pitch = asinf(-2.0f * (ekfq1 * ekfq3 - ekfq0 * ekfq2))*radToDeg;
-    angles.yaw = atan2f(ekfq1 * ekfq2 + ekfq0 * ekfq3, 0.5f - ekfq2 * ekfq2 - ekfq3 * ekfq3)*radToDeg;
-    anglesComputed = 1;
+    static const struct i2c_dt_spec ism_i2c = I2C_DT_SPEC_GET(ISM330_NODE);
+    if (!i2c_is_ready_dt(&ism_i2c)) {
+        LOG_ERR("I2C device not ready.");
+        return -1;
+    }
+
+    ISM330 imu(ism_i2c);
+
+    if (!imu.begin(0.1f, 0.0f)) {
+        LOG_ERR("ISM330 initialization failed.");
+        return -1;
+    }
+    LOG_INF("ISM330 initialized.");
+
+
+    const int64_t period_ms = 10; //100 Hz
+    int64_t next_wake = k_uptime_get(); 
+
+    uint32_t i = 0;
+
+    while (true) {
+        IMU::EulerAngles angles = imu.getImuAngles();
+
+        if ((i % 10u) == 0u) {
+            printk("t=%6u ms  roll=%8d  pitch=%8d  yaw=%8d (mdeg)\n",
+                   (uint32_t)k_uptime_get(),
+                   (int)(angles.roll  * 1000.0f),
+                   (int)(angles.pitch * 1000.0f),
+                   (int)(angles.yaw   * 1000.0f));
+        }
+
+        i++;
+
+        next_wake += period_ms;
+        int64_t sleep_ms = next_wake - k_uptime_get();
+        if (sleep_ms > 0) {
+            k_sleep(K_MSEC(sleep_ms));
+        } else {
+            next_wake = k_uptime_get();
+        }
+    }
+
+    return 0;
 }
-
-
