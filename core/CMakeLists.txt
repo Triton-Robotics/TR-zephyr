@@ -1,5 +1,7 @@
 # Explicitly name it because otherwise Zephyr appends _ to the beginning because we're up a level on the directory
 zephyr_library_named(core)
+target_link_libraries(core PRIVATE kernel)
+add_dependencies(core zephyr_generated_headers)
 zephyr_library_sources(
     # Algo Section
     util/algorithms/general_functions.cpp
