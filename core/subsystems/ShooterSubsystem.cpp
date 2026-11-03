@@ -28,6 +28,15 @@ ShooterSubsystem::ShooterSubsystem(config cfg):
         "Indexer",
         cfg.indexer_PID_vel,
         cfg.indexer_PID_pos
+    }),
+    feeder({
+        cfg.can_device,
+        cfg.feeder_id,
+        cfg.canBus,
+        M2006,
+        "Feeder",
+        cfg.feeder_PID_vel,
+        cfg.indexer_PID_pos
     })
 {
     // initialize all other vars

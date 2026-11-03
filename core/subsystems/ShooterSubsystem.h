@@ -41,11 +41,14 @@ public:
         short flywheelL_id;
         short flywheelR_id;
         short indexer_id;
+        short feeder_id;
 
         PID::config flywheelL_PID;
         PID::config flywheelR_PID;
         PID::config indexer_PID_vel;
         PID::config indexer_PID_pos;
+        PID::config feeder_PID_vel;
+        PID::config feeder_PID_pos;
 
 
         bool invert = false;
@@ -64,7 +67,7 @@ private:
     unsigned long shooter_start_timer;
     bool invert_flywheel;
 
-    DJIMotor flywheelL, flywheelR, indexer;
+    DJIMotor flywheelL, flywheelR, indexer, feeder;
 
     ShootState shoot;
     ShooterType shooter_type;
