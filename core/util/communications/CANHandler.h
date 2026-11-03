@@ -31,12 +31,18 @@ struct RangeCallback {
 class CANHandler{
     
 public:
+    int rxQueueDepth() const {
+        return k_msgq_num_used_get(
+            const_cast<struct k_msgq*>(&rx_msgq_)
+        );
+    }
 
     ~CANHandler() {
-    if (filter_id >= 0) {
-        can_remove_rx_filter(dev_, filter_id);
+        if (filter_id >= 0) {
+            can_remove_rx_filter(dev_, filter_id);
+        }
     }
-}
+
     enum CANBus{CANBUS_1, CANBUS_2, NOBUS}; // Somewhat vestigal, makes porting mbedOS code a little easier - Dil 
 
     explicit CANHandler(const struct device *can_dev)
@@ -90,15 +96,19 @@ public:
         }
     }
 
+    static void tx_done(const struct device *dev, int error, void *user_data) { }
+
     bool rawSend(uint32_t id, const uint8_t bytes[], uint8_t length = 8) {
-        // CANMsg tx(id, bytes, length);
-        struct can_frame tx = {
-            .id = id,
-            .dlc = length,
-            .flags = 0,
-        };
-        memcpy(tx.data,bytes,length);
-        int ret = can_send(dev_, &tx, K_MSEC(100), nullptr, nullptr);
+        struct can_frame tx = {};
+        tx.id = id;
+        tx.dlc = length;
+        tx.flags = 0;
+        memcpy(tx.data, bytes, length);
+
+        int ret = can_send(dev_, &tx, K_MSEC(100), tx_done, nullptr);
+        if (ret != 0) {
+            printk("can_send failed: %d\n", ret);
+        }
         return ret == 0;
     }
 
