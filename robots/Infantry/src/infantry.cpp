@@ -47,7 +47,7 @@ const float pitch_kinetic_friction    = 0; //5.5;     // We multiply this by pit
 //constexpr PID::config BL_VEL_CONFIG = {3, 0, 0};
 //constexpr PID::config BR_VEL_CONFIG = {3, 0, 0};
 
-constexpr PID::config FLYWHEEL_L_PID = {7.4, 0.00015268, 0};
+constexpr PID::config FLYWHEEL_L_PID = {7.4, 0.00015268, 0.0005};
 constexpr PID::config FLYWHEEL_R_PID = {7.4, 0.000042634, 0};
 constexpr PID::config INDEXER_PID_VEL = {2.7, 0.001, 0};
 constexpr PID::config INDEXER_PID_POS = {0.1, 0, 0.001};
