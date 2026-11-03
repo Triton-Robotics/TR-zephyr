@@ -51,7 +51,8 @@ constexpr PID::config FLYWHEEL_L_PID = {7.4, 0.00015268, 0.0005};
 constexpr PID::config FLYWHEEL_R_PID = {7.4, 0.000042634, 0};
 constexpr PID::config INDEXER_PID_VEL = {2.7, 0.001, 0};
 constexpr PID::config INDEXER_PID_POS = {0.1, 0, 0.001};
-
+constexpr PID::config FEEDER_PID_VEL = {0,0,0};
+constexpr PID::config FEEDER_PID_POS = {0,0,0};
 
 const struct device *gpio_devb = DEVICE_DT_GET(DT_NODELABEL(gpiob));
 const struct device *gpio_devc= DEVICE_DT_GET(DT_NODELABEL(gpioc));
@@ -110,10 +111,13 @@ ShooterSubsystem::config shooter_config = { // TODO - fix for updated configs
     2,
     4,
     6,
+    8,
     FLYWHEEL_L_PID,
     FLYWHEEL_R_PID,
     INDEXER_PID_VEL,
     INDEXER_PID_POS,
+    FEEDER_PID_VEL,
+    FEEDER_PID_POS,
     false
 };
 
