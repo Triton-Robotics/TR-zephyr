@@ -79,40 +79,23 @@ public:
     PID pidPosition;
 
     int multiTurn = 0;
-    int multiTurnLowSpeeds = 0;
-    int lastMotorSpeedLowSpeeds = 0;
-    long lastMotorTimeLowSpeeds = 0;
-    long lastMotorAngleLowSpeeds = 0;
 
     // ----------------------- DEBUGGING VARS ----------------------- 
 
     long curr_time = 0; // current time of now_us()
     long function_call_counter = 0; // records how many times the multiturn angle has been called
 
-    int high_speeds_case_one_false = 0; // records cases in which a specific if statementa should NOT be running
-    int high_speeds_case_two_false = 0; // records cases in which a specific if statementa should NOT be running
-    int high_speeds_case_three_false = 0; // records cases in which a specific if statementa should NOT be running
+    int low_speeds_neg_skip_log = 0; // records cases in which a specific if statementa should NOT be running
+    int low_speeds_pos_skip_log = 0; // records cases in which a specific if statementa should NOT be running
+    int low_speeds_default_log = 0; // records cases in which a specific if statementa should NOT be running
     int high_speeds_neg_skip_log = 0;
     int high_speeds_pos_skip_log = 0;
     int high_speeds_default_log = 0;
-    int high_speeds_last_angle = 0;
-    int high_speeds_curr_angle = 0;
-    float high_speeds_velocity = 0;
-    float high_speeds_velocity_raw = 0;
-    int high_speeds_delta_angle = 0;
-    int high_speeds_multiturn_angle = 0;
+    float rps_raw = 0;
+    int delta_angle = 0;
+    int multiturn_angle = 0;
 
-    int low_speeds_neg_skip_log = 0;
-    int low_speeds_pos_skip_log = 0;
-    int low_speeds_default_log = 0;
-    int low_speeds_case_one_false = 0; // records cases in which a specific if statementa should NOT be running 
-    int low_speeds_case_two_false = 0; // records cases in which a specific if statementa should NOT be running
-    int low_speeds_case_three_false = 0; // records cases in which a specific if statementa should NOT be running
-    int low_speeds_last_angle = 0;
-    int low_speeds_curr_angle = 0;
-    int low_speeds_velocity = 0;
-    int low_speeds_delta_angle = 0;
-    int low_speeds_multiturn_angle = 0;
+    
     int log_size = 15; // size of record
     int log_index = 0; // next index to log data to (LAST RECORDED DATA IS STORED IN curr_index - 1!!!)
     int last_multiturn_angles_log[15]; // last 15 records for angles
@@ -214,6 +197,7 @@ private:
     float value = 0;
 
     int lastMotorAngle = 0;
+    float lastRps = 0;
     int integratedAngle = 0;
     long lastIntegrationTime = -1;
 

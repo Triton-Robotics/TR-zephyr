@@ -343,7 +343,7 @@ void DJIMotor::updateOneMultiTurn(int canBus, int can_line, int motor_id) {
     int Threshold = 3000; // From 0 to 8191
     int ENCODER_WRAP = 8192;
     int curAngle, lastAngle, deltaAngle;
-    float speed, raw_speed;
+    float raw_speed, raw_rps, curRev;
     DJIMotor *curMotor;
 
     unsigned long time = now_us();
@@ -354,102 +354,98 @@ void DJIMotor::updateOneMultiTurn(int canBus, int can_line, int motor_id) {
         // Update data from most recent frame
         curAngle = curMotor->getData(ANGLE);
         lastAngle = curMotor->lastMotorAngle;
-        speed = curMotor->getData(VELOCITY);
         raw_speed = curMotor->getData(VELOCITY_RAW);
-        deltaAngle = curAngle - lastAngle;
+        raw_rps = curMotor->getData(VELOCITY_RAW) / 60.0f;
+        curRev = curAngle/ENCODER_WRAP;
 
+        deltaAngle = curAngle - lastAngle;
+        
+        
         // Update multiturn data using latest data
         double dt = 0;
         // gets delta time
         if (curMotor->lastIntegrationTime != -1) {
             dt = (double)(time - curMotor->lastIntegrationTime) / 1000.0; // ms
         }
-
-        // rpm * dt => rads travled * 19 * 6 = outer shell traveled
-        curMotor->integratedAngle += (int)(speed * dt * 19 * 6 / 1000.0);
-        // gets difference in current angle and calculated angle 
-        // integratedAngle % 8192 is just to keep in bounds
-        int positiveDiff = curAngle - curMotor->integratedAngle % 8192;
-
-        if (positiveDiff >= 0 && positiveDiff < 4096) {
-            // integrated angle is behind but does not need to loop
-            // set integrated = positiveDiff
-            curMotor->integratedAngle += positiveDiff;
-        } else if (positiveDiff < 0 && positiveDiff > -4096) {
-            // integrated angle is ahead and does not need to loop
-            // set integrated = positiveDiff
-            curMotor->integratedAngle += positiveDiff;
-        } else if (positiveDiff >= 4096) { 
-            // integrated angle is ahead and does need to loop
-            // loop around
-            curMotor->integratedAngle += positiveDiff - 8192;
-        } else if (positiveDiff <= -4096) {
-            // integrated angle is ahead and does need to loop
-            // loop around
-            curMotor->integratedAngle += positiveDiff + 8192;
-        } else {
-            // printf("Don't know what to do with this %i\n", positiveDiff);
+        
+        // don't want this to be called twice accidentally
+        if(dt <= 0.0f) {
+            return;
         }
 
         // "slow speed mode"
-        if (abs(speed) < 0.5) {
-            // speed is negative, deltaAngle = positive, so make negative to do neg skip
-            // if (curAngle > (ENCODER_WRAP - Threshold) && lastAngle < Threshold) {
-            //     curMotor->multiTurn += deltaAngle - ENCODER_WRAP; // 
-            //     curMotor->high_speeds_case_one_false++;
-            // }
-            // else if (curAngle < Threshold && lastAngle > (ENCODER_WRAP - Threshold)) {
-            //     curMotor->multiTurn += deltaAngle + ENCODER_WRAP; // speed is positive, deltaAngle = negative, so make angle do pos skip
-            //     curMotor->high_speeds_case_two_false++;
-            // }
-            // else {
-            //     curMotor->multiTurn += deltaAngle; // Regular
-            //     curMotor->high_speeds_case_three_false++;
-            // }
-
-            if (speed < 0 && deltaAngle > Threshold) { 
-                // speed is backwards, deltaAngle = positive, so make do neg skip
-                // Only do neg skip if delta angle is greater than a threshold
-                // that way can eliminate small
-                curMotor->multiTurn += deltaAngle - ENCODER_WRAP;
-                curMotor->high_speeds_neg_skip_log++;
-            } else if (speed > 0 && deltaAngle < Threshold) { 
-                // speed is forwards, deltaAngle is negative, so make do pos skip
-                curMotor->multiTurn += deltaAngle + ENCODER_WRAP;
-                curMotor->high_speeds_pos_skip_log++;
+        if (fabsf(raw_rps) < 1.5f) {
+            if (curAngle > (ENCODER_WRAP - Threshold) && lastAngle < Threshold) {
+                // negative wrap (pos -> neg)
+                deltaAngle -= ENCODER_WRAP;
+                curMotor->low_speeds_neg_skip_log++;
+            } else if (curAngle < Threshold && lastAngle > (ENCODER_WRAP - Threshold)) {
+                // positive wrap (neg -> pos)
+                deltaAngle += ENCODER_WRAP;
+                curMotor->low_speeds_pos_skip_log++;
             } else {
-                curMotor->multiTurn += deltaAngle; // Regular
-                curMotor->high_speeds_default_log++;
+                curMotor->low_speeds_default_log++;
             }
+            curMotor->multiTurn += deltaAngle;
         } else {
-            if (speed < 0 && deltaAngle > 0) { 
+            float predictedRev = (curMotor->lastRps + raw_rps)/2.0f * dt;
+            float actualRev = static_cast<float>(curAngle)/ENCODER_WRAP;
+            float lastRev = static_cast<float>(lastAngle)/ENCODER_WRAP;       
+
+
+            if (predictedRev < 0 && deltaAngle > 0) { 
                 // speed is backwards, deltaAngle = positive, so make do neg skip
-                // printf("positive overclock: %i\n", (int) speed);
-                curMotor->multiTurn += deltaAngle - ENCODER_WRAP;
+                deltaAngle -= ENCODER_WRAP;
                 curMotor->high_speeds_neg_skip_log++;
-            } else if (speed > 0 && deltaAngle < 0) { 
+            } else if (predictedRev > 0 && deltaAngle < 0) { 
                 // speed is forwards, deltaAngle is negative, so make do pos skip
-                // printf("negative overclock: %i\n", (int) speed);
-                curMotor->multiTurn += deltaAngle + ENCODER_WRAP;
+                deltaAngle += ENCODER_WRAP;
                 curMotor->high_speeds_pos_skip_log++;
             } else {
-                curMotor->multiTurn += deltaAngle; // Regular
                 curMotor->high_speeds_default_log++;
+            }   
+            
+            // shifts the predicted rev to have it's zero at last rev, range: [0,1]
+            float predictedRevCenteredAtLast = (predictedRev - static_cast<int>(predictedRev) + 1);
+            predictedRevCenteredAtLast -= static_cast<int>(predictedRevCenteredAtLast);
+
+            // shifts the actual rev to have it's zero at last rev, range: [0,1]
+            float actualRevCenteredAtLast = actualRev + 2 - lastRev;
+            actualRevCenteredAtLast -= static_cast<int>(actualRevCenteredAtLast);
+            
+            int revolutionJump = static_cast<int>(predictedRev);
+
+            if(predictedRev > 0) {
+                if(predictedRevCenteredAtLast < 0.25f && actualRevCenteredAtLast > 0.75f) {
+                    // overshoot by one revolution
+                    revolutionJump--;
+                } else if(predictedRevCenteredAtLast > 0.75f && actualRevCenteredAtLast < 0.25f) {
+                    // undershoot by one revolution
+                    revolutionJump++;
+                }
+            } else if(predictedRev < 0){
+                if(predictedRevCenteredAtLast > 0.75f && actualRevCenteredAtLast < 0.25f) {
+                    // overshoot by one revolution
+                    revolutionJump++;
+                } else if(predictedRevCenteredAtLast < 0.25f && actualRevCenteredAtLast > 0.75f) {
+                    // undershoot by one revolution
+                    revolutionJump--;
+                }
             }
+
+            deltaAngle += revolutionJump*ENCODER_WRAP;
+            curMotor->multiTurn += deltaAngle; 
         }
 
         curMotor->function_call_counter++;
 
-        curMotor->high_speeds_last_angle = lastAngle;
-        curMotor->high_speeds_curr_angle = curAngle;
-        curMotor->high_speeds_velocity = speed;
-        curMotor->high_speeds_velocity_raw = raw_speed;
-        curMotor->high_speeds_delta_angle = deltaAngle;
-        curMotor->high_speeds_multiturn_angle = curMotor->multiTurn;
+        curMotor->rps_raw = raw_speed;
+        curMotor->delta_angle = deltaAngle;
+        curMotor->multiturn_angle = curMotor->multiTurn;
         curMotor->curr_time = time;
 
         // log current data into data
-        curMotor->last_multiturn_angles_log[curMotor->log_index] = curMotor->high_speeds_multiturn_angle;
+        curMotor->last_multiturn_angles_log[curMotor->log_index] = curMotor->multiturn_angle;
         curMotor->last_encoder_angles_log[curMotor->log_index] = curAngle;
         curMotor->last_time_log[curMotor->log_index] = raw_speed; //now_us();
 
@@ -457,65 +453,9 @@ void DJIMotor::updateOneMultiTurn(int canBus, int can_line, int motor_id) {
         
         // Update new multiturn
         curMotor->lastMotorAngle = curAngle;
+        curMotor->lastRps = raw_rps;
         curMotor->lastIntegrationTime = long(time);
 
-        if (abs(speed) < 100) {
-            if (curAngle > (ENCODER_WRAP - Threshold) && lastAngle < Threshold) {
-                curMotor->multiTurnLowSpeeds += deltaAngle - ENCODER_WRAP;
-                curMotor->low_speeds_neg_skip_log++;
-            }
-            else if (curAngle < Threshold && lastAngle > (ENCODER_WRAP - Threshold)) {
-                curMotor->multiTurnLowSpeeds += deltaAngle + ENCODER_WRAP; // speed is positive, deltaAngle = negative, so make angle do pos skip
-                curMotor->low_speeds_pos_skip_log++;
-            }
-            else {
-                curMotor->multiTurnLowSpeeds += deltaAngle; // Regular
-                curMotor->low_speeds_default_log++;
-            }
-        } else {
-            if (speed < 0 && deltaAngle > 0) { 
-                // speed is backwards, deltaAngle = positive, so make do neg skip
-                // printf("positive overclock: %i\n", (int) speed);
-                curMotor->multiTurnLowSpeeds += deltaAngle - ENCODER_WRAP;
-                curMotor->low_speeds_case_one_false++;
-            } else if (speed > 0 && deltaAngle < 0) { 
-                // speed is forwards, deltaAngle is negative, so make do pos skip
-                // printf("negative overclock: %i\n", (int) speed);
-                curMotor->multiTurnLowSpeeds += deltaAngle + ENCODER_WRAP;
-                curMotor->low_speeds_case_two_false++;
-            } else {
-                curMotor->multiTurnLowSpeeds += deltaAngle; // Regular
-                curMotor->low_speeds_case_three_false++;
-            }
-        }
-
-        curMotor->low_speeds_last_angle = lastAngle;
-        curMotor->low_speeds_curr_angle = curAngle;
-        curMotor->low_speeds_velocity = speed;
-        curMotor->low_speeds_delta_angle = deltaAngle;
-        curMotor->low_speeds_multiturn_angle = curMotor->multiTurnLowSpeeds;
-
-        // // revolution catch
-        // float avgSpeed = (speed - curMotor->lastMotorSpeedFancy) / 2.0;
-        // float calculatedRotation = fabs(avgSpeed) * (time - curMotor->lastMotorTimeFancy);
-        // // If our calculated rotation is 
-        // if((abs(deltaAngle) < Threshold && calculatedRotation > (8191 - Threshold))) {
-        //     if(speed < 0 && deltaAngle < 0) {
-        //         // speed is backwards and deltaAngle shows backwards even though we went a rotation, then we missed a rotation with our prev add
-        //         curMotor->multiTurnFancy -= 8191;
-        //     } else if (speed > 0 && deltaAngle > 0){
-        //         // speed is forwards and deltaAngle shows forwards even though we went a rotation, then we missed a rotation with our prev add
-        //         curMotor->multiTurnFancy += 8191;
-        //     }
-        // }
-
-        // ensures we only update what last valid time as long as angle has moved OR we have not moved
-        if(curMotor->lastMotorAngleLowSpeeds != curAngle || speed == 0) {
-            curMotor->lastMotorTimeLowSpeeds = long(time);
-        }
-
-        curMotor->lastMotorSpeedLowSpeeds = speed;
-        curMotor->lastMotorAngleLowSpeeds = curAngle;
     }
 }
 

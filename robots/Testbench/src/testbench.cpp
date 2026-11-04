@@ -38,15 +38,12 @@ short constexpr MOTOR_ID = 2;
 int constexpr SWAP_TIME = 1000;
 int time_ctrl = 0;
 int caseMulti = 0;
-int caseFancy = 0;
 int currDeltaAngle = 0;
 int lastMotorAngle = 0;
 int lastLastMotorAngle = 0;
 float current_motor_velocity = 0;
 float current_motor_multiturn = 0;
 float current_motor_multiturn_wrapped = 0;
-float fancy_current_motor_multiturn = 0;
-float fancy_current_motor_multiturn_wrapped = 0;
 float current_motor_angle = 0;
 long current_motor_power = -1000;
 bool go = true;
@@ -59,35 +56,21 @@ long curr_time_function_call = 0;
 long function_call_counter = 0;
 
 int high_speeds_multiturn_angle = 0;
-int low_speeds_multiturn_angle = 0;
 
 int high_speeds_case_one_false = 0;
 int high_speeds_case_two_false = 0;
 int high_speeds_case_three_false = 0;
 
-int low_speeds_neg_skip_log = 0;
-int low_speeds_pos_skip_log = 0;
-int low_speeds_default_log = 0;
 
 int high_speeds_neg_skip_log = 0;
 int high_speeds_pos_skip_log = 0;
 int high_speeds_default_log = 0;
 
-int low_speeds_case_one_false = 0;
-int low_speeds_case_two_false = 0;
-int low_speeds_case_three_false = 0;
 
 int high_speeds_last_angle = 0;
 int high_speeds_curr_angle = 0;
-float high_speeds_velocity = 0;
 float high_speeds_velocity_raw = 0;
 int high_speeds_delta_angle = 0;
-
-
-int low_speeds_last_angle = 0;
-int low_speeds_curr_angle = 0;
-int low_speeds_velocity = 0;
-int low_speeds_delta_angle = 0;
 
 // Simple variables to keep track whether or not Ozone can track all of this data in one go
 //      or needs a multiple logs
@@ -163,39 +146,22 @@ void periodic() {
     current_motor_velocity = motorM3508.getData(VELOCITY);
     current_motor_multiturn = motorM3508.getData(MULTITURNANGLE);
     current_motor_multiturn_wrapped = (((int)current_motor_multiturn % 8192) + 8192) % 8192;
-    fancy_current_motor_multiturn = motorM3508.multiTurnLowSpeeds;
-    fancy_current_motor_multiturn_wrapped = (((int)current_motor_multiturn % 8192) + 8192) % 8192;
     current_motor_angle = motorM3508.getData(ANGLE);    
     curr_time = now_us();
 
     start_logging = !start_logging;
 
-    high_speeds_case_one_false = motorM3508.high_speeds_case_one_false;
-    high_speeds_case_two_false = motorM3508.high_speeds_case_two_false;
-    high_speeds_case_three_false = motorM3508.high_speeds_case_three_false;
+    high_speeds_case_one_false = motorM3508.low_speeds_neg_skip_log;
+    high_speeds_case_two_false = motorM3508.low_speeds_pos_skip_log;
+    high_speeds_case_three_false = motorM3508.low_speeds_default_log;
     high_speeds_neg_skip_log = motorM3508.high_speeds_neg_skip_log;
     high_speeds_pos_skip_log = motorM3508.high_speeds_pos_skip_log;
     high_speeds_default_log = motorM3508.high_speeds_default_log;
-    high_speeds_last_angle = motorM3508.high_speeds_last_angle;
-    high_speeds_curr_angle = motorM3508.high_speeds_curr_angle;
-    high_speeds_velocity = motorM3508.high_speeds_velocity;
-    high_speeds_velocity_raw = motorM3508.high_speeds_velocity_raw;
-    high_speeds_delta_angle = motorM3508.high_speeds_delta_angle;
-    high_speeds_multiturn_angle = motorM3508.high_speeds_multiturn_angle;
+    high_speeds_velocity_raw = motorM3508.rps_raw;
+    high_speeds_delta_angle = motorM3508.delta_angle;
+    high_speeds_multiturn_angle = motorM3508.multiturn_angle;
     function_call_counter = motorM3508.function_call_counter;
     curr_time_function_call = motorM3508.curr_time;
-
-    low_speeds_neg_skip_log = motorM3508.low_speeds_neg_skip_log;
-    low_speeds_pos_skip_log = motorM3508.low_speeds_pos_skip_log;
-    low_speeds_default_log = motorM3508.low_speeds_default_log;
-    low_speeds_case_one_false = motorM3508.low_speeds_case_one_false;
-    low_speeds_case_two_false = motorM3508.low_speeds_case_two_false;
-    low_speeds_case_three_false = motorM3508.low_speeds_case_three_false;
-    low_speeds_last_angle = motorM3508.low_speeds_last_angle;
-    low_speeds_curr_angle = motorM3508.low_speeds_curr_angle;
-    low_speeds_velocity = motorM3508.low_speeds_velocity;
-    low_speeds_delta_angle = motorM3508.low_speeds_delta_angle;
-    low_speeds_multiturn_angle = motorM3508.low_speeds_multiturn_angle;
 
     log_index = motorM3508.log_index;
 
