@@ -13,6 +13,7 @@ K_THREAD_STACK_DEFINE(referee_write_stack, REFEREE_WRITE_STACK_SIZE);
 
 // -------------------------------------
 // From South China University of Technology 华南理工大学广州学院-野狼战队-步兵代码 ----------------------------------
+// From South China University of Technology Guangzhou College - Wild Wolf Team - Infantry Code ----------------------
 // https://github.com/wuzjun/2021RM_Infantry/blob/master/Devices/Devices.c/RM_JudgeSystem.c
 // 2021 section
 
@@ -44,7 +45,9 @@ void Referee::Judge_GetMessage(uint16_t Data_Length)
         {
             switch (JudgeSystem_rxBuff[n + 5] | JudgeSystem_rxBuff[n + 6] << 8)
             {
-            case Judge_Game_StatusData: //比赛状态数据
+            // 比赛状态数据
+            // Game status data
+            case Judge_Game_StatusData:
                 // printf("ST[%d]\n", n);
                 if (Verify_CRC16_Check_Sum(JudgeSystem_rxBuff + n, JudgeLength_Game_StatusData))
                 {
@@ -62,7 +65,9 @@ void Referee::Judge_GetMessage(uint16_t Data_Length)
                     n++;
                 }
                 break;
-            case Judge_Game_ResultData: //比赛结果
+            // 比赛结果
+            // Game result
+            case Judge_Game_ResultData:
                 // printf("GR[%d]\n", n);
                 if (Verify_CRC16_Check_Sum(JudgeSystem_rxBuff + n, JudgeLength_Game_ResultData))
                 {
@@ -80,7 +85,9 @@ void Referee::Judge_GetMessage(uint16_t Data_Length)
                     n++;
                 }
                 break;
-            case Judge_Robot_HP: //机器人血量数据
+            // 机器人血量数据
+            // Robot HP data
+            case Judge_Robot_HP:
                 // printf("HP[%d]\n", n);
                 if (Verify_CRC16_Check_Sum(JudgeSystem_rxBuff + n, JudgeLength_Robot_HP))
                 {
@@ -98,7 +105,9 @@ void Referee::Judge_GetMessage(uint16_t Data_Length)
                     n++;
                 }
                 break;
-            case Judge_Dart_Launch: //飞镖发射状态
+            // 飞镖发射状态
+            // Dart launch status
+            case Judge_Dart_Launch:
 
                 if (Verify_CRC16_Check_Sum(JudgeSystem_rxBuff + n, JudgeLength_Dart_Launch))
                 {
@@ -116,7 +125,9 @@ void Referee::Judge_GetMessage(uint16_t Data_Length)
                     n++;
                 }
                 break;
-            case Judge_AI_ChallengeBuff: //AI加成与惩罚
+            // AI加成与惩罚
+            // AI challenge buff and debuff
+            case Judge_AI_ChallengeBuff:
                 if (Verify_CRC16_Check_Sum(JudgeSystem_rxBuff + n, JudgeLength_AI_ChallengeBuff))
                 {
                     #if REF_DEBUG
@@ -133,7 +144,9 @@ void Referee::Judge_GetMessage(uint16_t Data_Length)
                     n++;
                 }
                 break;
-            case Judge_Event_Data: //场地事件数据
+            // 场地事件数据
+            // Field event data
+            case Judge_Event_Data:
                 if (Verify_CRC16_Check_Sum(JudgeSystem_rxBuff + n, JudgeLength_Event_Data))
                 {
                     #if REF_DEBUG
@@ -150,7 +163,9 @@ void Referee::Judge_GetMessage(uint16_t Data_Length)
                     n++;
                 }
                 break;
-            case Judge_Supply_Station: //补给站动作标识
+            // 补给站动作标识
+            // Supply station action indicator
+            case Judge_Supply_Station:
                 if (Verify_CRC16_Check_Sum(JudgeSystem_rxBuff + n, JudgeLength_Supply_Station))
                 {
                     #if REF_DEBUG
@@ -167,7 +182,9 @@ void Referee::Judge_GetMessage(uint16_t Data_Length)
                     n++;
                 }
                 break;
-            case Judge_Referee_Warning: //裁判系统警告信息
+            // 裁判系统警告信息
+            // Referee system warning information
+            case Judge_Referee_Warning:
                 if (Verify_CRC16_Check_Sum(JudgeSystem_rxBuff + n, JudgeLength_Referee_Warning))
                 {
                     #if REF_DEBUG
@@ -184,7 +201,9 @@ void Referee::Judge_GetMessage(uint16_t Data_Length)
                     n++;
                 }
                 break;
-            case Judge_Dart_Countdown: //飞镖发射口倒计时
+            // 飞镖发射口倒计时
+            // Dart launch countdown
+            case Judge_Dart_Countdown:
                 if (Verify_CRC16_Check_Sum(JudgeSystem_rxBuff + n, JudgeLength_Dart_Countdown))
                 {
                     #if REF_DEBUG
@@ -201,7 +220,9 @@ void Referee::Judge_GetMessage(uint16_t Data_Length)
                     n++;
                 }
                 break;
-            case Judge_Robot_State: //比赛机器人状态
+            // 比赛机器人状态
+            // Game robot status
+            case Judge_Robot_State:
                 // for(int i = 0; i < JudgeLength_Robot_State; i ++){
                 //     printf("|%2x", (uint8_t)*(JudgeSystem_rxBuff+n+i));
                 // }
@@ -247,7 +268,9 @@ void Referee::Judge_GetMessage(uint16_t Data_Length)
                     n++;
                 }
                 break;
-            case Judge_Power_Heat: //实时功率热量
+            // 实时功率热量
+            // Real-time power and heat
+            case Judge_Power_Heat:
                 if (Verify_CRC16_Check_Sum(JudgeSystem_rxBuff + n, JudgeLength_Power_Heat))
                 {
                     #if REF_DEBUG
@@ -283,7 +306,9 @@ void Referee::Judge_GetMessage(uint16_t Data_Length)
                     n++;
                 }
                 break;
-            case Judge_Robot_Position: //机器人位置
+            // 机器人位置
+            // Robot position
+            case Judge_Robot_Position:
                 if (Verify_CRC16_Check_Sum(JudgeSystem_rxBuff + n, JudgeLength_Robot_Position))
                 {
                     #if REF_DEBUG
@@ -300,7 +325,9 @@ void Referee::Judge_GetMessage(uint16_t Data_Length)
                     n++;
                 }
                 break;
-            case Judge_Robot_Buff: //机器人增益
+            // 机器人增益
+            // Robot buff
+            case Judge_Robot_Buff:
                 if (Verify_CRC16_Check_Sum(JudgeSystem_rxBuff + n, JudgeLength_Robot_Buff))
                 {
                     #if REF_DEBUG
@@ -317,7 +344,9 @@ void Referee::Judge_GetMessage(uint16_t Data_Length)
                     n++;
                 }
                 break;
-            case Judge_Aerial_Energy: //空中机器人能量状态
+            // 空中机器人能量状态
+            // Aerial robot energy status
+            case Judge_Aerial_Energy:
                 if (Verify_CRC16_Check_Sum(JudgeSystem_rxBuff + n, JudgeLength_Aerial_Energy))
                 {
                     #if REF_DEBUG
@@ -334,7 +363,9 @@ void Referee::Judge_GetMessage(uint16_t Data_Length)
                     n++;
                 }
                 break;
-            case Judge_Injury_State: //伤害状态
+            // 伤害状态
+            // Damage status
+            case Judge_Injury_State:
                 if (Verify_CRC16_Check_Sum(JudgeSystem_rxBuff + n, JudgeLength_Injury_State))
                 {
                     #if REF_DEBUG
@@ -351,7 +382,9 @@ void Referee::Judge_GetMessage(uint16_t Data_Length)
                     n++;
                 }
                 break;
-            case Judge_RealTime_Shoot: //实时射击数据
+            // 实时射击数据
+            // Real-time shooting data
+            case Judge_RealTime_Shoot:
                 if (Verify_CRC16_Check_Sum(JudgeSystem_rxBuff + n, JudgeLength_RealTime_Shoot))
                 {
                     #if REF_DEBUG
@@ -368,7 +401,9 @@ void Referee::Judge_GetMessage(uint16_t Data_Length)
                     n++;
                 }
                 break;
-            case Judge_Remaining_Rounds: //子弹剩余数
+            // 子弹剩余数
+            // Remaining projectile allowance
+            case Judge_Remaining_Rounds:
                 if (Verify_CRC16_Check_Sum(JudgeSystem_rxBuff + n, JudgeLength_Remaining_Rounds))
                 {
                     #if REF_DEBUG
@@ -385,7 +420,9 @@ void Referee::Judge_GetMessage(uint16_t Data_Length)
                     n++;
                 }
                 break;
-            case Judge_Robot_RFID: //机器人RFID状态
+            // 机器人RFID状态
+            // Robot RFID status
+            case Judge_Robot_RFID:
                 if (Verify_CRC16_Check_Sum(JudgeSystem_rxBuff + n, JudgeLength_Robot_RFID))
                 {
                     #if REF_DEBUG
@@ -402,7 +439,9 @@ void Referee::Judge_GetMessage(uint16_t Data_Length)
                     n++;
                 }
                 break;
-            case Judge_Dart_Client: //飞镖机器人客户端指令数据
+            // 飞镖机器人客户端指令数据
+            // Dart robot client command data
+            case Judge_Dart_Client:
                 if (Verify_CRC16_Check_Sum(JudgeSystem_rxBuff + n, JudgeLength_Dart_Client))
                 {
                     #if REF_DEBUG
@@ -419,7 +458,9 @@ void Referee::Judge_GetMessage(uint16_t Data_Length)
                     n++;
                 } //26
                 break;
-            case Judge_Robot_Communicate: //机器人信息交互(还有一种写法就是直接case内容ID 不case命令码)
+            // 机器人信息交互(还有一种写法就是直接case内容ID 不case命令码)
+            // Robot inter-communication (another approach is to directly case on the content ID instead of the command code)
+            case Judge_Robot_Communicate:
                 if (Verify_CRC16_Check_Sum(JudgeSystem_rxBuff + n, JudgeLength_Robot_Commute))
                 {
                     memcpy(&Robot_Commute, &JudgeSystem_rxBuff[n + 7], sizeof(uint8_t[26]));
@@ -449,19 +490,25 @@ void Referee::determine_ID()
     int8_t Color = is_red_or_blue();
     if (Color == BLUE)
     {
-        Judge_SelfClient_ID = 0x0100 + robot_status.robot_id; //计算客户端ID
+        // 计算客户端ID
+        // Calculate client ID
+        Judge_SelfClient_ID = 0x0100 + robot_status.robot_id;
     }
     else if (Color == RED)
     {
-        Judge_SelfClient_ID = 0x0100 + robot_status.robot_id; //计算客户端ID
+        // 计算客户端ID
+        // Calculate client ID
+        Judge_SelfClient_ID = 0x0100 + robot_status.robot_id;
     }
 }
 
 /**
   * @brief  上传自定义数据
+  *         Upload custom data
   * @param  void
   * @retval void
   * @attention  数据打包,打包完成后通过串口发送到裁判系统
+  *             Package data; once packaged, send to the referee system via serial port
   */
 
 
@@ -481,28 +528,46 @@ void Referee::referee_data_pack_handle(uint8_t sof,uint16_t cmd_id, uint8_t *p_d
 	uint8_t tx_buff[MAX_SIZE];
 
     mutex_write_.lock();
-	uint16_t frame_length = frameheader_len + cmd_len + len + crc_len;   //数据帧长度	
+	// 数据帧长度
+	// Data frame length
+	uint16_t frame_length = frameheader_len + cmd_len + len + crc_len;
 
-	memset(tx_buff,0,frame_length);  //存储数据的数组清零
+	// 存储数据的数组清零
+	// Clear the data storage array to zero
+	memset(tx_buff,0,frame_length);
 	
-	/*****帧头打包*****/
-	tx_buff[0] = sof;//数据帧起始字节
-	memcpy(&tx_buff[1],(uint8_t*)&len, sizeof(len));//数据帧中data的长度
-	tx_buff[3] = seq;//包序号
-	Append_CRC8_Check_Sum(tx_buff,frameheader_len);  //帧头校验CRC8
+	/***** 帧头打包 *****/
+	/***** Frame header packaging *****/
+	// 数据帧起始字节
+	// Data frame start byte
+	tx_buff[0] = sof;
+	// 数据帧中data的长度
+	// Length of data field in data frame
+	memcpy(&tx_buff[1],(uint8_t*)&len, sizeof(len));
+	// 包序号
+	// Packet sequence number
+	tx_buff[3] = seq;
+	// 帧头校验CRC8
+	// Frame header check CRC8
+	Append_CRC8_Check_Sum(tx_buff,frameheader_len);
 
-	/*****命令码打包*****/
+	/***** 命令码打包 *****/
+	/***** Command code packaging *****/
 	memcpy(&tx_buff[frameheader_len],(uint8_t*)&cmd_id, cmd_len);
 	
-	/*****数据打包*****/
+	/***** 数据打包 *****/
+	/***** Data packaging *****/
 	memcpy(&tx_buff[frameheader_len+cmd_len], p_data, len);
-	Append_CRC16_Check_Sum(tx_buff,frame_length);  //一帧数据校验CRC16
+	// 一帧数据校验CRC16
+	// Full frame data check CRC16
+	Append_CRC16_Check_Sum(tx_buff,frame_length);
 
     if (seq == 0xff) seq=0;
     else
      seq++;
 	
-	/*****数据上传*****/
+	/***** 数据上传 *****/
+	/***** Data upload *****/
 	// USART_ClearFlag(UART4,USART_FLAG_TC);
     LL_USART_ClearFlag_TC(ref.usart_getter());
 
@@ -513,7 +578,9 @@ void Referee::referee_data_pack_handle(uint8_t sof,uint16_t cmd_id, uint8_t *p_d
         LL_USART_TransmitData8(USART3, tx_buff[i]);                        //
     // HAL_UART_Transmit(huart4, tx_buff[i], sizeof(tx_buff[i]), 10);     
 
-	//   while (USART_GetFlagStatus(UART4,USART_FLAG_TC) == RESET); //等待之前的字符发送完成
+	// 等待之前的字符发送完成
+	// Wait for previous characters to finish sending
+	//   while (USART_GetFlagStatus(UART4,USART_FLAG_TC) == RESET);
 		while(LL_USART_IsActiveFlag_TC(USART3) == RESET);
     }
     */
@@ -525,7 +592,8 @@ void Referee::referee_data_pack_handle(uint8_t sof,uint16_t cmd_id, uint8_t *p_d
 {
     // Accquires thread resources
     mutex_write_.lock();
-	/*****数据上传*****/
+	/***** 数据上传 *****/
+	/***** Data upload *****/
     LL_USART_ClearFlag_TC(ref.usart_getter());
     mutex_write_.unlock();
     
@@ -762,20 +830,28 @@ uint8_t Referee::get_game_progress()
 
 /**
   * @brief  判断自己红蓝方
+  *         Determine whether the robot is on the Red or Blue team
   * @param  void
   * @retval RED   BLUE
   * @attention  数据打包,打包完成后通过串口发送到裁判系统
+  *             Package data; once packaged, send to the referee system via serial port
   */
 uint8_t Referee::is_red_or_blue()
 {
-    Judge_Self_ID = robot_status.robot_id; //读取当前机器人ID
+    // 读取当前机器人ID
+    // Read current robot ID
+    Judge_Self_ID = robot_status.robot_id;
 
     if (robot_status.robot_id > 10)
     {
-        return BLUE; //蓝方 (blue)
+        // 蓝方 
+        // Blue team (blue)
+        return BLUE;
     }
     else
     {
-        return RED; //红方 (red)
+        // 红方 
+        // Red team (red)
+        return RED;
     }
 }
