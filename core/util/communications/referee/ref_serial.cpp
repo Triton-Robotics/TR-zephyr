@@ -62,7 +62,8 @@ void Referee::Judge_GetMessage(uint16_t Data_Length) {
     };
     uint16_t n =0;
     while(n<Data_Length){
-        
+        uint8_t* frame = &JudgeSystem_rxBuff[n];
+        if(frae[0])
 
     }
 /*
