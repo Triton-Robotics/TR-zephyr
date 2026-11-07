@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <util/algorithms/general_functions.h>
 
+#define ISM330_NODE DT_NODELABEL(imu)
+
 // Scale factors for calculations 
 static constexpr float accelRangeScale = 0.122f;  // mg/LSB @ ±4g; see datasheet for other ranges
 static constexpr float gyroRangeScale  = 70.0 * 1.5;   // mdps/LSB @ ±2000 dps * 1.5 for scaling error
@@ -42,7 +44,11 @@ static const uint8_t tReg[] = {0x20, 0x21}; //Temperature register values
 static const uint8_t gyroLowPassFilter[] = {CTRL6_C, 0x03}; // Low pass filter
 static const uint8_t blockUpdate[] = {CTRL3_C, 0x44}; // Block update for reading consistent data
 
-ISM330::EulerAngles::EulerAngles(float roll, float pitch, float yaw) : roll(roll), pitch(pitch), yaw(yaw) {}
+float get_yaw;
+float get_pitch;
+float get_roll;
+
+// ISM330::EulerAngles::EulerAngles(float roll, float pitch, float yaw) : roll(roll), pitch(pitch), yaw(yaw) {}
 
 // Constructor
 ISM330::ISM330(const struct i2c_dt_spec &i2c) noexcept : i2c_(i2c) {}; // Just makes the i2c_ attribute store the i2c_dt_spec
@@ -294,6 +300,10 @@ IMU::EulerAngles ISM330::getImuAngles()
     // computeAnglesMah(angles);
     computeAnglesEKF(angles);
     return angles;
+}
+
+int testfunc() {
+    return 0;
 }
 
 // EKF Sensor fusion
@@ -616,17 +626,17 @@ int main(void)
 {
     static const struct i2c_dt_spec ism_i2c = I2C_DT_SPEC_GET(ISM330_NODE);
     if (!i2c_is_ready_dt(&ism_i2c)) {
-        LOG_ERR("I2C device not ready.");
+        printf("I2C device not ready.");
         return -1;
     }
 
     ISM330 imu(ism_i2c);
 
     if (!imu.begin(0.1f, 0.0f)) {
-        LOG_ERR("ISM330 initialization failed.");
+        printf("ISM330 initialization failed.");
         return -1;
     }
-    LOG_INF("ISM330 initialized.");
+    printf("ISM330 initialized.");
 
 
     const int64_t period_ms = 10; //100 Hz
@@ -636,9 +646,12 @@ int main(void)
 
     while (true) {
         IMU::EulerAngles angles = imu.getImuAngles();
+        get_roll = angles.roll;
+        get_pitch = angles.pitch;
+        get_yaw = angles.yaw;
 
         if ((i % 10u) == 0u) {
-            printk("t=%6u ms  roll=%8d  pitch=%8d  yaw=%8d (mdeg)\n",
+            printf("t=%6u ms  roll=%8d  pitch=%8d  yaw=%8d (mdeg)\n",
                    (uint32_t)k_uptime_get(),
                    (int)(angles.roll  * 1000.0f),
                    (int)(angles.pitch * 1000.0f),
