@@ -1,4 +1,3 @@
-
 #include "ref_serial.h"
 
 #include "../ui/ui_g.h"
@@ -17,7 +16,6 @@ K_THREAD_STACK_DEFINE(referee_write_stack, REFEREE_WRITE_STACK_SIZE);
 // From South China University of Technology
 // 华南理工大学广州学院-野狼战队-步兵代码 
 // ----------------------------------
-
 // From South China University of Technology Guangzhou College - Wild Wolf Team
 // - Infantry Code ----------------------
 // https://github.com/wuzjun/2021RM_Infantry/blob/master/Devices/Devices.c/RM_JudgeSystem.c
@@ -33,14 +31,40 @@ int Referee::JudgeSystem_USART_Receive_DMA()  // modified
 }
 
 void Referee::Judge_GetMessage(uint16_t Data_Length) {
-#if REF_DEBUG
-// for (int i = 0; i < Data_Length;i++)
-// {
-//     printf("%x ", JudgeSystem_rxBuff[i]);
-// }
-// printf("\n");
-// printf("[%d]\n",Data_Length);
-#endif
+    struct Packet{
+        uint16_t cmd_id;
+        uint16_t frame_len;
+        void* dest;
+        uint8_t* update_flag;
+    };
+    static const Packet packets[] = {
+    {Judge_Game_StatusData, JudgeLength_Game_StatusData, &game_status, &game_status.infoUpdateFlag},
+    {Judge_Game_ResultData, JudgeLength_Game_ResultData, &game_result, &game_result.infoUpdateFlag},
+    {Judge_Robot_HP, JudgeLength_Robot_HP, ext_game_robot_HP.data.dataBuff, &ext_game_robot_HP.infoUpdateFlag},
+    {Judge_Dart_Launch, JudgeLength_Dart_Launch, ext_dart_status.data.dataBuff, &ext_dart_status.infoUpdateFlag},
+    {Judge_AI_ChallengeBuff, JudgeLength_AI_ChallengeBuff, ext_ICRA_buff_debuff_zone_status.data.dataBuff, &ext_ICRA_buff_debuff_zone_status.infoUpdateFlag},
+    {Judge_Event_Data, JudgeLength_Event_Data, ext_even_data.data.dataBuff, &ext_even_data.infoUpdateFlag},
+    {Judge_Supply_Station, JudgeLength_Supply_Station, ext_supply_projectile_action.data.dataBuff, &ext_supply_projectile_action.infoUpdateFlag},
+    {Judge_Referee_Warning, JudgeLength_Referee_Warning, &referee_warning, &referee_warning.infoUpdateFlag},
+    {Judge_Dart_Countdown, JudgeLength_Dart_Countdown, ext_dart_remaining_time.data.dataBuff, &ext_dart_remaining_time.infoUpdateFlag},
+    {Judge_Robot_State, JudgeLength_Robot_State, &robot_status, &robot_status.infoUpdateFlag},
+    {Judge_Power_Heat, JudgeLength_Power_Heat, &power_heat_data, &power_heat_data.infoUpdateFlag},
+    {Judge_Robot_Position, JudgeLength_Robot_Position, &robot_pos, &robot_pos.infoUpdateFlag},
+    {Judge_Robot_Buff, JudgeLength_Robot_Buff, &buff, &Buff.infoUpdateFlag},
+    {Judge_Aerial_Energy, JudgeLength_Aerial_Energy, aerial_robot_energy.data.dataBuff, &aerial_robot_energy.infoUpdateFlag},
+    {Judge_Injury_State, JudgeLength_Injury_State, &hurt_data, &hurt_data.infoUpdateFlag},
+    {Judge_RealTime_Shoot, JudgeLength_RealTime_Shoot, &shoot_data, &shoot_data.infoUpdateFlag},
+    {Judge_Remaining_Rounds, JudgeLength_Remaining_Rounds, &projectile_allowance, &projectile_allowance.infoUpdateFlag},
+    {Judge_Robot_RFID, JudgeLength_Robot_RFID, ext_rfid_status.data.dataBuff, &ext_rfid_status.infoUpdateFlag},
+    {Judge_Dart_Client, JudgeLength_Dart_Client, ext_dart_client_cmd.data.dataBuff, &ext_dart_client_cmd.infoUpdateFlag},
+    {Judge_Robot_Communicate, JudgeLength_Robot_Commute, Robot_Commute, nullptr},
+    };
+    uint16_t n =0;
+    while(n<Data_Length){
+        
+
+    }
+/*
     for (int n = 0; n < Data_Length;) {
         if (JudgeSystem_rxBuff[n] == JUDGE_FRAME_HEADER) {
             switch (JudgeSystem_rxBuff[n + 5] | JudgeSystem_rxBuff[n + 6] << 8) {
@@ -76,7 +100,7 @@ void Referee::Judge_GetMessage(uint16_t Data_Length) {
                         memcpy(&game_result, &JudgeSystem_rxBuff[n + 7],
                                sizeof(uint8_t[JudgeLength_Game_ResultData - JUDGE_EXTRA]));
                         n += JudgeLength_Game_ResultData;
-                        game_result.InfoUpdataFlag = 1;
+                        game_result.infoUpdateFlag = 1;
                     } else {
 #if REF_DEBUG
                         printf("GR_NO[%d]\n", n);
@@ -95,7 +119,7 @@ void Referee::Judge_GetMessage(uint16_t Data_Length) {
                         memcpy(&ext_game_robot_HP.data.dataBuff, &JudgeSystem_rxBuff[n + 7],
                                sizeof(uint8_t[JudgeLength_Robot_HP - JUDGE_EXTRA]));
                         n += JudgeLength_Robot_HP;
-                        ext_game_robot_HP.InfoUpdataFlag = 1;
+                        ext_game_robot_HP.infoUpdateFlag = 1;
                     } else {
 #if REF_DEBUG
                         printf("HP_NO[%d]\n", n);
@@ -114,7 +138,7 @@ void Referee::Judge_GetMessage(uint16_t Data_Length) {
                         memcpy(&ext_dart_status.data.dataBuff, &JudgeSystem_rxBuff[n + 7],
                                sizeof(uint8_t[JudgeLength_Dart_Launch - JUDGE_EXTRA]));
                         n += JudgeLength_Dart_Launch;
-                        ext_dart_status.InfoUpdataFlag = 1;
+                        ext_dart_status.infoUpdateFlag = 1;
                     } else {
 #if REF_DEBUG
                         printf("DL_NO[%d]\n", n);
@@ -133,7 +157,7 @@ void Referee::Judge_GetMessage(uint16_t Data_Length) {
                         memcpy(&ext_ICRA_buff_debuff_zone_status.data.dataBuff,
                                &JudgeSystem_rxBuff[n + 7], sizeof(uint8_t[11]));
                         n += JudgeLength_AI_ChallengeBuff;
-                        ext_ICRA_buff_debuff_zone_status.InfoUpdataFlag = 1;
+                        ext_ICRA_buff_debuff_zone_status.infoUpdateFlag = 1;
                     } else {
 #if REF_DEBUG
                         printf("AI_NO[%d]\n", n);
@@ -151,7 +175,7 @@ void Referee::Judge_GetMessage(uint16_t Data_Length) {
                         memcpy(&ext_even_data.data.dataBuff, &JudgeSystem_rxBuff[n + 7],
                                sizeof(uint8_t[4]));
                         n += JudgeLength_Event_Data;
-                        ext_even_data.InfoUpdataFlag = 1;
+                        ext_even_data.infoUpdateFlag = 1;
                     } else {
 #if REF_DEBUG
                         printf("EV_NO[%d]\n", n);
@@ -171,7 +195,7 @@ void Referee::Judge_GetMessage(uint16_t Data_Length) {
                                &JudgeSystem_rxBuff[n + 7],
                                sizeof(uint8_t[JudgeLength_Supply_Station - JUDGE_EXTRA]));
                         n += JudgeLength_Supply_Station;
-                        ext_supply_projectile_action.InfoUpdataFlag = 1;
+                        ext_supply_projectile_action.infoUpdateFlag = 1;
                     } else {
 #if REF_DEBUG
                         printf("SS_NO[%d]\n", n);
@@ -190,7 +214,7 @@ void Referee::Judge_GetMessage(uint16_t Data_Length) {
                         memcpy(&referee_warning, &JudgeSystem_rxBuff[n + 7],
                                sizeof(uint8_t[JudgeLength_Referee_Warning - JUDGE_EXTRA]));
                         n += JudgeLength_Referee_Warning;
-                        referee_warning.InfoUpdataFlag = 1;
+                        referee_warning.infoUpdateFlag = 1;
                     } else {
 #if REF_DEBUG
                         printf("RF_NO[%d]\n", n);
@@ -209,7 +233,7 @@ void Referee::Judge_GetMessage(uint16_t Data_Length) {
                         memcpy(&ext_dart_remaining_time.data.dataBuff, &JudgeSystem_rxBuff[n + 7],
                                sizeof(uint8_t[JudgeLength_Dart_Countdown - JUDGE_EXTRA]));
                         n += JudgeLength_Dart_Countdown;
-                        ext_dart_remaining_time.InfoUpdataFlag = 1;
+                        ext_dart_remaining_time.infoUpdateFlag = 1;
                     } else {
 #if REF_DEBUG
                         printf("DT_NO[%d]\n", n);
@@ -241,7 +265,7 @@ void Referee::Judge_GetMessage(uint16_t Data_Length) {
                                sizeof(uint8_t[JudgeLength_Robot_State - JUDGE_EXTRA]));
 
                         n += JudgeLength_Robot_State;
-                        robot_status.InfoUpdataFlag = 1;
+                        robot_status.infoUpdateFlag = 1;
 
 #if REF_DEBUG
 // printf("R%u %u %u %u %u %u %u %x\n",
@@ -293,7 +317,7 @@ void Referee::Judge_GetMessage(uint16_t Data_Length) {
                         }
 
                         n += JudgeLength_Power_Heat;
-                        power_heat_data.InfoUpdataFlag = 1;
+                        power_heat_data.infoUpdateFlag = 1;
 #if REF_DEBUG
 // printf("%u %u %u %u\n", power_heat_data.buffer_energy,
 // power_heat_data.shooter_17mm_1_barrel_heat,
@@ -321,7 +345,7 @@ void Referee::Judge_GetMessage(uint16_t Data_Length) {
                         memcpy(&robot_pos, &JudgeSystem_rxBuff[n + 7],
                                sizeof(uint8_t[JudgeLength_Robot_Position - JUDGE_EXTRA]));
                         n += JudgeLength_Robot_Position;
-                        robot_pos.InfoUpdataFlag = 1;
+                        robot_pos.infoUpdateFlag = 1;
                     } else {
 #if REF_DEBUG
                         printf("RP_NO[%d]\n", n);
@@ -339,7 +363,7 @@ void Referee::Judge_GetMessage(uint16_t Data_Length) {
                         memcpy(&buff, &JudgeSystem_rxBuff[n + 7],
                                sizeof(uint8_t[JudgeLength_Robot_Buff - JUDGE_EXTRA]));
                         n += JudgeLength_Robot_Buff;
-                        Buff.InfoUpdataFlag = 1;
+                        Buff.infoUpdateFlag = 1;
                     } else {
 #if REF_DEBUG
                         printf("BF_NO[%d]\n", n);
@@ -357,7 +381,7 @@ void Referee::Judge_GetMessage(uint16_t Data_Length) {
                         memcpy(&aerial_robot_energy.data.dataBuff, &JudgeSystem_rxBuff[n + 7],
                                sizeof(uint8_t[JudgeLength_Aerial_Energy - JUDGE_EXTRA]));
                         n += JudgeLength_Aerial_Energy;
-                        aerial_robot_energy.InfoUpdataFlag = 1;
+                        aerial_robot_energy.infoUpdateFlag = 1;
                     } else {
 #if REF_DEBUG
                         printf("AE_NO[%d]\n", n);
@@ -375,7 +399,7 @@ void Referee::Judge_GetMessage(uint16_t Data_Length) {
                         memcpy(&hurt_data, &JudgeSystem_rxBuff[n + 7],
                                sizeof(uint8_t[JudgeLength_Injury_State - JUDGE_EXTRA]));
                         n += JudgeLength_Injury_State;
-                        hurt_data.InfoUpdataFlag = 1;
+                        hurt_data.infoUpdateFlag = 1;
                     } else {
 #if REF_DEBUG
                         printf("IN_NO[%d]\n", n);
@@ -394,7 +418,7 @@ void Referee::Judge_GetMessage(uint16_t Data_Length) {
                         memcpy(&shoot_data, &JudgeSystem_rxBuff[n + 7],
                                sizeof(uint8_t[JudgeLength_RealTime_Shoot - JUDGE_EXTRA]));
                         n += JudgeLength_RealTime_Shoot;
-                        shoot_data.InfoUpdataFlag = 1;
+                        shoot_data.infoUpdateFlag = 1;
                     } else {
 #if REF_DEBUG
                         printf("RE_NO[%d]\n", n);
@@ -413,7 +437,7 @@ void Referee::Judge_GetMessage(uint16_t Data_Length) {
                         memcpy(&projectile_allowance, &JudgeSystem_rxBuff[n + 7],
                                sizeof(uint8_t[JudgeLength_Remaining_Rounds - JUDGE_EXTRA]));
                         n += JudgeLength_Remaining_Rounds;
-                        projectile_allowance.InfoUpdataFlag = 1;
+                        projectile_allowance.infoUpdateFlag = 1;
                     } else {
 #if REF_DEBUG
                         printf("RR_NO[%d]\n", n);
@@ -431,7 +455,7 @@ void Referee::Judge_GetMessage(uint16_t Data_Length) {
                         memcpy(&ext_rfid_status.data.dataBuff, &JudgeSystem_rxBuff[n + 7],
                                sizeof(uint8_t[JudgeLength_Robot_RFID - JUDGE_EXTRA]));
                         n += JudgeLength_Robot_RFID;
-                        ext_rfid_status.InfoUpdataFlag = 1;
+                        ext_rfid_status.infoUpdateFlag = 1;
                     } else {
 #if REF_DEBUG
                         printf("ID_NO[%d]\n", n);
@@ -449,7 +473,7 @@ void Referee::Judge_GetMessage(uint16_t Data_Length) {
                         memcpy(&ext_dart_client_cmd.data.dataBuff, &JudgeSystem_rxBuff[n + 7],
                                sizeof(uint8_t[12]));
                         n += JudgeLength_Dart_Client;
-                        ext_dart_client_cmd.InfoUpdataFlag = 1;
+                        ext_dart_client_cmd.infoUpdateFlag = 1;
                     } else {
 #if REF_DEBUG
                         printf("DC_NO[%d]\n", n);
@@ -480,6 +504,7 @@ void Referee::Judge_GetMessage(uint16_t Data_Length) {
         } else
             n++;
     }
+*/
     // JudgeSystem.InfoUpdateFrame++;
 }
 

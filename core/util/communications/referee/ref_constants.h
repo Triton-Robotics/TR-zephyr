@@ -167,7 +167,7 @@ typedef struct {
 /* ID: 0x0002    Byte: 1       Game result data */
 typedef struct {
     uint8_t winner;
-    uint8_t InfoUpdataFlag;
+    uint8_t infoUpdateFlag;
 } game_result_t;
 
 /* ID: 0x0003     Byte: 32     比赛机器人血量数据 */
@@ -210,7 +210,7 @@ typedef struct {
             uint16_t blue_base_HP;
         };
     } data;
-    uint8_t InfoUpdataFlag;
+    uint8_t infoUpdateFlag;
 } ext_game_robot_HP_t;
 
 /* ID: 0x0004      Byte: 3    飞镖发射状态 */
@@ -227,7 +227,7 @@ typedef struct {
             uint16_t stage_remaining_time;
         };
     } data;
-    uint8_t InfoUpdataFlag;
+    uint8_t infoUpdateFlag;
 } ext_dart_status_t;
 
 /* ID: 0x0005      Byte: 11      人工智能挑战赛加成与惩罚 */
@@ -254,7 +254,7 @@ typedef struct {
             uint16_t blue2_bullet_left;
         };
     } data;
-    uint8_t InfoUpdataFlag;
+    uint8_t infoUpdateFlag;
 } ext_ICRA_buff_debuff_zone_status_t;
 
 /* ID: 0x0101     Byte: 4       场地事件数据 */
@@ -266,7 +266,7 @@ typedef struct {
             uint32_t event_type;
         };
     } data;
-    uint8_t InfoUpdataFlag;
+    uint8_t infoUpdateFlag;
 } ext_event_data_t;
 
 /* ID: 0x0102     Byte: 4       场地补给站动作标识数据 */
@@ -289,7 +289,7 @@ typedef struct {
             uint8_t supply_projectile_num;
         };
     } data;
-    uint8_t InfoUpdataFlag;
+    uint8_t infoUpdateFlag;
 } ext_supply_projectile_action_t;
 
 /* ID: 0X0104          Byte: 2       裁判警告数据 */
@@ -298,7 +298,7 @@ typedef struct {
     uint8_t level;
     uint8_t offending_robot_id;
     uint8_t count;
-    uint8_t InfoUpdataFlag;
+    uint8_t infoUpdateFlag;
 } referee_warning_t;
 
 /* ID: 0x0105          Byte: 1       飞镖发射口倒计时  */
@@ -312,7 +312,7 @@ typedef struct {
             uint8_t dart_remaining_time;
         };
     } data;
-    uint8_t InfoUpdataFlag;
+    uint8_t infoUpdateFlag;
 } ext_dart_remaining_time_t;
 
 /* ID: 0X0201          Byte: 27      机器人状态数据 */
@@ -342,7 +342,7 @@ typedef struct {
             uint8_t power_management_output;
         };
     } data;
-    uint8_t InfoUpdataFlag;
+    uint8_t infoUpdateFlag;
 } ext_game_robot_status_t;
 
 typedef struct {
@@ -354,7 +354,7 @@ typedef struct {
     uint16_t shooter_barrel_heat_limit;
     uint16_t chassis_power_limit;
     uint8_t power_management_output;
-    uint8_t InfoUpdataFlag;
+    uint8_t infoUpdateFlag;
 } robot_status_t;
 
 /* ID: 0X0202          Byte: 16      实时功率热量数据 */
@@ -367,7 +367,7 @@ typedef struct {
     uint16_t shooter_17mm_1_barrel_heat;
     uint16_t shooter_17mm_2_barrel_heat;
     uint16_t shooter_42mm_barrel_heat;
-    uint8_t InfoUpdataFlag;
+    uint8_t infoUpdateFlag;
 } power_heat_data_t;
 
 /* ID: 0X0203          Byte: 16      机器人位置数据  */
@@ -376,7 +376,7 @@ typedef struct {
     float x;
     float y;
     float angle;
-    uint8_t InfoUpdataFlag;
+    uint8_t infoUpdateFlag;
 } robot_pos_t;
 
 /* ID: 0X0204          Byte: 1       机器人增益数据 */
@@ -396,7 +396,7 @@ typedef struct {
             uint8_t power_rune_buff;
         };
     } data;
-    uint8_t InfoUpdataFlag;
+    uint8_t infoUpdateFlag;
 } ext_buff_t;
 
 typedef struct {
@@ -418,7 +418,7 @@ typedef struct {
             uint8_t attack_time;
         };
     } data;
-    uint8_t InfoUpdataFlag;
+    uint8_t infoUpdateFlag;
 } aerial_robot_energy_t;
 
 /* ID: 0X0206          Byte: 1       伤害状态数据 */
@@ -426,7 +426,7 @@ typedef struct {
 typedef struct {
     uint8_t armor_id : 4;
     uint8_t HP_deduction_reason : 4;
-    uint8_t InfoUpdataFlag;
+    uint8_t infoUpdateFlag;
 } hurt_data_t;
 
 /* ID: 0X0207          Byte: 7       实时射击数据 */
@@ -436,7 +436,7 @@ typedef struct {
     uint8_t shooter_number;
     uint8_t launching_frequency;
     float initial_speed;
-    uint8_t InfoUpdataFlag;
+    uint8_t infoUpdateFlag;
 } shoot_data_t;
 
 /* ID: 0X0208          Byte: 6       子弹剩余发送数 */
@@ -445,7 +445,7 @@ typedef struct {
     uint16_t projectile_allowance_17mm;
     uint16_t projectile_allowance_42mm;
     uint16_t remaining_gold_coin;
-    uint8_t InfoUpdataFlag;
+    uint8_t infoUpdateFlag;
 } projectile_allowance_t;
 
 /* ID: 0X0209          Byte: 4       机器人RFID状态 */
@@ -477,7 +477,7 @@ typedef struct {
             uint32_t rfid_status;
         };
     } data;
-    uint8_t InfoUpdataFlag;
+    uint8_t infoUpdateFlag;
 } ext_rfid_status_t;
 
 /* ID: 0x020A          Byte: 12      飞镖机器人客户端指令书 */
@@ -516,7 +516,7 @@ typedef struct {
             uint16_t operate_launch_cmd_time;
         };
     } data;
-    uint8_t InfoUpdataFlag;
+    uint8_t infoUpdateFlag;
 } ext_dart_client_cmd_t;
 
 // ----------------------- Line 1163
