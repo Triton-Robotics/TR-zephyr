@@ -362,19 +362,20 @@ void DJIMotor::updateOneMultiTurn(int canBus, int can_line, int motor_id) {
         
         
         // Update multiturn data using latest data
-        double dt = 0;
+        double dt_ms = 0;
         // gets delta time
         if (curMotor->lastIntegrationTime != -1) {
-            dt = (double)(time - curMotor->lastIntegrationTime) / 1000.0; // ms
+            dt_ms = (double)(time - curMotor->lastIntegrationTime) / 1000.0d; // ms
+        } else {
+            curMotor->lastIntegrationTime = static_cast<long>(time);
+            return;
         }
         
         // don't want this to be called twice accidentally
-        if(dt <= 0.0f) {
-            return;
-        }
+        if(dt_ms > 0.0d) {
 
         // "slow speed mode"
-        if (fabsf(raw_rps) < 1.5f) {
+        if (fabsf(raw_rps) < 100.0f) {
             if (curAngle > (ENCODER_WRAP - Threshold) && lastAngle < Threshold) {
                 // negative wrap (pos -> neg)
                 deltaAngle -= ENCODER_WRAP;
@@ -388,7 +389,7 @@ void DJIMotor::updateOneMultiTurn(int canBus, int can_line, int motor_id) {
             }
             curMotor->multiTurn += deltaAngle;
         } else {
-            float predictedRev = (curMotor->lastRps + raw_rps)/2.0f * dt;
+            float predictedRev = (curMotor->lastRps + raw_rps)/2.0f * (dt_ms / 1000);
             float actualRev = static_cast<float>(curAngle)/ENCODER_WRAP;
             float lastRev = static_cast<float>(lastAngle)/ENCODER_WRAP;       
 
@@ -439,23 +440,26 @@ void DJIMotor::updateOneMultiTurn(int canBus, int can_line, int motor_id) {
 
         curMotor->function_call_counter++;
 
-        curMotor->rps_raw = raw_speed;
+        curMotor->rps_raw = raw_rps;
+        curMotor->raw_speed = raw_speed;
         curMotor->delta_angle = deltaAngle;
         curMotor->multiturn_angle = curMotor->multiTurn;
         curMotor->curr_time = time;
 
-        // log current data into data
-        curMotor->last_multiturn_angles_log[curMotor->log_index] = curMotor->multiturn_angle;
-        curMotor->last_encoder_angles_log[curMotor->log_index] = curAngle;
-        curMotor->last_time_log[curMotor->log_index] = raw_speed; //now_us();
-
-        curMotor->log_index = (curMotor->log_index + 1) % curMotor->log_size;
         
         // Update new multiturn
+        curMotor->delta_time = time - curMotor->lastIntegrationTime;
         curMotor->lastMotorAngle = curAngle;
         curMotor->lastRps = raw_rps;
         curMotor->lastIntegrationTime = long(time);
-
+        curMotor->integration_time = long(time);
+        // log current data into data
+        curMotor->last_multiturn_angles_log[curMotor->log_index] = curMotor->multiturn_angle;
+        curMotor->last_encoder_angles_log[curMotor->log_index] = curAngle;
+        curMotor->last_time_log[curMotor->log_index] = time; //now_us();
+        curMotor->log_index = (curMotor->log_index + 1) % curMotor->log_size;
+        
+    }
     }
 }
 

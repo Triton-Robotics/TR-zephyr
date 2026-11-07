@@ -34,7 +34,7 @@ const struct gpio_dt_spec led2_dev = GPIO_DT_SPEC_GET(DT_ALIAS(led2), gpios);
 const struct device *canbus1_dev = DEVICE_DT_GET(DT_NODELABEL(can1));
 const struct device *const counter_dev = DEVICE_DT_GET(DT_NODELABEL(timers3));
 
-short constexpr MOTOR_ID = 2;
+short constexpr MOTOR_ID = 7;
 int constexpr SWAP_TIME = 1000;
 int time_ctrl = 0;
 int caseMulti = 0;
@@ -44,8 +44,9 @@ int lastLastMotorAngle = 0;
 float current_motor_velocity = 0;
 float current_motor_multiturn = 0;
 float current_motor_multiturn_wrapped = 0;
+int current_motor_multiturn_rev = 0;
 float current_motor_angle = 0;
-long current_motor_power = -1000;
+long current_motor_power = 750;
 bool go = true;
 unsigned long curr_time = 0;
 int max_speed = 0;
@@ -71,6 +72,9 @@ int high_speeds_last_angle = 0;
 int high_speeds_curr_angle = 0;
 float high_speeds_velocity_raw = 0;
 int high_speeds_delta_angle = 0;
+double integration_time = 0;
+double delta_time = 0;
+float raw_speed = 0;
 
 // Simple variables to keep track whether or not Ozone can track all of this data in one go
 //      or needs a multiple logs
@@ -146,6 +150,7 @@ void periodic() {
     current_motor_velocity = motorM3508.getData(VELOCITY);
     current_motor_multiturn = motorM3508.getData(MULTITURNANGLE);
     current_motor_multiturn_wrapped = (((int)current_motor_multiturn % 8192) + 8192) % 8192;
+    current_motor_multiturn_rev = static_cast<int>(current_motor_multiturn/8192);
     current_motor_angle = motorM3508.getData(ANGLE);    
     curr_time = now_us();
 
@@ -158,10 +163,13 @@ void periodic() {
     high_speeds_pos_skip_log = motorM3508.high_speeds_pos_skip_log;
     high_speeds_default_log = motorM3508.high_speeds_default_log;
     high_speeds_velocity_raw = motorM3508.rps_raw;
+    raw_speed = motorM3508.raw_speed;
     high_speeds_delta_angle = motorM3508.delta_angle;
     high_speeds_multiturn_angle = motorM3508.multiturn_angle;
     function_call_counter = motorM3508.function_call_counter;
     curr_time_function_call = motorM3508.curr_time;
+    integration_time = motorM3508.integration_time;
+    delta_time = motorM3508.delta_time;
 
     log_index = motorM3508.log_index;
 
@@ -237,8 +245,8 @@ void periodic() {
 
     
     // if(time_ctrl < SWAP_TIME) {
-    //     motorM3508.setPower(current_motor_power);
-    //     DJIMotor::sendValues(true);
+        motorM3508.setPower(-current_motor_power);
+        DJIMotor::sendValues(true);
     // } else if(time_ctrl < 6 * SWAP_TIME && time_ctrl > 5 * SWAP_TIME) {
     //     motorM3508.setPower(-current_motor_power);
     //     DJIMotor::sendValues(true);
@@ -249,7 +257,9 @@ void periodic() {
     //         go = false;
     //     }
     // }
-    // printf("HOI\n");`
+
+    // printf("HOI: %f, %f, %f\n", static_cast<double>(current_motor_multiturn), static_cast<double>(current_motor_velocity), static_cast<double>(current_motor_angle));
+    // printf("%d\n", motorM3508.delta_angle);
 
     time_ctrl += 5;
 }

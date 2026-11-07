@@ -92,8 +92,11 @@ public:
     int high_speeds_pos_skip_log = 0;
     int high_speeds_default_log = 0;
     float rps_raw = 0;
+    float raw_speed = 0;
     int delta_angle = 0;
     int multiturn_angle = 0;
+    double integration_time = 0;
+    double delta_time = 0;
 
     
     int log_size = 15; // size of record
