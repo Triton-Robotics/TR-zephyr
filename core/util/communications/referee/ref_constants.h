@@ -1,4 +1,5 @@
 #include <zephyr/kernel.h>
+#include <cstdint>
 
 // Screen resolution of your Robomaster Client
 #define SCREEN_LENGTH 1920
@@ -42,10 +43,13 @@
 // Referee system packet size (354+35)
 #define JUDGESYSTEM_PACKSIZE 389u
 
-// 红蓝方
-// Red and Blue teams
-#define BLUE 2
-#define RED 1
+
+// although definitions work fine, they clutter up the namespace and are prone to integer interpretation errors
+enum class TeamColor : uint8_t {
+    UNKNOWN = 0,
+    RED = 1,
+    BLUE = 2,
+};
 
 // 信息传输
 // Information transmission

@@ -29,8 +29,8 @@ public:
 
     void read();
 
-    // Return 1 if robot is in red team, 0 if blue.
-    uint8_t is_red_or_blue();
+    // Return team color (currently red or blue).
+    TeamColor is_red_or_blue();
 
     // Return robot ID.
     uint8_t get_robot_id();

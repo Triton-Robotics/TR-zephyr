@@ -484,12 +484,10 @@ void Referee::Judge_GetMessage(uint16_t Data_Length) {
 }
 
 void Referee::determine_ID() {
-    int8_t Color = is_red_or_blue();
-    if (Color == BLUE) {
-        // 计算客户端ID
-        // Calculate client ID
+    TeamColor Color{is_red_or_blue()};
+    if (Color == TeamColor::BLUE) {
         Judge_SelfClient_ID = 0x0100 + robot_status.robot_id;
-    } else if (Color == RED) {
+    } else if (Color == TeamColor::RED) {
         // 计算客户端ID
         // Calculate client ID
         Judge_SelfClient_ID = 0x0100 + robot_status.robot_id;
@@ -527,15 +525,19 @@ void Referee::referee_data_pack_handle(uint8_t sof, uint16_t cmd_id, uint8_t* p_
 
     /***** 帧头打包 *****/
     /***** Frame header packaging *****/
+
     // 数据帧起始字节
     // Data frame start byte
     tx_buff[0] = sof;
+
     // 数据帧中data的长度
     // Length of data field in data frame
     memcpy(&tx_buff[1], (uint8_t*)&len, sizeof(len));
+
     // 包序号
     // Packet sequence number
     tx_buff[3] = seq;
+
     // 帧头校验CRC8
     // Frame header check CRC8
     Append_CRC8_Check_Sum(tx_buff, frameheader_len);
@@ -547,6 +549,7 @@ void Referee::referee_data_pack_handle(uint8_t sof, uint16_t cmd_id, uint8_t* p_
     /***** 数据打包 *****/
     /***** Data packaging *****/
     memcpy(&tx_buff[frameheader_len + cmd_len], p_data, len);
+
     // 一帧数据校验CRC16
     // Full frame data check CRC16
     Append_CRC16_Check_Sum(tx_buff, frame_length);
@@ -558,6 +561,7 @@ void Referee::referee_data_pack_handle(uint8_t sof, uint16_t cmd_id, uint8_t* p_
 
     /***** 数据上传 *****/
     /***** Data upload *****/
+
     // USART_ClearFlag(UART4,USART_FLAG_TC);
     LL_USART_ClearFlag_TC(ref.usart_getter());
 
@@ -641,7 +645,7 @@ void Referee::read() {
         if (enablePrintRefData) {
             std::string output = "robot id: %s  ";
 
-            if (is_red_or_blue() == RED) {
+            if (is_red_or_blue() == TeamColor::RED) {
                 output += "RED  ";
             } else {
                 output += "BLUE  ";
@@ -677,7 +681,7 @@ void Referee::readThread() {
                 if (enablePrintRefData) {
                     std::string output = "robot id: %s  ";
 
-                    if (is_red_or_blue() == RED) {
+                    if (is_red_or_blue() == TeamColor::RED) {
                         output += "RED  ";
                     } else {
                         output += "BLUE  ";
@@ -795,18 +799,16 @@ uint8_t Referee::get_game_progress() { return game_status.game_progress; }
  *             Package data; once packaged, send to the referee system via 
  *             serial port
  */
-uint8_t Referee::is_red_or_blue() {
+TeamColor Referee::is_red_or_blue() {
     // 读取当前机器人ID
     // Read current robot ID
     Judge_Self_ID = robot_status.robot_id;
 
-    if (robot_status.robot_id > 10) {
-        // 蓝方
-        // Blue team (blue)
-        return BLUE;
+    if (robot_status.robot_id >= 1 && robot_status.robot_id <= 11) {
+        return TeamColor::RED;
+    } else if (robot_status.robot_id >= 101 && robot_status.robot_id <= 111) {
+        return TeamColor::BLUE;
     } else {
-        // 红方
-        // Red team (red)
-        return RED;
+        return TeamColor::UNKNOWN;
     }
 }
