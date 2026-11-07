@@ -632,6 +632,8 @@ int main(void)
 
     ISM330 imu(ism_i2c);
 
+    i2c_recover_bus(ism_i2c.bus);
+
     if (!imu.begin(0.1f, 0.0f)) {
         printf("ISM330 initialization failed.");
         return -1;
