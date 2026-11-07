@@ -1,89 +1,91 @@
-// #include "stm32f446xx.h"
-// #include "syscalls/can.h"
-// #include "stm32f4xx_hal_can.h"
-// #include "syscalls/can.h"
-// #include <zephyr/drivers/can.h>
-#include <cerrno>
+#include "stm32f4xx.h"
+#include <zephyr/drivers/spi.h>
 #include <zephyr/drivers/i2c.h>
-#include <zephyr/drivers/pwm.h>
 #include <zephyr/kernel.h>
-#include <zephyr/drivers/gpio.h>
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
-#include <stdio.h>
-#include <util/communications/DJIRemote2.h>
-#include <util/communications/CANHandler.h>
-#include <util/communications/jetson/Jetson.h>
 #include <util/peripherals/imu/ISM330.h>
-#include <util/algorithms/PID.h>
-#include <base_robot/BaseRobot.h>
-#include <zephyr/dt-bindings/pwm/pwm.h>
-#include <util/motor/DJIMotor.h>
 
 
+static const struct spi_dt_spec imu_spec = SPI_DT_SPEC_GET(DT_NODELABEL(imu1), SPI_WORD_SET(8) | SPI_TRANSFER_MSB, 0);
+static const struct spi_dt_spec mcu_spec = SPI_DT_SPEC_GET(DT_NODELABEL(mcu2), SPI_WORD_SET(8) | SPI_TRANSFER_MSB, 0);
+IMU::EulerAngles imuAngles1;
 
-// Devices from DT
-const struct gpio_dt_spec led0_dev = GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
-const struct gpio_dt_spec led1_dev = GPIO_DT_SPEC_GET(DT_ALIAS(led1), gpios);
-const struct gpio_dt_spec led2_dev = GPIO_DT_SPEC_GET(DT_ALIAS(led2), gpios);
-const struct device *canbus1_dev = DEVICE_DT_GET(DT_NODELABEL(can1));
+ISM330 imu_(imu_spec);
 
-short constexpr MOTOR_ID = 2;
-int constexpr SWAP_TIME = 1000;
-int curr_time = 0;
-short current_motor_power = 1000;
+// spi helper transfer and recieves 1 byte
+uint8_t transferSPI(uint8_t data) {
+    uint8_t rx = 0;
+    struct spi_buf tx_buf = {
+        .buf = &data,
+        .len = 1
+    };
+    struct spi_buf rx_buf = {
+        .buf = &rx,
+        .len = 1
+    };
+    struct spi_buf_set tx_set = {
+        .buffers = &tx_buf,
+        .count = 1
+    };
+    struct spi_buf_set rx_set = {
+        .buffers = &rx_buf,
+        .count = 1
+    };
+    int ret = spi_transceive_dt(&mcu_spec, &tx_set, &rx_set);
 
-DJIMotor::config motorConfig = {canbus1_dev, MOTOR_ID, CANHandler::CANBUS_2, M3508};
-DJIMotor motor(motorConfig);
-
-
-double AG[6];
+    if (ret < 0) {
+        printk("SPI transfer failed: %d\n", ret);
+    }
+    return rx;
+}
 
 void periodic() {
+    // IMU readings
+    imu_.mahonyUpdateIMU(200 / 1000.0);
 
-    DJIMotor::getCanHandler(CANHandler::CANBUS_2)->readAllCan();
+    auto accel1 = imu_.readAccel();
+    auto gyro1 = imu_.readGyro();
+    imuAngles1 = imu_.getImuAngles();
 
-    if(curr_time > SWAP_TIME) {
-        motor.setPower(current_motor_power);
-        current_motor_power *= -1;
-        DJIMotor::sendValues(true);
-        curr_time = 0;
-        printf("current time is : %d, swapping power to %d\n", curr_time, current_motor_power);
+    printk("IMU 1 WHO_AM_I: 0x%02X\n", imu_.getWhoAmI());
 
-    } else {
-        curr_time += 200;
-        // printf("current time is : %d\n", curr_time);
-    }
+    printk("%.2f, %.2f, %.2f\n",
+        static_cast<double>(imuAngles1.roll),
+        static_cast<double>(imuAngles1.pitch),
+        static_cast<double>(imuAngles1.yaw));
+
+    printk("Accel X: %.2f\n", static_cast<double>(accel1.x));
+    printk("Gyro Y: %.2f\n", static_cast<double>(gyro1.y));
+
+    // SPI communication with STM32 #2
+    uint8_t response = transferSPI(0x55);
+    printk("MCU Response: 0x%02X\n", response);
 }
 
 int main(void)
 {
-    printk("HERROoooo\n");
+    printk("HELLO\n");
 
-    
-    printk("CAN SET MODE %d\n", can_set_mode(canbus1_dev, CAN_MODE_NORMAL));
-    printk("EBUSY %d, EIO %d, ENOTSUP %d\n", -EBUSY, -EIO, -ENOTSUP);
-    
-    
-    can_state state;
-    can_bus_err_cnt err_cnt;
-    can_get_state(canbus1_dev, &state, &err_cnt);
-    printk("STATE %d, RX ERROR %d, TX ERROR %d\n", state, err_cnt.rx_err_cnt, err_cnt.tx_err_cnt);
-
-    if (device_is_ready(canbus1_dev)) {
-        printk("CANBUS 1 device is ready\n");
-    } else {
-        printk("CANBUS 1 device is not ready\n");
+    if (!device_is_ready(imu_spec.bus)) {
+        printk("IMU SPI not ready!\n");
         return -1;
     }
 
-    DJIMotor::setCanHandlers();
-    DJIMotor::getCanHandler(CANHandler::CANBUS_1)->registerCallback(
-    0x201, 0x208, DJIMotor::getCanOneFeedback);
+    if (!spi_is_ready_dt(&mcu_spec)) {
+        printk("MCU SPI not ready!\n");
+        return -1;
+    }
 
-    
+    if (!imu_.begin(0.9, 0)) {
+        printk("IMU initialization failed!\n");
+        return -1;
+    }
+
     while (true) {
         periodic();
         k_sleep(K_MSEC(200));
     }
+
+    return 0;
 }

@@ -1,0 +1,95 @@
+west build -b nucleo_f446re -p auto -d build/SPIMaster robots/Testbench/UnitTests/SPIwithMCU/Master
+[1/146] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/assert.c.obj
+[2/146] Building C object zephyr/CMakeFiles/zephyr.dir/soc/st/stm32/common/soc_config.c.obj
+[3/146] Building C object zephyr/CMakeFiles/zephyr.dir/soc/st/stm32/common/stm32cube_hal.c.obj
+[4/146] Building C object zephyr/CMakeFiles/zephyr.dir/soc/st/stm32/common/stm32_backup_sram.c.obj
+[5/146] Building C object zephyr/CMakeFiles/zephyr.dir/soc/st/stm32/common/stm32_backup_domain.c.obj
+[6/146] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/rb.c.obj
+[7/146] Building C object zephyr/CMakeFiles/zephyr.dir/soc/st/stm32/stm32f4x/soc.c.obj
+[8/146] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/bitarray.c.obj
+[9/146] Building C object zephyr/CMakeFiles/zephyr.dir/soc/st/stm32/stm32f4x/power.c.obj
+[10/146] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/cbprintf_complete.c.obj
+[11/146] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/logging/log_mgmt.c.obj
+[12/146] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/mpsc_pbuf.c.obj
+[13/146] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/logging/log_msg.c.obj
+[14/146] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/pm/state.c.obj
+[15/146] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/mem_mgmt/mem_attr.c.obj
+[16/146] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/logging/log_core.c.obj
+[17/146] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/logging/log_output.c.obj
+[18/146] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/logging/backends/log_backend_uart.c.obj
+[19/146] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/pm/policy/policy_events.c.obj
+[20/146] Generating linker_zephyr_pre0.cmd
+[21/146] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/pm/policy/policy_latency.c.obj
+[22/146] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/tracing/tracing_none.c.obj
+[23/146] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/pm/policy/policy_state_lock.c.obj
+[24/146] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/pm/pm.c.obj
+[25/146] Building C object zephyr/arch/common/CMakeFiles/arch__common.dir/init.c.obj
+[26/146] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/pm/policy/policy_default.c.obj
+[27/146] Linking C static library zephyr/arch/common/libisr_tables.a
+[28/146] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/pm/device.c.obj
+[29/146] Building C object zephyr/arch/common/CMakeFiles/arch__common.dir/sw_isr_common.c.obj
+[30/146] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/pm/device_system_managed.c.obj
+[31/146] Building ASM object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/reset.S.obj
+[32/146] Building C object zephyr/arch/common/CMakeFiles/arch__common.dir/xip.c.obj
+[33/146] Building C object zephyr/arch/arch/arm/core/CMakeFiles/arch__arm__core.dir/nmi.c.obj
+[34/146] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/exc_exit.c.obj
+[35/146] Building C object zephyr/arch/arch/arm/core/CMakeFiles/arch__arm__core.dir/tls.c.obj
+[36/146] Building CXX object core_build/CMakeFiles/core.dir/util/motor/DJIMotor.cpp.obj
+FAILED: [code=1] core_build/CMakeFiles/core.dir/util/motor/DJIMotor.cpp.obj 
+/Users/shadowwaddle/zephyr-sdk-0.16.8/arm-zephyr-eabi/bin/arm-zephyr-eabi-g++ -DCORE_CM4 -DHSE_VALUE=8000000 -DKERNEL -DK_HEAP_MEM_POOL_SIZE=8192 -DPICOLIBC_DOUBLE_PRINTF_SCANF -DSTM32F446xx -DUSE_FULL_LL_DRIVER -DUSE_HAL_DRIVER -DZVFS_OPEN_SIZE=0 -D_POSIX_THREAD_SAFE_FUNCTIONS=200809L -D__LINUX_ERRNO_EXTENSIONS__ -D__PROGRAM_START -D__ZEPHYR__=1 -I/Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/core/. -I/Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/core/util/algorithms -I/Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/core/util/communications -I/Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/core/util/motor -I/Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/core/util/peripherals -I/Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/core/subsystems -I/Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/build/SPIMaster/zephyr/include/generated/zephyr -I/Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/zephyr/include -I/Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/build/SPIMaster/zephyr/include/generated -I/Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/zephyr/soc/st/stm32 -I/Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/zephyr/lib/libc/picolibc/include -I/Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/zephyr/lib/posix/c_lib_ext/getopt -I/Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/zephyr/lib/midi2/. -I/Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/zephyr/soc/st/stm32/common/. -I/Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/zephyr/drivers -I/Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/zephyr/soc/st/stm32/stm32f4x/. -I/Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/modules/hal/cmsis_6/CMSIS/Core/Include -I/Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/zephyr/modules/cmsis_6/. -I/Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/modules/hal/microchip/include -I/Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/modules/hal/stm32/stm32cube/stm32f4xx/soc -I/Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/modules/hal/stm32/stm32cube/stm32f4xx/drivers/include -I/Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/modules/hal/stm32/stm32cube/common_ll/include -I/Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/modules/hal/ti/mspm0/source/ti/devices/msp/. -I/Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/modules/hal/ti/mspm0/source/ti/devices/msp/m0p -I/Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/modules/hal/ti/mspm0/source/ti/devices/msp/peripherals -I/Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/modules/hal/ti/mspm0/source/ti/devices/msp/peripherals/m0p -I/Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/modules/hal/ti/mspm0/source/ti/devices/msp/peripherals/m0p/sysctl -isystem /Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/zephyr/lib/libc/common/include -fno-strict-aliasing -Os -fcheck-new -std=c++17 -Wno-register -fno-exceptions -fno-rtti -imacros /Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/build/SPIMaster/zephyr/include/generated/zephyr/autoconf.h -fno-common -g -gdwarf-4 -fdiagnostics-color=always -mcpu=cortex-m4 -mthumb -mabi=aapcs -mfp16-format=ieee -mtp=soft --sysroot=/Users/shadowwaddle/zephyr-sdk-0.16.8/arm-zephyr-eabi/arm-zephyr-eabi -imacros /Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/zephyr/include/zephyr/toolchain/zephyr_stdint.h -Wall -Wformat -Wformat-security -Wno-format-zero-length -Wdouble-promotion -Wpointer-arith -Wexpansion-to-defined -Wno-unused-but-set-variable -fno-pic -fno-pie -fno-asynchronous-unwind-tables -ftls-model=local-exec -fno-reorder-functions --param=min-pagesize=0 -fno-defer-pop -fmacro-prefix-map=/Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/robots/Testbench/UnitTests/SPIwithMCU/Master=CMAKE_SOURCE_DIR -fmacro-prefix-map=/Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/zephyr=ZEPHYR_BASE -fmacro-prefix-map=/Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr=WEST_TOPDIR -ffunction-sections -fdata-sections -specs=picolibc.specs -MD -MT core_build/CMakeFiles/core.dir/util/motor/DJIMotor.cpp.obj -MF core_build/CMakeFiles/core.dir/util/motor/DJIMotor.cpp.obj.d -o core_build/CMakeFiles/core.dir/util/motor/DJIMotor.cpp.obj -c /Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/core/util/motor/DJIMotor.cpp
+In file included from /Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/zephyr/include/zephyr/toolchain/gcc.h:98,
+                 from /Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/zephyr/include/zephyr/toolchain.h:52,
+                 from /Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/zephyr/include/zephyr/kernel_includes.h:23,
+                 from /Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/zephyr/include/zephyr/kernel.h:17,
+                 from /Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/core/util/motor/DJIMotor.h:2,
+                 from /Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/core/util/motor/DJIMotor.cpp:2:
+/Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/core/util/motor/DJIMotor.cpp: In static member function 'static void DJIMotor::setCanHandlers()':
+/Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/zephyr/include/zephyr/device.h:96:41: error: '__device_dts_ord_70' was not declared in this scope; did you mean '__device_dts_ord_90'?
+   96 | #define DEVICE_NAME_GET(dev_id) _CONCAT(__device_, dev_id)
+      |                                         ^~~~~~~~~
+/Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/zephyr/include/zephyr/toolchain/common.h:168:26: note: in definition of macro '_DO_CONCAT'
+  168 | #define _DO_CONCAT(x, y) x ## y
+      |                          ^
+/Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/zephyr/include/zephyr/device.h:96:33: note: in expansion of macro '_CONCAT'
+   96 | #define DEVICE_NAME_GET(dev_id) _CONCAT(__device_, dev_id)
+      |                                 ^~~~~~~
+/Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/zephyr/include/zephyr/device.h:297:37: note: in expansion of macro 'DEVICE_NAME_GET'
+  297 | #define DEVICE_DT_NAME_GET(node_id) DEVICE_NAME_GET(Z_DEVICE_DT_DEV_ID(node_id))
+      |                                     ^~~~~~~~~~~~~~~
+/Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/zephyr/include/zephyr/device.h:314:34: note: in expansion of macro 'DEVICE_DT_NAME_GET'
+  314 | #define DEVICE_DT_GET(node_id) (&DEVICE_DT_NAME_GET(node_id))
+      |                                  ^~~~~~~~~~~~~~~~~~
+/Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/core/util/motor/DJIMotor.cpp:196:42: note: in expansion of macro 'DEVICE_DT_GET'
+  196 |     s_canDevices[CANHandler::CANBUS_2] = DEVICE_DT_GET(DT_NODELABEL(can2));
+      |                                          ^~~~~~~~~~~~~
+/Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/core/util/motor/DJIMotor.cpp: In static member function 'static void DJIMotor::getCanRxFeedback(const device*, can_frame*)':
+/Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/zephyr/include/zephyr/device.h:96:41: error: '__device_dts_ord_70' was not declared in this scope; did you mean '__device_dts_ord_90'?
+   96 | #define DEVICE_NAME_GET(dev_id) _CONCAT(__device_, dev_id)
+      |                                         ^~~~~~~~~
+/Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/zephyr/include/zephyr/toolchain/common.h:168:26: note: in definition of macro '_DO_CONCAT'
+  168 | #define _DO_CONCAT(x, y) x ## y
+      |                          ^
+/Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/zephyr/include/zephyr/device.h:96:33: note: in expansion of macro '_CONCAT'
+   96 | #define DEVICE_NAME_GET(dev_id) _CONCAT(__device_, dev_id)
+      |                                 ^~~~~~~
+/Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/zephyr/include/zephyr/device.h:297:37: note: in expansion of macro 'DEVICE_NAME_GET'
+  297 | #define DEVICE_DT_NAME_GET(node_id) DEVICE_NAME_GET(Z_DEVICE_DT_DEV_ID(node_id))
+      |                                     ^~~~~~~~~~~~~~~
+/Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/zephyr/include/zephyr/device.h:314:34: note: in expansion of macro 'DEVICE_DT_NAME_GET'
+  314 | #define DEVICE_DT_GET(node_id) (&DEVICE_DT_NAME_GET(node_id))
+      |                                  ^~~~~~~~~~~~~~~~~~
+/Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/core/util/motor/DJIMotor.cpp:224:21: note: in expansion of macro 'DEVICE_DT_GET'
+  224 |     else if (dev == DEVICE_DT_GET(DT_NODELABEL(can2))) canBus = CANHandler::CANBUS_2;
+      |                     ^~~~~~~~~~~~~
+[37/146] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/fpu.c.obj
+[38/146] Building ASM object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/swap_helper.S.obj
+[39/146] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/thread_abort.c.obj
+[40/146] Building C object zephyr/arch/arch/arm/core/CMakeFiles/arch__arm__core.dir/fatal.c.obj
+[41/146] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/scb.c.obj
+[42/146] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/irq_manage.c.obj
+[43/146] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/prep_c.c.obj
+[44/146] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/thread.c.obj
+[45/146] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/fault.c.obj
+ninja: build stopped: subcommand failed.
+FATAL ERROR: command exited with status 1: /opt/homebrew/bin/cmake --build /Users/shadowwaddle/Projects/tritonRobotics/TR-zephyr/build/SPIMaster
+make: *** [spimaster-build] Error 1

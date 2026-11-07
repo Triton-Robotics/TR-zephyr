@@ -8,9 +8,47 @@
 	sda-gpios = <&gpiob 7 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
 
 
-    imu: ism330@6a {
+    // imu1: ism330@6a {
+    //      compatible = "st,ism330dhcx";
+    //      reg = <0x6a>;
+    //  };
+};
+
+&dma2 {
+        status = "okay";
+};
+
+&dma1 {
+    status = "okay";
+};
+
+&spi2 {
+    pinctrl-0 = <&spi2_sck_pb13
+                 &spi2_miso_pb14
+                 &spi2_mosi_pb15>;
+    pinctrl-names = "default";
+    status = "okay";
+
+    cs-gpios =
+               <&gpiob 9 GPIO_ACTIVE_LOW>,
+               <&gpiob 4 GPIO_ACTIVE_LOW>;
+
+
+    dmas = <&dma1 4 0 STM32_DMA_PERIPH_TX STM32_DMA_FIFO_FULL>,
+       <&dma1 3 0 STM32_DMA_PERIPH_RX STM32_DMA_FIFO_FULL>;
+
+    dma-names = "tx", "rx";
+
+    // testing with second nucleo and imu
+    mcu2: nucleo@0 {
+        compatible = "custom,spi-peripheral";
+        reg = <0>;
+        spi-max-frequency = <10000000>;
+    };
+    imu1: ism330@1 {
         compatible = "st,ism330dhcx";
-        reg = <0x6a>;
+        reg = <1>;
+        spi-max-frequency = <10000000>; // 10Mhz
     };
 };
 

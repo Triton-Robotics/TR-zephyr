@@ -1,0 +1,3 @@
+loadfile build/SPIMaster/zephyr/zephyr.elf
+reset
+exit

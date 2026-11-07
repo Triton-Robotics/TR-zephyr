@@ -170,7 +170,7 @@ float ChassisSubsystem::estimatePowerWatts(int torqueCounts)
             m_lastTorqueUs = now_us();
             currentA = SATURATION_CURRENT;
         }
-        currentA = SATURATION_CURRENT;
+        currentA = torque * TORQUE_TO_AMP;
     } else {
         currentA = torque * TORQUE_TO_AMP;
     }
