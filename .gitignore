@@ -21,3 +21,5 @@ build/
 
 # ignore makefile
 Makefile
+
+.clang-format 

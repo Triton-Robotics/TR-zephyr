@@ -39,7 +39,7 @@ public:
     uint16_t get_remain_hp();
     
     // Return game progress
-    uint8_t get_game_progress();
+    game_status_t::GameProgress get_game_progress();
     
     
     robot_status_t                          robot_status;
@@ -129,6 +129,8 @@ private:
     void determine_ID();
 
     void init_referee_struct_data();
+
+    void printDebug();
 };
 
 #endif

@@ -1,5 +1,6 @@
 
 #include "ref_serial.h"
+#include <cstdint>
 
 #include "../ui/ui_g.h"
 #include "zephyr/kernel.h"
@@ -642,22 +643,9 @@ void Referee::read() {
         // memcpy(JudgeSystem_rxBuff, JudgeSystem_rxBuff_priv,
         // JUDGESYSTEM_PACKSIZE); mutex_read_.unlock(); Judge_GetMessage(rad);
 
-        if (enablePrintRefData) {
-            std::string output = "robot id: %s  ";
-
-            if (is_red_or_blue() == TeamColor::RED) {
-                output += "RED  ";
-            } else {
-                output += "BLUE  ";
-            }
-            output +=
-                "robot hp: %d  max hp: %d  angle: %d  power: %d  current: %d  "
-                "volt: %d \n";
-        }
+        if (enablePrintRefData) printDebug();
     } else {
-        if (enablePrintRefData) {
-            printf("REFEREE - Not readable!\n");
-        }
+        if (enablePrintRefData) printDebug();
     }
 }
 
@@ -678,27 +666,14 @@ void Referee::readThread() {
                 mutex_read_.unlock();
                 Judge_GetMessage(static_cast<uint16_t>(rad));
 
-                if (enablePrintRefData) {
-                    std::string output = "robot id: %s  ";
-
-                    if (is_red_or_blue() == TeamColor::RED) {
-                        output += "RED  ";
-                    } else {
-                        output += "BLUE  ";
-                    }
-                    output +=
-                        "robot hp: %d  max hp: %d  angle: %d  power: %d  current: "
-                        "%d  volt: %d \n";
-                }
+                if (enablePrintRefData) printDebug();
             }
 
             else {
-                if (enablePrintRefData) printf("[ERROR] bad ref read: %d\n", rad);
+                if (enablePrintRefData) printDebug();
             }
         } else {
-            if (enablePrintRefData) {
-                printf("REFEREE - Not readable!\n");
-            }
+            if (enablePrintRefData) printDebug();
         }
 
         k_sleep(K_MSEC(5));
@@ -788,7 +763,7 @@ uint8_t Referee::get_robot_id() { return robot_status.robot_id; }
 
 uint16_t Referee::get_remain_hp() { return robot_status.current_HP; }
 
-uint8_t Referee::get_game_progress() { return game_status.game_progress; }
+game_status_t::GameProgress Referee::get_game_progress() { return game_status.game_progress; }
 
 /**
  * @brief  判断自己红蓝方
@@ -811,4 +786,29 @@ TeamColor Referee::is_red_or_blue() {
     } else {
         return TeamColor::UNKNOWN;
     }
+}
+
+void Referee::printDebug() {
+    if (!enablePrintRefData) return;
+
+    if (!ref.readable()) {
+        printf("REFEREE - Not readable!\n");
+        return;
+    }
+
+    int rad = JudgeSystem_USART_Receive_DMA();
+    if (rad > 0 && rad <= JUDGESYSTEM_PACKSIZE) {
+        printf("[ERROR] bad ref read: %d\n", rad);
+        return;
+    }
+    
+    // does not include chassis voltage, current, power
+    // if want to add, use reserved1-3 (respectively) in power_heat_data
+    printf("====REF DATA====\nRobot ID: %d\nColor: %s\nCurrent HP: %d\nMax HP: %d\nAngle: %.2f\n================\n",
+        robot_status.robot_id,
+        TeamColor_To_Str[static_cast<uint8_t>(is_red_or_blue())],
+        robot_status.current_HP,
+        robot_status.maximum_HP,
+        static_cast<double>(robot_pos.angle)
+    );
 }

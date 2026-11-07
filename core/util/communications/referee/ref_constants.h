@@ -51,6 +51,11 @@ enum class TeamColor : uint8_t {
     BLUE = 2,
 };
 
+// c++ doesn't allow const unordered maps so...
+// used for printing telemetry/debug data
+constexpr const char* TeamColor_To_Str[] = 
+{"UNKNOWN", "RED", "BLUE"};
+
 // 信息传输
 // Information transmission
 #define TRUE 1
@@ -133,34 +138,29 @@ typedef struct {
 } xFrameHeader;
 
 /* ID: 0x0001    Byte: 11     比赛状态数据 */
-/* ID: 0x0001    Byte: 11     Game status data */
+/* ID: 0x0001    11 byte length     Game status data */
 typedef struct {
-    union {
-        uint8_t dataBuff[11];
-        struct {
-            // 比赛类型
-            // Game type
-            uint8_t game_type : 4;
-            // 当前比赛阶段
-            //  Current game stage
-            uint8_t game_progress : 4;
-            // 当前阶段剩余时间  单位s
-            //  Current stage remaining time (seconds)
-            uint16_t stage_remain_time;
-        };
-    } data;
-    uint8_t infoUpdateFlag;
+    // unused but required for the packet
+    enum class GameType : uint8_t {
+        RMUC = 1, // RoboMaster University Championship
+        RMUT = 2, // RoboMaster University Technical Challenge
+        RMUA = 3, // ICRA RoboMaster University AI Challenge
+        RMUL = 4, // RoboMaster University League 3V3 Match 
+        RMUL_STANDARD = 5, // RMUL Standard Match
+    };
+    enum class GameProgress : uint8_t {
+        SET_UP_PERIOD = 1,
+        REF_INITIALIZATION_PERIOD = 2,
+        COUNTDOWN = 3,
+        COMPETITION = 4,
+        COMPETITION_RESULT = 5,
+    };
 
-} ext_map_command_t;
-
-/* ID: 0x0001    Byte: 11     比赛状态数据 */
-/* ID: 0x0001    Byte: 11     Game status data */
-typedef struct {
-    uint8_t game_type : 4;
-    uint8_t game_progress : 4;
-    uint16_t stage_remain_time;
-    uint64_t SyncTimeStamp;
-    uint8_t infoUpdateFlag;
+    GameType game_type : 4;
+    GameProgress game_progress : 4;
+    uint16_t stage_remain_time; // remaining time in round (in sec) 
+    uint64_t SyncTimeStamp; // unix timestamp to sync with server
+    uint8_t infoUpdateFlag; 
 } game_status_t;
 
 /* ID: 0x0002    Byte: 1       比赛结果数据 */
