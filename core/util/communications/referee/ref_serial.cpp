@@ -95,15 +95,15 @@ void Referee::Judge_GetMessage(uint16_t Data_Length) {
         
         //Andrew is gonan make a better function for this later but it just updates the new info to memory(i think)
         memcpy(val->dest, frame+7, sizeof(uint8_t[val->frame_len - JUDGE_EXTRA]));
+        #if REF_DEBUG
+            printf("%s[%d]\n", val->name, n);
+        #endif
         //skips over the frame that was just accounted for
         n += val->frame_len;
         //This chnages the update flag that all the vals have except for Judge_Robot_Communicate for some reason
         if(!(val->cmd_id==Judge_Robot_Communicate)){
             *val->update_flag = 1;
         }
-        #if REF_DEBUG
-            printf("%s[%d]\n", val->name, n);
-        #endif
         //This is smth that Judge_Power_Heat has to deal with it kinda ruins the cleaness of the code :(
         power_heat_data_t preData = power_heat_data;
         if(val->cmd_id==Judge_Power_Heat){
