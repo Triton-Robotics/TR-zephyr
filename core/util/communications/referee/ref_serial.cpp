@@ -32,6 +32,11 @@ int Referee::JudgeSystem_USART_Receive_DMA()  // modified
 }
 
 void Referee::Judge_GetMessage(uint16_t Data_Length) {
+    // These are the values that are needed depeneding on the cmd_id
+    //cnd_id the differnt possible packets
+    //frame_len the  byte length of the commands
+    //dest is where the gets stored
+    //update flag idk what this is but it gets set to 1
     struct Packet{
         uint16_t cmd_id;
         uint16_t frame_len;
@@ -63,9 +68,49 @@ void Referee::Judge_GetMessage(uint16_t Data_Length) {
     uint16_t n =0;
     while(n<Data_Length){
         uint8_t* frame = &JudgeSystem_rxBuff[n];
-        if(frae[0])
-
+        if(frame[0] != JUDGE_FRAME_HEADER){
+            n++;
+            continue;
+        }
+        // Constructs the command id header from buffer
+        uint16_t cmd_id = frame[5] | (frame[6] << 8);
+        //Searches throgh packets till the correct command id is found . The correct packet is then stored in val
+        const Packet* val = nullptr;
+        for(const Packet& p : packets){
+            if(p.cmd_id == cmd_id){
+                val = &p;
+                break;
+            }
+        }
+        //So Verify_CRC16_Check_Sum jsut checks the data is uncrrupted, so if it is we just skip over it, we also skip if the cmd_id was not identified
+        if(!(Verify_CRC16_Check_Sum(JudgeSystem_rxBuff,val->frame_len))||val==nullptr){
+            n++;
+            continue;
+        }
+        
+        //Andrew is gonan make a better function for this later
+        memcpy(val->dest, frame+7,sizeof(uint8_t[val->frame_len - JUDGE_EXTRA]));
+        //skips over the frame that was just accounted for
+        n += val->frame_len;
+        //This singals that an Update flag that all the vals have except for Judge_Robot_Communicate for some reason
+        if(!(val->cmd_id==Judge_Robot_Communicate)){
+            *val->update_flag = 1;
+        }
+        //This is smth that Judge_Power_Heat has to deal with it kinda ruins the cleaness of the code :(
+        power_heat_data_t preData = power_heat_data;
+        if(val->cmd_id==Judge_Power_Heat){
+            if (power_heat_data.shooter_17mm_1_barrel_heat == 0 && preData.shooter_17mm_1_barrel_heat != 0) {
+                power_heat_data.shooter_17mm_1_barrel_heat = preData.shooter_17mm_1_barrel_heat;
+            }
+            if (power_heat_data.shooter_17mm_2_barrel_heat == 0 && preData.shooter_17mm_2_barrel_heat != 0) {
+                power_heat_data.shooter_17mm_2_barrel_heat = preData.shooter_17mm_2_barrel_heat;
+            }
+            if (power_heat_data.shooter_42mm_barrel_heat == 0 && preData.shooter_42mm_barrel_heat != 0) {
+                power_heat_data.shooter_42mm_barrel_heat = preData.shooter_42mm_barrel_heat;
+            }
+        }
     }
+}
 /*
     for (int n = 0; n < Data_Length;) {
         if (JudgeSystem_rxBuff[n] == JUDGE_FRAME_HEADER) {
@@ -508,7 +553,7 @@ void Referee::Judge_GetMessage(uint16_t Data_Length) {
     }
 */
     // JudgeSystem.InfoUpdateFrame++;
-}
+
 
 void Referee::determine_ID() {
     TeamColor Color{is_red_or_blue()};
@@ -520,18 +565,6 @@ void Referee::determine_ID() {
         Judge_SelfClient_ID = 0x0100 + robot_status.robot_id;
     }
 }
-
-/**
- * @brief  上传自定义数据
- *         Upload custom data
- * @param  void
- * @retval void
- * @attention  数据打包,打包完成后通过串口发送到裁判系统
- *             Package data; once packaged, send to the referee system via
- * serial port
- */
-
-// MY PART -------------------------------------
 
 void Referee::init_referee_struct_data() { memset(&robot_status, 0, sizeof(robot_status_t)); }
 
