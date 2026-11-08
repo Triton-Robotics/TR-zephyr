@@ -15,7 +15,7 @@ hero-build-clean:
 	west build -b $(BOARD) -p always -d build/Hero robots/Hero
 
 hero-flash: hero-build
-	$(JLINK) -device STM32F446RE -if SWD -speed 4000 -CommanderScript Jlink/flashHero.jlink
+	$(JLINK) -device STM32F446RE -if SWD -speed 4000 -CommanderScript JLink/flashHero.jlink
 
 infantry-build:
 	west build -b $(BOARD) -p auto -d build/Infantry robots/Infantry
@@ -31,7 +31,6 @@ sentry-build:
 
 sentry-build-clean:
 	west build -b $(BOARD) -p always -d build/Sentry robots/Sentry
-    $(MAKE) sentry-build
 
 sentry-flash: sentry-build
 	$(JLINK) -device STM32F446RE -if SWD -speed 4000 -CommanderScript JLink/flashSentry.jlink
@@ -41,7 +40,6 @@ testbench-build:
 
 testbench-build-clean: testbench-build
 	west build -b $(BOARD) -p always -d build/Testbench robots/Testbench
-    $(MAKE) testbench-build
 
 testbench-flash: testbench-build
 	$(JLINK) -device STM32F446RE -if SWD -speed 4000 -CommanderScript JLink/flashTestbench.jlink
