@@ -35,36 +35,37 @@ void Referee::Judge_GetMessage(uint16_t Data_Length) {
     // These are the values that are needed depeneding on the cmd_id
     //cnd_id the differnt possible packets
     //frame_len the  byte length of the commands
-    //dest is where the gets stored
-    //update flag idk what this is but it gets set to 1
+    //dest is where the data gets stored
+    //update flag idk what this is but it gets set to 1 if the packet gets updated
     struct Packet{
         uint16_t cmd_id;
         uint16_t frame_len;
         void* dest;
         uint8_t* update_flag;
+        const char* debug_print;
     };
-    static const Packet packets[] = {
-    {Judge_Game_StatusData, JudgeLength_Game_StatusData, &game_status, &game_status.infoUpdateFlag},
-    {Judge_Game_ResultData, JudgeLength_Game_ResultData, &game_result, &game_result.infoUpdateFlag},
-    {Judge_Robot_HP, JudgeLength_Robot_HP, ext_game_robot_HP.data.dataBuff, &ext_game_robot_HP.infoUpdateFlag},
-    {Judge_Dart_Launch, JudgeLength_Dart_Launch, ext_dart_status.data.dataBuff, &ext_dart_status.infoUpdateFlag},
-    {Judge_AI_ChallengeBuff, JudgeLength_AI_ChallengeBuff, ext_ICRA_buff_debuff_zone_status.data.dataBuff, &ext_ICRA_buff_debuff_zone_status.infoUpdateFlag},
-    {Judge_Event_Data, JudgeLength_Event_Data, ext_even_data.data.dataBuff, &ext_even_data.infoUpdateFlag},
-    {Judge_Supply_Station, JudgeLength_Supply_Station, ext_supply_projectile_action.data.dataBuff, &ext_supply_projectile_action.infoUpdateFlag},
-    {Judge_Referee_Warning, JudgeLength_Referee_Warning, &referee_warning, &referee_warning.infoUpdateFlag},
-    {Judge_Dart_Countdown, JudgeLength_Dart_Countdown, ext_dart_remaining_time.data.dataBuff, &ext_dart_remaining_time.infoUpdateFlag},
-    {Judge_Robot_State, JudgeLength_Robot_State, &robot_status, &robot_status.infoUpdateFlag},
-    {Judge_Power_Heat, JudgeLength_Power_Heat, &power_heat_data, &power_heat_data.infoUpdateFlag},
-    {Judge_Robot_Position, JudgeLength_Robot_Position, &robot_pos, &robot_pos.infoUpdateFlag},
-    {Judge_Robot_Buff, JudgeLength_Robot_Buff, &buff, &Buff.infoUpdateFlag},
-    {Judge_Aerial_Energy, JudgeLength_Aerial_Energy, aerial_robot_energy.data.dataBuff, &aerial_robot_energy.infoUpdateFlag},
-    {Judge_Injury_State, JudgeLength_Injury_State, &hurt_data, &hurt_data.infoUpdateFlag},
-    {Judge_RealTime_Shoot, JudgeLength_RealTime_Shoot, &shoot_data, &shoot_data.infoUpdateFlag},
-    {Judge_Remaining_Rounds, JudgeLength_Remaining_Rounds, &projectile_allowance, &projectile_allowance.infoUpdateFlag},
-    {Judge_Robot_RFID, JudgeLength_Robot_RFID, ext_rfid_status.data.dataBuff, &ext_rfid_status.infoUpdateFlag},
-    {Judge_Dart_Client, JudgeLength_Dart_Client, ext_dart_client_cmd.data.dataBuff, &ext_dart_client_cmd.infoUpdateFlag},
-    {Judge_Robot_Communicate, JudgeLength_Robot_Commute, Robot_Commute, nullptr},
-    };
+    const Packet packets[] = {
+    {Judge_Game_StatusData, JudgeLength_Game_StatusData, &game_status, &game_status.infoUpdateFlag, "GS"},
+    {Judge_Game_ResultData, JudgeLength_Game_ResultData, &game_result, &game_result.infoUpdateFlag, "GR"},
+    {Judge_Robot_HP, JudgeLength_Robot_HP, ext_game_robot_HP.data.dataBuff, &ext_game_robot_HP.infoUpdateFlag, "HP"},
+    {Judge_Dart_Launch, JudgeLength_Dart_Launch, ext_dart_status.data.dataBuff, &ext_dart_status.infoUpdateFlag, "DL"},
+    {Judge_AI_ChallengeBuff, JudgeLength_AI_ChallengeBuff, ext_ICRA_buff_debuff_zone_status.data.dataBuff, &ext_ICRA_buff_debuff_zone_status.infoUpdateFlag, "AI"},
+    {Judge_Event_Data, JudgeLength_Event_Data, ext_even_data.data.dataBuff, &ext_even_data.infoUpdateFlag, "EV"},
+    {Judge_Supply_Station, JudgeLength_Supply_Station, ext_supply_projectile_action.data.dataBuff, &ext_supply_projectile_action.infoUpdateFlag, "SS"},
+    {Judge_Referee_Warning, JudgeLength_Referee_Warning, &referee_warning, &referee_warning.infoUpdateFlag, "RF"},
+    {Judge_Dart_Countdown, JudgeLength_Dart_Countdown, ext_dart_remaining_time.data.dataBuff, &ext_dart_remaining_time.infoUpdateFlag, "DT"},
+    {Judge_Robot_State, JudgeLength_Robot_State, &robot_status, &robot_status.infoUpdateFlag, "RS"},
+    {Judge_Power_Heat, JudgeLength_Power_Heat, &power_heat_data, &power_heat_data.infoUpdateFlag, "PH"},
+    {Judge_Robot_Position, JudgeLength_Robot_Position, &robot_pos, &robot_pos.infoUpdateFlag, "RP"},
+    {Judge_Robot_Buff, JudgeLength_Robot_Buff, &buff, &Buff.infoUpdateFlag, "BF"},
+    {Judge_Aerial_Energy, JudgeLength_Aerial_Energy, aerial_robot_energy.data.dataBuff, &aerial_robot_energy.infoUpdateFlag, "AE"},
+    {Judge_Injury_State, JudgeLength_Injury_State, &hurt_data, &hurt_data.infoUpdateFlag, "IN"},
+    {Judge_RealTime_Shoot, JudgeLength_RealTime_Shoot, &shoot_data, &shoot_data.infoUpdateFlag, "RE"},
+    {Judge_Remaining_Rounds, JudgeLength_Remaining_Rounds, &projectile_allowance, &projectile_allowance.infoUpdateFlag, "RR"},
+    {Judge_Robot_RFID, JudgeLength_Robot_RFID, ext_rfid_status.data.dataBuff, &ext_rfid_status.infoUpdateFlag, "ID"},
+    {Judge_Dart_Client, JudgeLength_Dart_Client, ext_dart_client_cmd.data.dataBuff, &ext_dart_client_cmd.infoUpdateFlag, "DC"},
+    {Judge_Robot_Communicate, JudgeLength_Robot_Commute, Robot_Commute, nullptr, "RC"},
+};
     uint16_t n =0;
     while(n<Data_Length){
         uint8_t* frame = &JudgeSystem_rxBuff[n];
@@ -82,20 +83,27 @@ void Referee::Judge_GetMessage(uint16_t Data_Length) {
                 break;
             }
         }
-        //So Verify_CRC16_Check_Sum jsut checks the data is uncrrupted, so if it is we just skip over it, we also skip if the cmd_id was not identified
+        
+        //So Verify_CRC16_Check_Sum jsut checks the data is uncorrupted, so if it is we just skip over it, we also skip if the cmd_id was not identified
         if(!(Verify_CRC16_Check_Sum(JudgeSystem_rxBuff,val->frame_len))||val==nullptr){
+            #if REF_DEBUG
+                printf("%s_NO[%d]\n", val->name, n);
+            #endif
             n++;
             continue;
         }
         
-        //Andrew is gonan make a better function for this later
-        memcpy(val->dest, frame+7,sizeof(uint8_t[val->frame_len - JUDGE_EXTRA]));
+        //Andrew is gonan make a better function for this later but it just updates the new info to memory(i think)
+        memcpy(val->dest, frame+7, sizeof(uint8_t[val->frame_len - JUDGE_EXTRA]));
         //skips over the frame that was just accounted for
         n += val->frame_len;
-        //This singals that an Update flag that all the vals have except for Judge_Robot_Communicate for some reason
+        //This chnages the update flag that all the vals have except for Judge_Robot_Communicate for some reason
         if(!(val->cmd_id==Judge_Robot_Communicate)){
             *val->update_flag = 1;
         }
+        #if REF_DEBUG
+            printf("%s[%d]\n", val->name, n);
+        #endif
         //This is smth that Judge_Power_Heat has to deal with it kinda ruins the cleaness of the code :(
         power_heat_data_t preData = power_heat_data;
         if(val->cmd_id==Judge_Power_Heat){
@@ -111,6 +119,7 @@ void Referee::Judge_GetMessage(uint16_t Data_Length) {
         }
     }
 }
+//OLD UGLY ASS CODE
 /*
     for (int n = 0; n < Data_Length;) {
         if (JudgeSystem_rxBuff[n] == JUDGE_FRAME_HEADER) {
