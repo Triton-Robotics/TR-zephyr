@@ -65,7 +65,7 @@ void Referee::Judge_GetMessage(uint16_t Data_Length) {
     {Judge_Robot_RFID, JudgeLength_Robot_RFID, ext_rfid_status.data.dataBuff, &ext_rfid_status.infoUpdateFlag, "ID"},
     {Judge_Dart_Client, JudgeLength_Dart_Client, ext_dart_client_cmd.data.dataBuff, &ext_dart_client_cmd.infoUpdateFlag, "DC"},
     {Judge_Robot_Communicate, JudgeLength_Robot_Commute, Robot_Commute, nullptr, "RC"},
-};
+    };
     uint16_t n =0;
     while(n<Data_Length){
         uint8_t* frame = &JudgeSystem_rxBuff[n];
@@ -85,18 +85,21 @@ void Referee::Judge_GetMessage(uint16_t Data_Length) {
         }
         
         //So Verify_CRC16_Check_Sum jsut checks the data is uncorrupted, so if it is we just skip over it, we also skip if the cmd_id was not identified
-        if(!(Verify_CRC16_Check_Sum(JudgeSystem_rxBuff,val->frame_len))||val==nullptr){
+        if(!(Verify_CRC16_Check_Sum(frame,val->frame_len))||val==nullptr){
+            //prints if REF_Depug is postive to show that it failed
             #if REF_DEBUG
-                printf("%s_NO[%d]\n", val->name, n);
+                printf("%s_NO[%d]\n", val->debug_print, n);
             #endif
             n++;
             continue;
         }
-        
+        //For the Power Heat it needs to be here otherwise it gets overwritten
+        power_heat_data_t preData = power_heat_data;
         //Andrew is gonan make a better function for this later but it just updates the new info to memory(i think)
-        memcpy(val->dest, frame+7, sizeof(uint8_t[val->frame_len - JUDGE_EXTRA]));
+        memcpy(val->dest, frame+7, val->frame_len - JUDGE_EXTRA);
+        //prints if REF_Depug is postive to show that it worked
         #if REF_DEBUG
-            printf("%s[%d]\n", val->name, n);
+            printf("%s[%d]\n", val->debug_print, n);
         #endif
         //skips over the frame that was just accounted for
         n += val->frame_len;
@@ -105,7 +108,7 @@ void Referee::Judge_GetMessage(uint16_t Data_Length) {
             *val->update_flag = 1;
         }
         //This is smth that Judge_Power_Heat has to deal with it kinda ruins the cleaness of the code :(
-        power_heat_data_t preData = power_heat_data;
+        
         if(val->cmd_id==Judge_Power_Heat){
             if (power_heat_data.shooter_17mm_1_barrel_heat == 0 && preData.shooter_17mm_1_barrel_heat != 0) {
                 power_heat_data.shooter_17mm_1_barrel_heat = preData.shooter_17mm_1_barrel_heat;
