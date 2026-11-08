@@ -32,17 +32,12 @@ int Referee::JudgeSystem_USART_Receive_DMA()  // modified
 }
 
 void Referee::Judge_GetMessage(uint16_t Data_Length) {
-    // These are the values that are needed depeneding on the cmd_id
-    //cnd_id the differnt possible packets
-    //frame_len the  byte length of the commands
-    //dest is where the data gets stored
-    //update flag idk what this is but it gets set to 1 if the packet gets updated
     struct Packet{
-        uint16_t cmd_id;
-        uint16_t frame_len;
-        void* dest;
-        uint8_t* update_flag;
-        const char* debug_print;
+        const uint16_t cmd_id; //the byte addresses of  the differnt possible packets
+        const uint16_t frame_len; //the  byte length of the commands
+        void* dest;//is where the data gets stored
+        uint8_t* update_flag;//idk what this is but it gets set to 1 if the packet gets updated
+        const char* debug_print;//2 letters corresponding to the cmds for debugging purposes
     };
     const Packet packets[] = {
     {Judge_Game_StatusData, JudgeLength_Game_StatusData, &game_status, &game_status.infoUpdateFlag, "GS"},
@@ -68,6 +63,7 @@ void Referee::Judge_GetMessage(uint16_t Data_Length) {
     };
     uint16_t n =0;
     while(n<Data_Length){
+        //frame is the current byte the "cursor" is on
         uint8_t* frame = &JudgeSystem_rxBuff[n];
         if(frame[0] != JUDGE_FRAME_HEADER){
             n++;
@@ -75,7 +71,7 @@ void Referee::Judge_GetMessage(uint16_t Data_Length) {
         }
         // Constructs the command id header from buffer
         uint16_t cmd_id = frame[5] | (frame[6] << 8);
-        //Searches throgh packets till the correct command id is found . The correct packet is then stored in val
+        //Searches throgh packets till the correct command id is found . val then points to the correct packet
         const Packet* val = nullptr;
         for(const Packet& p : packets){
             if(p.cmd_id == cmd_id){
@@ -95,7 +91,7 @@ void Referee::Judge_GetMessage(uint16_t Data_Length) {
         }
         //For the Power Heat it needs to be here otherwise it gets overwritten
         power_heat_data_t preData = power_heat_data;
-        //Andrew is gonan make a better function for this later but it just updates the new info to memory(i think)
+        //Andrew is gonan make a better function for this later but it just updates according to the nwe info
         memcpy(val->dest, frame+7, val->frame_len - JUDGE_EXTRA);
         //prints if REF_Depug is postive to show that it worked
         #if REF_DEBUG
@@ -104,11 +100,10 @@ void Referee::Judge_GetMessage(uint16_t Data_Length) {
         //skips over the frame that was just accounted for
         n += val->frame_len;
         //This chnages the update flag that all the vals have except for Judge_Robot_Communicate for some reason
-        if(!(val->cmd_id==Judge_Robot_Communicate)){
+        if(val->cmd_id!=Judge_Robot_Communicate){
             *val->update_flag = 1;
         }
         //This is smth that Judge_Power_Heat has to deal with it kinda ruins the cleaness of the code :(
-        
         if(val->cmd_id==Judge_Power_Heat){
             if (power_heat_data.shooter_17mm_1_barrel_heat == 0 && preData.shooter_17mm_1_barrel_heat != 0) {
                 power_heat_data.shooter_17mm_1_barrel_heat = preData.shooter_17mm_1_barrel_heat;
@@ -719,8 +714,13 @@ void Referee::read() {
         if (enablePrintRefData) printDebug();
     }
 }
-
+//This is just read again but in a loop with a slight delay
 void Referee::readThread() {
+    while(1){
+        read();
+        k_sleep(K_MSEC(5));
+    }
+    /* This is just read again but in a loop with a slight delay
     while (1) {
         // Un-nested read since all it does is call another fn
         // read();
@@ -749,6 +749,7 @@ void Referee::readThread() {
 
         k_sleep(K_MSEC(5));
     }
+        */
 }
 
 void Referee::writeThread() {
