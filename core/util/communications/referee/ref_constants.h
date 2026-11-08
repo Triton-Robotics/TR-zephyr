@@ -112,61 +112,66 @@ enum class DartStatus: uint8_t {
 /***********************************命令码ID*************************************/
 /*********************************** Command Code ID *************************************/
 
-#define Judge_Game_StatusData 0x0001   // 11
-#define Judge_Game_ResultData 0x0002   // 1
-#define Judge_Robot_HP 0x0003          // 32
-#define Judge_Dart_Launch 0x0004       // UNUSED
-#define Judge_AI_ChallengeBuff 0x0005  // UNUSED
-#define Judge_Event_Data 0x0101        // 4
-#define Judge_Supply_Station 0x0102    // 3
-// #define       Judge_Request_Recharge             0x0103(对抗赛未开放)
-// #define       Judge_Request_Recharge             0x0103(Not available in confrontation match)
-#define Judge_Referee_Warning 0x0104  // 3
-#define Judge_Dart_Countdown 0x0105   // 3
-#define Judge_Robot_State 0x0201      // 13
-#define Judge_Power_Heat 0x0202       // 16
-#define Judge_Robot_Position 0x0203   // 16
-#define Judge_Robot_Buff 0x0204       // 7
-#define Judge_Aerial_Energy 0x0205
-#define Judge_Injury_State 0x0206       // 1
-#define Judge_RealTime_Shoot 0x0207     // 7
-#define Judge_Remaining_Rounds 0x0208   // 6
-#define Judge_Robot_RFID 0x0209         // 4
-#define Judge_Dart_Client 0x020A        // 6
-#define Judge_Robot_Communicate 0x0301  // 127
-#define Judge_User_Defined 0x0302       // 30
-#define Judge_Map_Interaction 0x0303    // 15
-#define Judge_KeyMouse_Message 0x0304   // 12
-#define Judge_Client_Map 0x0305         // 24
+enum class PacketHeader : uint16_t {
+    GAME_STATUS_DATA = 0x0001,   // 11
+    GAME_RESULT_DATA = 0x0002,   // 1
+    ROBOT_HP = 0x0003,          // 32
+    EVENT_DATA = 0x0101,        // 4
+    REFEREE_WARNING = 0x0104,   // 3
+    DART_COUNTDOWN = 0x0105,    // 3
+    ROBOT_STATE = 0x0201,       // 13
+    POWER_HEAT = 0x0202,        // 16
+    ROBOT_POSITION = 0x0203,    // 16
+    ROBOT_BUFF = 0x0204,        // 7
+    INJURY_STATE = 0x0206,      // 1
+    REAL_TIME_SHOOT = 0x0207,    // 7
+    REMAINING_ROUNDS = 0x0208,  // 6
+    ROBOT_RFID = 0x0209,        // 4
+    DART_CLIENT = 0x020A,       // 6
+    ROBOT_COMMUNICATE = 0x0301, // 127
+    USER_DEFINED = 0x0302,      // 30
+    MAP_INTERACTION = 0x0303,   // 15
+    KEY_MOUSE_MESSAGE = 0x0304, // 12
+    CLIENT_MAP = 0x0305,        // 24
+
+    // DART_LAUNCH = 0x0004,       // UNUSED
+    // AI_CHALLENGE_BUFF = 0x0005, // UNUSED
+    // SUPPLY_STATION = 0x0102,    // UNUSED
+    // REQUEST_RECHARGE = 0x0103,  // (Not available in confrontation match)
+    // AERIAL_ENERGY = 0x0205,     // UNUSED
+};
+
 
 /***************************DATA_Length*************************/
 
 #define JUDGE_EXTRA 9
 /*Calculation:frame_header(5-byte)+cmd_id(2-byte)+data(n-byte)+frame_tail(2-byte,CRC16)*/
 
-#define JudgeLength_Game_StatusData 20
-#define JudgeLength_Game_ResultData 10
-#define JudgeLength_Robot_HP 41
-#define JudgeLength_Dart_Launch 12       // UNUSED
-#define JudgeLength_AI_ChallengeBuff 20  // UNUSED
-#define JudgeLength_Event_Data 13
-#define JudgeLength_Supply_Station 12
-// #define       JudgeLength_Request_Recharge       11(对抗赛未开放)
-// #define       JudgeLength_Request_Recharge       11(Not available in confrontation match)
-#define JudgeLength_Referee_Warning 12
-#define JudgeLength_Dart_Countdown 12
-#define JudgeLength_Robot_State 22
-#define JudgeLength_Power_Heat 25
-#define JudgeLength_Robot_Position 25
-#define JudgeLength_Robot_Buff 15
-#define JudgeLength_Aerial_Energy 11
-#define JudgeLength_Injury_State 10
-#define JudgeLength_RealTime_Shoot 16
-#define JudgeLength_Remaining_Rounds 15
-#define JudgeLength_Robot_RFID 13
-#define JudgeLength_Dart_Client 21
-#define JudgeLength_Robot_Commute 35
-#define JudgeLength_Robot_Map 26
+enum class PacketLength : uint16_t {
+    GAME_STATUS_DATA = 20,
+    GAME_RESULT_DATA = 10,
+    ROBOT_HP = 41,
+    EVENT_DATA = 13,
+    REFEREE_WARNING = 12,
+    DART_COUNTDOWN = 12,
+    ROBOT_STATE = 22,
+    POWER_HEAT = 25,
+    ROBOT_POSITION = 25,
+    ROBOT_BUFF = 15,
+    INJURY_STATE = 10,
+    REAL_TIME_SHOOT = 16,
+    REMAINING_ROUNDS = 15,
+    ROBOT_RFID = 13,
+    DART_CLIENT = 21,
+    ROBOT_COMMUNICATE = 35,
+
+    // DART_LAUNCH = 12,          // UNUSED
+    // AI_CHALLENGE_BUFF = 20,     // UNUSED
+    // SUPPLY_STATION = 12,       // UNUSED
+    // REQUEST_RECHARGE = 11,     // (Not available in confrontation match)
+    // AERIAL_ENERGY = 11,        // UNUSED
+    // ROBOT_MAP = 26,            // UNUSED
+};
 
 // needed for anonymous structs defined below
 #pragma GCC diagnostic push

@@ -1,4 +1,5 @@
 #include "ref_serial.h"
+
 #include <cstdint>
 
 #include "../ui/ui_g.h"
@@ -15,7 +16,7 @@ K_THREAD_STACK_DEFINE(referee_write_stack, REFEREE_WRITE_STACK_SIZE);
 
 // -------------------------------------
 // From South China University of Technology
-// 华南理工大学广州学院-野狼战队-步兵代码 
+// 华南理工大学广州学院-野狼战队-步兵代码
 // ----------------------------------
 // From South China University of Technology Guangzhou College - Wild Wolf Team
 // - Infantry Code ----------------------
@@ -33,105 +34,85 @@ int Referee::JudgeSystem_USART_Receive_DMA()  // modified
 
 void Referee::Judge_GetMessage(uint16_t Data_Length) {
     // These are the values that are needed depeneding on the cmd_id
-    //cnd_id the differnt possible packets
-    //frame_len the  byte length of the commands
-    //dest is where the data gets stored
-    //update flag idk what this is but it gets set to 1 if the packet gets updated
-    struct Packet{
-        uint16_t cmd_id;
-        uint16_t frame_len;
-        void* dest;
-        uint8_t* update_flag;
-        const char* debug_print;
-    };
-    static const Packet packets[] = {
-        {Judge_Game_StatusData, JudgeLength_Game_StatusData, &game_status, &game_status.infoUpdateFlag},
-        {Judge_Game_ResultData, JudgeLength_Game_ResultData, &game_result, &game_result.infoUpdateFlag},
-        {Judge_Robot_HP, JudgeLength_Robot_HP, &ext_game_robot_HP, &ext_game_robot_HP.infoUpdateFlag},
-        //{Judge_Dart_Launch, JudgeLength_Dart_Launch, &ext_dart_status, &ext_dart_status.infoUpdateFlag},
-        //{Judge_AI_ChallengeBuff, JudgeLength_AI_ChallengeBuff, &ext_ICRA_buff_debuff_zone_status, &ext_ICRA_buff_debuff_zone_status.infoUpdateFlag},
-        {Judge_Event_Data, JudgeLength_Event_Data, &ext_even_data, &ext_even_data.infoUpdateFlag},
-        //{Judge_Supply_Station, JudgeLength_Supply_Station, &ext_supply_projectile_action, &ext_supply_projectile_action.infoUpdateFlag},
-        {Judge_Referee_Warning, JudgeLength_Referee_Warning, &referee_warning, &referee_warning.infoUpdateFlag},
-        {Judge_Dart_Countdown, JudgeLength_Dart_Countdown, &ext_dart_remaining_time, &ext_dart_remaining_time.infoUpdateFlag},
-        {Judge_Robot_State, JudgeLength_Robot_State, &robot_status, &robot_status.infoUpdateFlag},
-        {Judge_Power_Heat, JudgeLength_Power_Heat, &power_heat_data, &power_heat_data.infoUpdateFlag},
-        {Judge_Robot_Position, JudgeLength_Robot_Position, &robot_pos, &robot_pos.infoUpdateFlag},
-        {Judge_Robot_Buff, JudgeLength_Robot_Buff, &buff, &buff.infoUpdateFlag},
-        //{Judge_Aerial_Energy, JudgeLength_Aerial_Energy, &aerial_robot_energy, &aerial_robot_energy.infoUpdateFlag},
-        {Judge_Injury_State, JudgeLength_Injury_State, &hurt_data, &hurt_data.infoUpdateFlag},
-        {Judge_RealTime_Shoot, JudgeLength_RealTime_Shoot, &shoot_data, &shoot_data.infoUpdateFlag},
-        {Judge_Remaining_Rounds, JudgeLength_Remaining_Rounds, &projectile_allowance, &projectile_allowance.infoUpdateFlag},
-        {Judge_Robot_RFID, JudgeLength_Robot_RFID, &ext_rfid_status, &ext_rfid_status.infoUpdateFlag},
-        {Judge_Dart_Client, JudgeLength_Dart_Client, &ext_dart_client_cmd, &ext_dart_client_cmd.infoUpdateFlag},
-        {Judge_Robot_Communicate, JudgeLength_Robot_Commute, Robot_Commute, nullptr},
-    };
-    
-    uint16_t n =0;
-    while(n<Data_Length){
+    // cnd_id the differnt possible packets
+    // frame_len the  byte length of the commands
+    // dest is where the data gets stored
+    // update flag idk what this is but it gets set to 1 if the packet gets updated
+
+    uint16_t n = 0;
+    while (n < Data_Length) {
         uint8_t* frame = &JudgeSystem_rxBuff[n];
-        if(frame[0] != JUDGE_FRAME_HEADER){
+        if (frame[0] != JUDGE_FRAME_HEADER) {
             n++;
             continue;
         }
 
         // Constructs the command id header from buffer
-        uint16_t cmd_id = frame[5] | (frame[6] << 8);
+        PacketHeader cmd_id = static_cast<PacketHeader>(frame[5] | (frame[6] << 8));
 
-        // Searches throgh packets till the correct command id is found. 
+        // Searches through packets till the correct command id is found.
         // The correct packet is then stored in val
         const Packet* val = nullptr;
-        for(const Packet& p : packets){
-            if(p.cmd_id == cmd_id){
+        for (const Packet& p : packets) {
+            if (p.cmd_id == cmd_id) {
                 val = &p;
                 break;
             }
         }
-        
+
         // Verify_CRC16_Check_Sum checks the data is uncorrupted
         // If corrupted, skip over it
         // Also skips if the cmd_id was not identified
-        if(!(Verify_CRC16_Check_Sum(frame,val->frame_len))||val==nullptr){
-            #if REF_DEBUG
-                printf("%s_NO[%d]\n", val->debug_print, n);
-            #endif
+        if (val == nullptr ||
+            !Verify_CRC16_Check_Sum(frame, static_cast<uint16_t>(val->frame_len))) {
+#if REF_DEBUG
+            printf("%s_NO[%d]\n", val ? val->debug_print : "UNKNOWN", n);
+#endif
+
             n++;
             continue;
         }
 
-        //For the Power Heat it needs to be here otherwise it gets overwritten
+        // For the Power Heat it needs to be here otherwise it gets overwritten
         power_heat_data_t preData = power_heat_data;
+
+        uint16_t frame_len = static_cast<uint16_t>(val->frame_len);
 
         // Frame len specifies the TOTAL amount of bytes per packet of data
         // Frame+7 bypasses the header + command ID prefix and skips to actual data
         // JUDGE_EXTRA is a const that calculates the length of the actual data,
         // so we copy the right amount
-        bool unpackStatusCode = unpack_payload(val->dest, frame+7, val->frame_len - JUDGE_EXTRA, val->update_flag);
+        bool unpackStatusCode =
+            unpack_payload(val->dest, frame + 7, frame_len - JUDGE_EXTRA, val->update_flag);
         if (!unpackStatusCode) printf("fail to parse server packet\n");
 
-        #if REF_DEBUG
-            printf("%s[%d]\n", val->debug_print, n);
-        #endif
+#if REF_DEBUG
+        printf("%s[%d]\n", val ? val->debug_print : "UNKNOWN", n);
+#endif
 
         // skips over the frame that was just accounted for
-        n += val->frame_len;
+        n += frame_len;
 
-
-        //This is smth that Judge_Power_Heat has to deal with it kinda ruins the cleaness of the code :(
-        if(val->cmd_id==Judge_Power_Heat){
-            if (power_heat_data.shooter_17mm_1_barrel_heat == 0 && preData.shooter_17mm_1_barrel_heat != 0) {
+        // This is smth that Judge_Power_Heat has to deal with it kinda ruins the cleaness of the
+        // code :(
+        if (val->cmd_id == PacketHeader::POWER_HEAT) {
+            if (power_heat_data.shooter_17mm_1_barrel_heat == 0 &&
+                preData.shooter_17mm_1_barrel_heat != 0) {
                 power_heat_data.shooter_17mm_1_barrel_heat = preData.shooter_17mm_1_barrel_heat;
             }
-            if (power_heat_data.shooter_17mm_2_barrel_heat == 0 && preData.shooter_17mm_2_barrel_heat != 0) {
+            if (power_heat_data.shooter_17mm_2_barrel_heat == 0 &&
+                preData.shooter_17mm_2_barrel_heat != 0) {
                 power_heat_data.shooter_17mm_2_barrel_heat = preData.shooter_17mm_2_barrel_heat;
             }
-            if (power_heat_data.shooter_42mm_barrel_heat == 0 && preData.shooter_42mm_barrel_heat != 0) {
+            if (power_heat_data.shooter_42mm_barrel_heat == 0 &&
+                preData.shooter_42mm_barrel_heat != 0) {
                 power_heat_data.shooter_42mm_barrel_heat = preData.shooter_42mm_barrel_heat;
             }
         }
     }
 }
-//OLD UGLY ASS CODE
+
+// OLD UGLY ASS CODE
 /*
     for (int n = 0; n < Data_Length;) {
         if (JudgeSystem_rxBuff[n] == JUDGE_FRAME_HEADER) {
@@ -573,8 +554,7 @@ void Referee::Judge_GetMessage(uint16_t Data_Length) {
             n++;
     }
 */
-    // JudgeSystem.InfoUpdateFrame++;
-
+// JudgeSystem.InfoUpdateFrame++;
 
 void Referee::determine_ID() {
     TeamColor Color{is_red_or_blue()};
@@ -585,7 +565,7 @@ void Referee::determine_ID() {
         // Calculate client ID
         Judge_SelfClient_ID = 0x0100 + robot_status.robot_id;
     } else {
-        printf("UNKNOWN TEAM COLOR");
+        printf("UNKNOWN TEAM COLOR\n");
     }
 }
 
@@ -685,7 +665,51 @@ void Referee::referee_data_pack_handle(uint8_t* packet, uint16_t len) {
 //     this->writeThread_.start(callback(this, &Referee::writeThread));
 // }
 
-Referee::Referee(const struct device* uart, USART_TypeDef* ll_usart) : ref(uart, ll_usart) {
+Referee::Referee(const struct device* uart, USART_TypeDef* ll_usart)
+    : ref(uart, ll_usart),
+      packets{
+          {PacketHeader::GAME_STATUS_DATA, PacketLength::GAME_STATUS_DATA, &game_status,
+           &game_status.infoUpdateFlag, "GS"},
+          {PacketHeader::GAME_RESULT_DATA, PacketLength::GAME_RESULT_DATA, &game_result,
+           &game_result.infoUpdateFlag, "GR"},
+          {PacketHeader::ROBOT_HP, PacketLength::ROBOT_HP, &ext_game_robot_HP,
+           &ext_game_robot_HP.infoUpdateFlag, "HP"},
+          {PacketHeader::EVENT_DATA, PacketLength::EVENT_DATA, &ext_even_data,
+           &ext_even_data.infoUpdateFlag, "EV"},
+          {PacketHeader::REFEREE_WARNING, PacketLength::REFEREE_WARNING, &referee_warning,
+           &referee_warning.infoUpdateFlag, "RF"},
+          {PacketHeader::DART_COUNTDOWN, PacketLength::DART_COUNTDOWN, &ext_dart_remaining_time,
+           &ext_dart_remaining_time.infoUpdateFlag, "DT"},
+          {PacketHeader::ROBOT_STATE, PacketLength::ROBOT_STATE, &robot_status,
+           &robot_status.infoUpdateFlag, "RS"},
+          {PacketHeader::POWER_HEAT, PacketLength::POWER_HEAT, &power_heat_data,
+           &power_heat_data.infoUpdateFlag, "PH"},
+          {PacketHeader::ROBOT_POSITION, PacketLength::ROBOT_POSITION, &robot_pos,
+           &robot_pos.infoUpdateFlag, "RP"},
+          {PacketHeader::ROBOT_BUFF, PacketLength::ROBOT_BUFF, &buff, &buff.infoUpdateFlag, "BF"},
+          {PacketHeader::INJURY_STATE, PacketLength::INJURY_STATE, &hurt_data,
+           &hurt_data.infoUpdateFlag, "IN"},
+          {PacketHeader::REAL_TIME_SHOOT, PacketLength::REAL_TIME_SHOOT, &shoot_data,
+           &shoot_data.infoUpdateFlag, "RE"},
+          {PacketHeader::REMAINING_ROUNDS, PacketLength::REMAINING_ROUNDS, &projectile_allowance,
+           &projectile_allowance.infoUpdateFlag, "RR"},
+          {PacketHeader::ROBOT_RFID, PacketLength::ROBOT_RFID, &ext_rfid_status,
+           &ext_rfid_status.infoUpdateFlag, "ID"},
+          {PacketHeader::DART_CLIENT, PacketLength::DART_CLIENT, &ext_dart_client_cmd,
+           &ext_dart_client_cmd.infoUpdateFlag, "DC"},
+          {PacketHeader::ROBOT_COMMUNICATE, PacketLength::ROBOT_COMMUNICATE, Robot_Commute, nullptr,
+           "RC"},
+
+          // unused
+          // {PacketHeader::DART_LAUNCH, PacketLength::DART_LAUNCH, &ext_dart_status,
+          // &ext_dart_status.infoUpdateFlag, "DL"}, {PacketHeader::AI_CHALLENGE_BUFF,
+          // PacketLength::AI_CHALLENGE_BUFF, &ext_ICRA_buff_debuff_zone_status,
+          // &ext_ICRA_buff_debuff_zone_status.infoUpdateFlag, "AI"}, {PacketHeader::SUPPLY_STATION,
+          // PacketLength::SUPPLY_STATION, &ext_supply_projectile_action,
+          // &ext_supply_projectile_action.infoUpdateFlag, "SS"}, {PacketHeader::AERIAL_ENERGY,
+          // PacketLength::AERIAL_ENERGY, &aerial_robot_energy, &aerial_robot_energy.infoUpdateFlag,
+          // "AE"},
+      } {
     memset(JudgeSystem_rxBuff, 0, JUDGESYSTEM_PACKSIZE);
 
     k_thread_create(&m_read_tdata, referee_read_stack, REFEREE_READ_STACK_SIZE,
@@ -850,9 +874,9 @@ GameProgress Referee::get_game_progress() { return game_status.game_progress; }
 /**
  * @brief  Determine whether the robot is on the Red or Blue team
  * @param  void
- * @retval RED   BLUE
+ * @retval RED, BLUE, UNKNOWN
  * @attention  数据打包,打包完成后通过串口发送到裁判系统
- *             Package data; once packaged, send to the referee system via 
+ *             Package data; once packaged, send to the referee system via
  *             serial port
  */
 TeamColor Referee::is_red_or_blue() {
@@ -881,23 +905,22 @@ void Referee::printDebug() {
         printf("[ERROR] bad ref read: %d\n", rad);
         return;
     }
-    
+
     // does not include chassis voltage, current, power
     // if want to add, use reserved1-3 (respectively) in power_heat_data
-    printf("====REF DATA====\nRobot ID: %d\nColor: %s\nCurrent HP: %d\nMax HP: %d\nAngle: %.2f\n================\n",
-        robot_status.robot_id,
-        TeamColor_To_Str[static_cast<uint8_t>(is_red_or_blue())],
-        robot_status.current_HP,
-        robot_status.maximum_HP,
-        static_cast<double>(robot_pos.angle)
-    );
+    printf(
+        "====REF DATA====\nRobot ID: %d\nColor: %s\nCurrent HP: %d\nMax HP: %d\nAngle: "
+        "%.2f\n================\n",
+        robot_status.robot_id, TeamColor_To_Str[static_cast<uint8_t>(is_red_or_blue())],
+        robot_status.current_HP, robot_status.maximum_HP, static_cast<double>(robot_pos.angle));
 }
 
-bool Referee::unpack_payload(void* dest, const uint8_t* src, size_t payload_len, uint8_t* update_flag) {
+bool Referee::unpack_payload(void* dest, const uint8_t* src, size_t payload_len,
+                             uint8_t* update_flag) {
     if (!dest || !src) return false;
-    
+
     memcpy(dest, src, payload_len);
-    
+
     // Some structs do not have an update flag,
     // so check (just in case!)
     if (update_flag) {
