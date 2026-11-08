@@ -115,14 +115,15 @@ void Referee::Judge_GetMessage(uint16_t Data_Length) {
 
 void Referee::determine_ID() {
     TeamColor Color{is_red_or_blue()};
-    if (Color == TeamColor::BLUE) {
-        Judge_SelfClient_ID = 0x0100 + robot_status.robot_id;
-    } else if (Color == TeamColor::RED) {
-        // 计算客户端ID
-        // Calculate client ID
-        Judge_SelfClient_ID = 0x0100 + robot_status.robot_id;
-    } else {
-        printf("UNKNOWN TEAM COLOR\n");
+    switch (Color) {
+        case TeamColor::BLUE:
+        case TeamColor::RED: {
+            // Calculate client ID
+            Judge_SelfClient_ID = 0x0100 + robot_status.robot_id;
+            break;
+        }
+        default:
+            printf("UNKNOWN TEAM COLOR\n");
     }
 }
 
@@ -202,6 +203,7 @@ void Referee::referee_data_pack_handle(uint8_t sof, uint16_t cmd_id, uint8_t* p_
 
     ref.write(tx_buff, frame_length);
 }
+
 void Referee::referee_data_pack_handle(uint8_t* packet, uint16_t len) {
     // Accquires thread resources
     mutex_write_.lock();
@@ -267,7 +269,7 @@ Referee::Referee(const struct device* uart, USART_TypeDef* ll_usart)
           // PacketLength::AERIAL_ENERGY, &aerial_robot_energy, &aerial_robot_energy.infoUpdateFlag,
           // "AE"},
       } {
-        
+
     memset(JudgeSystem_rxBuff, 0, JUDGESYSTEM_PACKSIZE);
 
     k_thread_create(&m_read_tdata, referee_read_stack, REFEREE_READ_STACK_SIZE,
