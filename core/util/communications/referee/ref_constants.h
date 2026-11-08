@@ -1,3 +1,4 @@
+#pragma once
 #include <zephyr/kernel.h>
 #include <cstdint>
 
@@ -50,11 +51,58 @@ enum class TeamColor : uint8_t {
     RED = 1,
     BLUE = 2,
 };
-
-// c++ doesn't allow const unordered maps so...
 // used for printing telemetry/debug data
-constexpr const char* TeamColor_To_Str[] = 
-{"UNKNOWN", "RED", "BLUE"};
+constexpr const char* TeamColor_To_Str[] = {"UNKNOWN", "RED", "BLUE"};
+
+
+// unused but required for the game status packet
+enum class GameType : uint8_t {
+    RMUC = 1, // RoboMaster University Championship
+    RMUT = 2, // RoboMaster University Technical Challenge
+    RMUA = 3, // ICRA RoboMaster University AI Challenge
+    RMUL = 4, // RoboMaster University League 3V3 Match 
+    RMUL_STANDARD = 5, // RMUL Standard Match
+};
+
+enum class GameProgress : uint8_t {
+    SET_UP_PERIOD = 1,
+    REF_INITIALIZATION_PERIOD = 2,
+    COUNTDOWN = 3,
+    COMPETITION = 4,
+    COMPETITION_RESULT = 5,
+};
+
+enum class Result : uint8_t {
+    DRAW = 0,
+    RED_WIN = 1,
+    BLUE_WIN = 2,
+};
+
+enum class PenaltyLevels : uint8_t {
+    BOTH_YELLOW = 1, // both teams receive yellow card
+    YELLOW_CARD = 2, // own robot received yellow
+    RED_CARD = 3,
+    FORFEITURE = 4,
+};  
+
+enum class ProjectileType : uint8_t {
+    MM_17 = 1,
+    MM_42 = 2,
+};
+
+enum class ShooterId : uint8_t {
+    SHOOTER_17MM_1 = 1,
+    SHOOTER_17MM_2 = 2,
+    SHOOTER_42MM = 3,
+};
+
+enum class DartStatus: uint8_t {
+    OPENED = 0,
+    CLOSED = 1,
+    OPENING_OR_CLOSING = 2,
+};
+
+
 
 // 信息传输
 // Information transmission
@@ -137,229 +185,146 @@ typedef struct {
 
 } xFrameHeader;
 
-/* ID: 0x0001    Byte: 11     比赛状态数据 */
-/* ID: 0x0001    11 byte length     Game status data */
-typedef struct {
-    // unused but required for the packet
-    enum class GameType : uint8_t {
-        RMUC = 1, // RoboMaster University Championship
-        RMUT = 2, // RoboMaster University Technical Challenge
-        RMUA = 3, // ICRA RoboMaster University AI Challenge
-        RMUL = 4, // RoboMaster University League 3V3 Match 
-        RMUL_STANDARD = 5, // RMUL Standard Match
-    };
-    enum class GameProgress : uint8_t {
-        SET_UP_PERIOD = 1,
-        REF_INITIALIZATION_PERIOD = 2,
-        COUNTDOWN = 3,
-        COMPETITION = 4,
-        COMPETITION_RESULT = 5,
-    };
-
+/* 
+    ID: 0x0001    
+    Byte: 11    
+    General game status info 
+*/
+typedef struct __packed {
     GameType game_type : 4;
     GameProgress game_progress : 4;
     uint16_t stage_remain_time; // remaining time in round (in sec) 
-    uint64_t SyncTimeStamp; // unix timestamp to sync with server
-    uint8_t infoUpdateFlag; 
+    uint64_t SyncTimeStamp;     // unix timestamp to sync with server
+    uint8_t infoUpdateFlag;
 } game_status_t;
+static_assert(offsetof(game_status_t, infoUpdateFlag) == 11, "game_status_t size must be 11 bytes");
 
-/* ID: 0x0002    Byte: 1       比赛结果数据 */
-/* ID: 0x0002    Byte: 1       Game result data */
-typedef struct {
-    uint8_t winner;
+
+/* 
+    ID: 0x0002    
+    Byte: 1     
+    Game result data 
+*/
+typedef struct __packed {
+    Result winner;
     uint8_t infoUpdateFlag;
 } game_result_t;
+static_assert(offsetof(game_result_t, infoUpdateFlag) == 1, "game_result_t size must be 1 byte");
 
-/* ID: 0x0003     Byte: 32     比赛机器人血量数据 */
-/* ID: 0x0003     Byte: 32     Game robot HP data */
-typedef struct {
-    union {
-        uint8_t dataBuff[32];
-        struct {
-            // 红 1 英雄机器人血量，未上场以及罚下血量为 0
-            //  Red 1 Hero robot HP (0 if not on field or penalized)
-            uint16_t red_1_robot_HP;
-            // 红 2 工程机器人血量
-            //  Red 2 Engineer robot HP
-            uint16_t red_2_robot_HP;
-            // 红 3 步兵机器人血量
-            //  Red 3 Infantry robot HP
-            uint16_t red_3_robot_HP;
-            // 红 4 步兵机器人血量
-            //  Red 4 Infantry robot HP
-            uint16_t red_4_robot_HP;
-            // 红 5 步兵机器人血量
-            //  Red 5 Infantry robot HP
-            uint16_t red_5_robot_HP;
-            // 红 7 步兵机器人血量
-            //  Red 7 Sentry/Infantry robot HP
-            uint16_t red_7_robot_HP;
-            // 红方前哨战血量
-            //  Red outpost HP
-            uint16_t red_outpost_HP;
-            // 红方基地血量
-            //  Red base HP
-            uint16_t red_base_HP;
-            uint16_t blue_1_robot_HP;
-            uint16_t blue_2_robot_HP;
-            uint16_t blue_3_robot_HP;
-            uint16_t blue_4_robot_HP;
-            uint16_t blue_5_robot_HP;
-            uint16_t blue_7_robot_HP;
-            uint16_t blue_outpost_HP;
-            uint16_t blue_base_HP;
-        };
-    } data;
+
+/* 
+    ID: 0x0003     
+    32 byte length
+
+    Retrieves the hp of every robot in the round from the server and stores it here.
+    Although unused in this codebase right now, can be used to track states of every other robot.
+    DO NOT DELETE; required for correctly parsing the incoming server packet
+*/
+typedef struct __packed {
+    //  Red 1 Hero robot HP (0 if not on field or ejected/penalized)
+    uint16_t red_1_robot_HP;
+    //  Red 2 Engineer robot HP
+    uint16_t red_2_robot_HP;
+    //  Red 3 Infantry robot HP
+    uint16_t red_3_robot_HP;    
+    //  Red 4 Infantry robot HP
+    uint16_t red_4_robot_HP;
+    //  Red 5 Infantry robot HP, (no longer used)
+    uint16_t _reserved1;
+    //  Red 7 Sentry robot HP
+    uint16_t red_7_robot_HP;
+    //  Red outpost HP
+    uint16_t red_outpost_HP;
+    //  Red base HP
+    uint16_t red_base_HP;
+
+    // same convention follows for blue
+    uint16_t blue_1_robot_HP;
+    uint16_t blue_2_robot_HP;
+    uint16_t blue_3_robot_HP;
+    uint16_t blue_4_robot_HP;
+    uint16_t _reserved2; // Blue 5 infantry (no longer used)
+    uint16_t blue_7_robot_HP;
+    uint16_t blue_outpost_HP;
+    uint16_t blue_base_HP;
+
     uint8_t infoUpdateFlag;
 } ext_game_robot_HP_t;
+static_assert(offsetof(ext_game_robot_HP_t, infoUpdateFlag) == 32, "ext_game_robot_HP_t size must be 32 bytes");
 
-/* ID: 0x0004      Byte: 3    飞镖发射状态 */
-/* ID: 0x0004      Byte: 3    Dart launch status */
-typedef struct {
-    union {
-        uint8_t dataBuff[3];
-        struct __packed {
-            // 发射飞镖的队伍：1：红方飞镖2：蓝方飞镖
-            //  Team launching dart: 1 = Red team dart, 2 = Blue team dart
-            uint8_t dart_belong;
-            // 发射时的剩余比赛时间，单位 s
-            //  Remaining game time at launch (seconds)
-            uint16_t stage_remaining_time;
-        };
-    } data;
-    uint8_t infoUpdateFlag;
-} ext_dart_status_t;
 
-/* ID: 0x0005      Byte: 11      人工智能挑战赛加成与惩罚 */
-/* ID: 0x0005      Byte: 11      AI Challenge Buff and Debuff */
-typedef struct {
-    union {
-        uint8_t dataBuff[11];
-        struct __packed {
-            uint8_t F1_zone_status : 1;
-            uint8_t F1_zone_buff_debuff_status : 3;
-            uint8_t F2_zone_status : 1;
-            uint8_t F2_zone_buff_debuff_status : 3;
-            uint8_t F3_zone_status : 1;
-            uint8_t F3_zone_buff_debuff_status : 3;
-            uint8_t F4_zone_status : 1;
-            uint8_t F4_zone_buff_debuff_status : 3;
-            uint8_t F5_zone_status : 1;
-            uint8_t F5_zone_buff_debuff_status : 3;
-            uint8_t F6_zone_status : 1;
-            uint8_t F6_zone_buff_debuff_status : 3;
-            uint16_t red1_bullet_left;
-            uint16_t red2_bullet_left;
-            uint16_t blue1_bullet_left;
-            uint16_t blue2_bullet_left;
-        };
-    } data;
-    uint8_t infoUpdateFlag;
-} ext_ICRA_buff_debuff_zone_status_t;
-
-/* ID: 0x0101     Byte: 4       场地事件数据 */
-/* ID: 0x0101     Byte: 4       Field event data */
-typedef struct {
-    union {
-        uint8_t dataBuff[4];
-        struct {
-            uint32_t event_type;
-        };
-    } data;
+/* 
+    ID: 0x0101     
+    Byte: 4       
+    Field event data 
+*/
+typedef struct __packed {
+    uint32_t event_type;
     uint8_t infoUpdateFlag;
 } ext_event_data_t;
+static_assert(offsetof(ext_event_data_t, infoUpdateFlag) == 4, "ext_event_data_t size must be 4 bytes");
 
-/* ID: 0x0102     Byte: 4       场地补给站动作标识数据 */
-/* ID: 0x0102     Byte: 4       Supply station action indicator data */
-typedef struct {
-    union {
-        uint8_t dataBuff[4];
-        struct {
-            // 补给站口 ID
-            //  Supply station aperture ID
-            uint8_t supply_projectile_id;
-            // 补弹机器人 ID
-            //  Supply recipient robot ID
-            uint8_t supply_robot_id;
-            // 出弹口开闭状态
-            //  Projectile exit opening/closing status
-            uint8_t supply_projectile_step;
-            // 补弹数量
-            //  Number of projectiles supplied
-            uint8_t supply_projectile_num;
-        };
-    } data;
-    uint8_t infoUpdateFlag;
-} ext_supply_projectile_action_t;
 
-/* ID: 0X0104          Byte: 2       裁判警告数据 */
-/* ID: 0X0104          Byte: 2       Referee warning data */
-typedef struct {
-    uint8_t level;
+/* 
+    ID: 0X0104          
+    Byte: 3      
+    Referee warning data 
+*/
+typedef struct __packed {
+    PenaltyLevels level;
     uint8_t offending_robot_id;
     uint8_t count;
     uint8_t infoUpdateFlag;
 } referee_warning_t;
+static_assert(offsetof(referee_warning_t, infoUpdateFlag) == 3, "referee_warning_t size must be 3 bytes");
 
-/* ID: 0x0105          Byte: 1       飞镖发射口倒计时  */
-/* ID: 0x0105          Byte: 1       Dart launch gate countdown */
-typedef struct {
-    union {
-        uint8_t dataBuff[1];
-        struct {
-            // 15s 倒计时
-            //  15s countdown
-            uint8_t dart_remaining_time;
-        };
-    } data;
+
+/* 
+    ID: 0x0105          
+    Byte: 3      
+    Dart launch gate countdown 
+*/
+typedef struct __packed {
+    uint8_t dart_remaining_time;
+    uint16_t dart_info;
     uint8_t infoUpdateFlag;
 } ext_dart_remaining_time_t;
+static_assert(offsetof(ext_dart_remaining_time_t, infoUpdateFlag) == 3, "ext_dart_remaining_time_t size must be 3 bytes");
 
-/* ID: 0X0201          Byte: 27      机器人状态数据 */
-/* ID: 0X0201          Byte: 27      Robot status data */
-typedef struct {
-    union {
-        uint8_t dataBuff[27];
-        struct {
-            uint8_t robot_id;
 
-            uint8_t robot_level;
-            // 机器人剩余血量
-            //  Robot remaining HP
-            uint16_t current_HP;
-            // 机器人上限血量
-            //  Robot maximum HP
-            uint16_t maximum_HP;
-            // 机器人 1 号 17mm 枪口每秒冷却值
-            //  Robot No. 1 17mm barrel cooling value per second
-            uint16_t shooter_barrel_cooling_value;
-            // 机器人 1 号 17mm 枪口热量上限
-            //  Robot No. 1 17mm barrel heat limit
-            uint16_t shooter_barrel_heat_limit;
-            // 机器人 1 号 17mm 枪口上限速度 单位 m/s
-            //  Robot No. 1 17mm barrel maximum speed (m/s)
-            uint16_t chassis_power_limit;
-            uint8_t power_management_output;
-        };
-    } data;
-    uint8_t infoUpdateFlag;
-} ext_game_robot_status_t;
-
-typedef struct {
+/* 
+    ID: 0X0201          
+    Byte: 13      
+    Robot status data 
+*/
+typedef struct __packed {
     uint8_t robot_id;
     uint8_t robot_level;
     uint16_t current_HP;
     uint16_t maximum_HP;
+    //  Robot No. 1 17mm barrel cooling value per second
     uint16_t shooter_barrel_cooling_value;
+    //  Robot No. 1 17mm barrel heat limit
     uint16_t shooter_barrel_heat_limit;
+    //  Robot No. 1 17mm barrel maximum speed (m/s)
     uint16_t chassis_power_limit;
-    uint8_t power_management_output;
+
+    // value of 0 indicates no output
+    // value of 1 indicates 24V output
+    uint8_t power_management_gimbal_output : 1;
+    uint8_t power_management_chassis_output : 1;
+    uint8_t power_management_shooter_output : 1;
     uint8_t infoUpdateFlag;
 } robot_status_t;
+static_assert(offsetof(robot_status_t, infoUpdateFlag) == 13, "robot_status_t size must be 13 bytes");
 
-/* ID: 0X0202          Byte: 16      实时功率热量数据 */
-/* ID: 0X0202          Byte: 16      Real-time power and heat data */
-typedef struct {
+
+/* 
+    ID: 0X0202          
+    Byte: 16      
+    Real-time power and heat data 
+*/
+typedef struct __packed {
     uint16_t reserved1;  // REMOVED chassis_voltage
     uint16_t reserved2;  // REMOVED chassis_current
     float reserved3;     // REMOVED chassis_power
@@ -369,155 +334,136 @@ typedef struct {
     uint16_t shooter_42mm_barrel_heat;
     uint8_t infoUpdateFlag;
 } power_heat_data_t;
+static_assert(offsetof(power_heat_data_t, infoUpdateFlag) == 16, "power_heat_data_t size must be 16 bytes");
 
-/* ID: 0X0203          Byte: 16      机器人位置数据  */
-/* ID: 0X0203          Byte: 16      Robot position data */
-typedef struct {
+
+/* 
+    ID: 0X0203          
+    Byte: 12      
+    
+    Robot position data. Units are in m (for x,y) and degrees for angle.
+    True north is 0 degrees
+*/
+typedef struct __packed {
     float x;
     float y;
     float angle;
     uint8_t infoUpdateFlag;
 } robot_pos_t;
+static_assert(offsetof(robot_pos_t, infoUpdateFlag) == 12, "robot_pos_t size must be 12 bytes");
 
-/* ID: 0X0204          Byte: 1       机器人增益数据 */
-/* ID: 0X0204          Byte: 1       Robot buff data */
-typedef struct {
-    union {
-        uint8_t dataBuff[1];
-        struct __packed {
-            /*bit 0：机器人血量补血状态
-              bit 0: Robot HP recovery status
-              bit 1：枪口热量冷却加速
-              bit 1: Barrel heat cooling acceleration
-              bit 2：机器人防御加成
-              bit 2: Robot defense buff
-              bit 3：机器人攻击加成
-              bit 3: Robot attack buff*/
-            uint8_t power_rune_buff;
-        };
-    } data;
-    uint8_t infoUpdateFlag;
-} ext_buff_t;
 
-typedef struct {
+/* 
+    ID: 0X0204          
+    Byte: 7       
+    Robot buffs data
+*/
+typedef struct __packed {
     uint8_t recovery_buff;
     uint8_t cooling_buff;
     uint8_t defence_buff;
     uint8_t vulnerability_buff;
     uint16_t attack_buff;
-} buff_t;
-
-/* ID: 0X0205          Byte: 2       空中机器人能量状态数据 */
-/* ID: 0X0205          Byte: 2       Aerial robot energy status data */
-typedef struct {
-    union {
-        uint8_t dataBuff[2];
-        struct __packed {
-            // 可攻击时间 单位 s。30s 递减至 0
-            //  Attackable time (seconds), decrements from 30s to 0
-            uint8_t attack_time;
-        };
-    } data;
+    uint8_t remaining_energy;
     uint8_t infoUpdateFlag;
-} aerial_robot_energy_t;
+} buff_t;
+typedef buff_t ext_buff_t; // used for not breaking our serial defines
+static_assert(offsetof(buff_t, infoUpdateFlag) == 7, "buff_t size must be 7 bytes");
 
-/* ID: 0X0206          Byte: 1       伤害状态数据 */
-/* ID: 0X0206          Byte: 1       Damage status data */
-typedef struct {
+
+/* 
+    ID: 0X0206          
+    Byte: 1       
+    Damage status data 
+*/
+typedef struct __packed {
     uint8_t armor_id : 4;
     uint8_t HP_deduction_reason : 4;
     uint8_t infoUpdateFlag;
 } hurt_data_t;
+static_assert(offsetof(hurt_data_t, infoUpdateFlag) == 1, "hurt_data_t size must be 1 byte");
 
-/* ID: 0X0207          Byte: 7       实时射击数据 */
-/* ID: 0X0207          Byte: 7       Real-time shooting data */
-typedef struct {
-    uint8_t bullet_type;
-    uint8_t shooter_number;
-    uint8_t launching_frequency;
-    float initial_speed;
+
+
+/* 
+    ID: 0X0207          
+    Byte: 7       
+    Real-time shooting data
+*/
+typedef struct __packed {
+    ProjectileType bullet_type;
+    ShooterId shooter_number;
+    uint8_t launching_frequency; // Hz
+    float initial_speed; // m/s
     uint8_t infoUpdateFlag;
 } shoot_data_t;
+static_assert(offsetof(shoot_data_t, infoUpdateFlag) == 7, "shoot_data_t size must be 7 bytes");
 
-/* ID: 0X0208          Byte: 6       子弹剩余发送数 */
-/* ID: 0X0208          Byte: 6       Remaining projectile launch count */
-typedef struct {
+
+/* 
+    ID: 0X0208          
+    Byte: 6       
+    Remaining projectile launch count 
+*/
+typedef struct __packed {
     uint16_t projectile_allowance_17mm;
     uint16_t projectile_allowance_42mm;
     uint16_t remaining_gold_coin;
+    uint16_t projectile_allowance_fortress; // the reserve 17mm projectile allowance provided by the Fortress Buff Point
     uint8_t infoUpdateFlag;
 } projectile_allowance_t;
+static_assert(offsetof(projectile_allowance_t, infoUpdateFlag) == 8, "projectile_allowance_t size must be 8 bytes");
 
-/* ID: 0X0209          Byte: 4       机器人RFID状态 */
-/* ID: 0X0209          Byte: 4       Robot RFID status */
-/*bit 0：基地增益点 RFID 状态；
-bit 0: Base buff point RFID status;
-bit 1：高地增益点 RFID 状态；
-bit 1: Elevated ground buff point RFID status;
-bit 2：能量机关激活点 RFID 状态；
-bit 2: Power Rune activation point RFID status;
-bit 3：飞坡增益点 RFID 状态；
-bit 3: Launch ramp buff point RFID status;
-bit 4：前哨岗增益点 RFID 状态；
-bit 4: Outpost buff point RFID status;
-bit 5：资源岛增益点 RFID 状态；
-bit 5: Resource island buff point RFID status;
-bit 6：补血点增益点 RFID 状态；
-bit 6: HP recovery point buff point RFID status;
-bit 7：工程机器人补血卡 RFID 状态；
-bit 7: Engineer robot HP recovery card RFID status;
-RFID 状态不完全代表对应的增益或处罚状态，例如敌方已占领的高地增益点，不能获取对应的增益效果。
-RFID status does not entirely represent the corresponding buff or penalty status; for example, if
-the enemy has occupied an elevated ground buff point, the corresponding buff effect cannot be
-obtained.*/
-typedef struct {
-    union {
-        uint8_t dataBuff[4];
-        struct {
-            uint32_t rfid_status;
-        };
-    } data;
+
+
+/* 
+    ID: 0X0209          
+    Byte: 4       
+    Robot RFID status 
+    
+    bit 0：基地增益点 RFID 状态；
+    bit 0: Base buff point RFID status;
+    bit 1：高地增益点 RFID 状态；
+    bit 1: Elevated ground buff point RFID status;
+    bit 2：能量机关激活点 RFID 状态；
+    bit 2: Power Rune activation point RFID status;
+    bit 3：飞坡增益点 RFID 状态；
+    bit 3: Launch ramp buff point RFID status;
+    bit 4：前哨岗增益点 RFID 状态；
+    bit 4: Outpost buff point RFID status;
+    bit 5：资源岛增益点 RFID 状态；
+    bit 5: Resource island buff point RFID status;
+    bit 6：补血点增益点 RFID 状态；
+    bit 6: HP recovery point buff point RFID status;
+    bit 7：工程机器人补血卡 RFID 状态；
+    bit 7: Engineer robot HP recovery card RFID status;
+    RFID 状态不完全代表对应的增益或处罚状态，例如敌方已占领的高地增益点，不能获取对应的增益效果。
+    RFID status does not entirely represent the corresponding buff or penalty status; for example, if
+    the enemy has occupied an elevated ground buff point, the corresponding buff effect cannot be
+    obtained.
+*/
+typedef struct __packed {
+    uint32_t rfid_status;
     uint8_t infoUpdateFlag;
 } ext_rfid_status_t;
+static_assert(offsetof(ext_rfid_status_t, infoUpdateFlag) == 4, "ext_rfid_status_t size must be 4 bytes");
 
-/* ID: 0x020A          Byte: 12      飞镖机器人客户端指令书 */
-/* ID: 0x020A          Byte: 12      Dart robot client command book */
-typedef struct {
-    union {
-        uint8_t dataBuff[12];
-        struct __packed {
-            // 当前飞镖发射口的状态
-            //  Current dart launch gate status
-            uint8_t dart_launch_opening_status;
-            // 飞镖的打击目标，默认为前哨站
-            //  Dart attack target (default is outpost)
-            uint8_t dart_attack_target;
-            // 切换打击目标时的比赛剩余时间，单位秒，从未切换默认为 0。
-            //  Remaining game time when switching target (seconds), defaults to 0 if never switched
-            uint16_t target_change_time;
-            // 检测到的第一枚飞镖速度，单位 0.1m/s/LSB, 未检测是为 0
-            //  Detected 1st dart speed, unit: 0.1 m/s/LSB (0 if not detected)
-            uint8_t first_dart_speed;
-            // 检测到的第二枚飞镖速度，单位 0.1m/s/LSB, 未检测是为 0
-            //  Detected 2nd dart speed, unit: 0.1 m/s/LSB (0 if not detected)
-            uint8_t second_dart_speed;
-            // 检测到的第三枚飞镖速度，单位 0.1m/s/LSB, 未检测是为 0
-            //  Detected 3rd dart speed, unit: 0.1 m/s/LSB (0 if not detected)
-            uint8_t third_dart_speed;
-            // 检测到的第四枚飞镖速度，单位 0.1m/s/LSB, 未检测是为 0
-            //  Detected 4th dart speed, unit: 0.1 m/s/LSB (0 if not detected)
-            uint8_t fourth_dart_speed;
-            // 最近一次的发射飞镖的比赛剩余时间，单位秒，初始值为 0。
-            //  Remaining game time of the most recent dart launch (seconds), initial value is 0
-            uint16_t last_dart_launch_time;
-            // 最近一次操作手确定发射指令时的比赛剩余时间，单位秒, 初始值为 0。
-            //  Remaining game time when operator confirmed launch command (seconds), initial value
-            //  is 0
-            uint16_t operate_launch_cmd_time;
-        };
-    } data;
+
+/* 
+    ID: 0x020A          
+    Byte: 12      
+    Dart robot client commands 
+*/
+typedef struct __packed {
+    DartStatus dart_launch_opening_status;
+    uint8_t reserved;
+    // remaining competition time when attack target changed. Default: 0sec (no target change)
+    uint16_t target_change_time; 
+    // Remaining competition time when the Operator confirms the launch command for the last time. Default: 0sec
+    uint16_t latest_launch_cmd_time;
     uint8_t infoUpdateFlag;
 } ext_dart_client_cmd_t;
+static_assert(offsetof(ext_dart_client_cmd_t, infoUpdateFlag) == 6, "ext_dart_client_cmd_t size must be 6 bytes");
 
 // ----------------------- Line 1163
 
