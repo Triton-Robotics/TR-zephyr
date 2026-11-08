@@ -29,7 +29,7 @@ jobs:
 
       - name: Build ${{ matrix.robot }}
         working-directory: app
-        run: make ${{ matrix.robot }}-build-clean
+          run: make -f makefiles/Makefile_linux ${{ matrix.robot }}-build-clean
 
       - name: Upload firmware
         uses: actions/upload-artifact@v4
