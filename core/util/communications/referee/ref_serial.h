@@ -14,6 +14,14 @@
 
 class Referee: public StmIO {
 public:
+    struct Packet{
+        PacketHeader cmd_id;
+        PacketLength frame_len;
+        void* dest;
+        uint8_t* update_flag;
+        const char* debug_print;
+    };
+
     // Referee(PinName pin_tx, PinName pin_rx);
     explicit Referee(const struct device *uart, USART_TypeDef *ll_usart); // Apparently no uart_dt_spec the same way there is for PWM and i2c, very sad
     
@@ -39,7 +47,7 @@ public:
     uint16_t get_remain_hp();
     
     // Return game progress
-    game_status_t::GameProgress get_game_progress();
+    GameProgress get_game_progress();
     
     
     robot_status_t                          robot_status;
@@ -96,23 +104,26 @@ private:
     game_status_t 		                    game_status;
     game_result_t                           game_result;
     ext_game_robot_HP_t                     ext_game_robot_HP;
-    ext_dart_status_t                       ext_dart_status;
-    ext_ICRA_buff_debuff_zone_status_t      ext_ICRA_buff_debuff_zone_status;
     ext_event_data_t                        ext_even_data;
-    ext_supply_projectile_action_t          ext_supply_projectile_action;
     referee_warning_t                       referee_warning;
     ext_dart_remaining_time_t               ext_dart_remaining_time;
     robot_pos_t                             robot_pos;
     ext_buff_t                              Buff;
     buff_t                                  buff;
-    aerial_robot_energy_t                   aerial_robot_energy;
     hurt_data_t                             hurt_data;
     shoot_data_t                            shoot_data;
     projectile_allowance_t                  projectile_allowance;
     ext_rfid_status_t                       ext_rfid_status;
     ext_dart_client_cmd_t                   ext_dart_client_cmd;
+    
+    // Unused
+    // ext_dart_status_t                       ext_dart_status;
+    // ext_ICRA_buff_debuff_zone_status_t      ext_ICRA_buff_debuff_zone_status;   
+    // ext_supply_projectile_action_t          ext_supply_projectile_action;
+    // aerial_robot_energy_t                   aerial_robot_energy;
 
     uint8_t Robot_Commute[26];
+    const Packet packets[16];
 
     uint8_t seq=0;
     unsigned char CliendTxBuffer[send_max_len];
@@ -131,6 +142,9 @@ private:
     void init_referee_struct_data();
 
     void printDebug();
+
+    static bool unpack_payload(void* dest, const uint8_t* src, size_t payload_len, uint8_t* update_flag = nullptr);
+    
 };
 
 #endif

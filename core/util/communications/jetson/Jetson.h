@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <memory>
 #include <vector>
-#include "referee/ref_serial.h"
+#include <util/communications/referee/ref_constants.h>
 
 class WritePacket;
 class ReadPacket;
@@ -21,7 +21,7 @@ class Jetson {
         float pitch_velocity;
         float yaw_velocity;
 
-        game_status_t::GameProgress game_state;
+        GameProgress game_state;
         TeamColor team_color;
         uint16_t robot_hp;
 
