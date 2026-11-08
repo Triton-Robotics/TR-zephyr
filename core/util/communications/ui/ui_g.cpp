@@ -364,7 +364,7 @@ void UI::ui_scan_and_send(const ui_interface_figure_t *ui_now_figures, uint8_t *
             if (now_idx + 1 == pack_size || now_cap + 1 == dirty_count) {
                 // Fills all remaining packet indexes with the "no operation" command
                 // just in case there is left-over data from previous itterations 
-                for (int j = now_idx + 1; j < pack_size + 1; j++) {
+                for (int j = now_idx + 1; j < pack_size; j++) {
                     if (pack_size == 7) {
                         _ui_7_frame.data[j].operate_type = 0;
                     } else if (pack_size == 5) {

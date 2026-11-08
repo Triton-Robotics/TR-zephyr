@@ -4,6 +4,7 @@
 #include <zephyr/device.h>
 #include <zephyr/sys/ring_buffer.h>
 #include <cstdint>
+#include <sys/types.h>
 
 
 // ADJUST THESE VALUES AS NECESSARY
