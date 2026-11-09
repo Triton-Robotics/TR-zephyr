@@ -95,9 +95,9 @@ void Referee::Judge_GetMessage(uint16_t Data_Length) {
             preData.shooter_17mm_barrel_heat != 0) {
             power_heat_data.shooter_17mm_barrel_heat = preData.shooter_17mm_barrel_heat;
         }
-        if (power_heat_data.shooter_42mm_barrel == 0 &&
-            preData.shooter_42mm_barrel != 0) {
-            power_heat_data.shooter_42mm_barrel = preData.shooter_42mm_barrel;
+            if (power_heat_data.shooter_42mm_barrel == 0 &&
+                preData.shooter_42mm_barrel != 0) {
+                power_heat_data.shooter_42mm_barrel = preData.shooter_42mm_barrel;
         }
         }
     }

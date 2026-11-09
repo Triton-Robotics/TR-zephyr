@@ -217,7 +217,7 @@ static_assert(offsetof(game_result_t, infoUpdateFlag) == 1, "game_result_t size 
 
 /* 
     ID: 0x0003     
-    32 byte length
+    24 byte length
 
     Retrieves the hp of every robot in the round from the server and stores it here.
     Although unused in this codebase right now, can be used to track states of every other robot.
@@ -243,7 +243,7 @@ static_assert(offsetof(ext_game_robot_HP_t, infoUpdateFlag) == 24, "ext_game_rob
 
 /* 
     ID: 0x0101     
-    Byte: 4       
+    Byte: 8       
     Field event data 
 */
 typedef struct __packed {
@@ -283,7 +283,7 @@ static_assert(offsetof(ext_dart_remaining_time_t, infoUpdateFlag) == 3, "ext_dar
 
 /* 
     ID: 0X0201          
-    Byte: 13      
+    Byte: 17      
     Robot status data 
 */
 typedef struct __packed {
@@ -306,7 +306,7 @@ static_assert(offsetof(robot_status_t, infoUpdateFlag) == 17, "robot_status_t si
 
 /* 
     ID: 0X0202          
-    Byte: 16      
+    Byte: 14      
     Real-time power and heat data 
 */
 typedef struct __packed {
@@ -345,7 +345,7 @@ static_assert(offsetof(robot_pos_t, infoUpdateFlag) == 12, "robot_pos_t size mus
 */
 typedef struct __packed {
     uint8_t recovery_buff;
-    uint8_t cooling_buff;
+    uint16_t cooling_buff;
     uint8_t defence_buff;
     uint8_t vulnerability_buff;
     uint16_t attack_buff;
@@ -353,12 +353,12 @@ typedef struct __packed {
     uint8_t infoUpdateFlag;
 } buff_t;
 typedef buff_t ext_buff_t; // used for not breaking our serial defines
-static_assert(offsetof(buff_t, infoUpdateFlag) == 6, "buff_t size must be 6 bytes");
+static_assert(offsetof(buff_t, infoUpdateFlag) == 7, "buff_t size must be 7 bytes");
 
 
 /* 
     ID: 0X0206          
-    Byte: 1       
+    Byte: 7       
     Damage status data 
 */
 typedef struct __packed {
@@ -390,7 +390,7 @@ static_assert(offsetof(shoot_data_t, infoUpdateFlag) == 7, "shoot_data_t size mu
 
 /* 
     ID: 0X0208          
-    Byte: 6       
+    Byte: 8       
     Remaining projectile launch count 
 */
 typedef struct __packed {
@@ -435,7 +435,7 @@ typedef struct __packed {
     uint16_t rfid_status_2; 
     uint8_t infoUpdateFlag;
 } ext_rfid_status_t;
-static_assert(offsetof(ext_rfid_status_t, infoUpdateFlag) == 6, "ext_rfid_status_t size must be 4 bytes");
+static_assert(offsetof(ext_rfid_status_t, infoUpdateFlag) == 6, "ext_rfid_status_t size must be 6 bytes");
 
 
 /* 
