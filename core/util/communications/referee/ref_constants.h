@@ -132,16 +132,10 @@ enum class PacketHeader : uint16_t {
     DART_CLIENT       = 0x020A, // 6
     ROBOT_COMMUNICATE = 0x0301, // 118
     MAP_INTERACTION   = 0x0303, // 12
-    CLIENT_MAP        = 0x0305, // 48
-
-    // New in 2027, not parsed yet
-    // GROUND_ROBOT_POS = 0x020B, // 40 (sentry only)
-    // RADAR_MARK       = 0x020C, // 2  (radar only)
-    // SENTRY_INFO      = 0x020D, // 14 (sentry only)
-    // RADAR_INFO       = 0x020E, // 8  (radar only)
-    // CUSTOM_INFO      = 0x0308, // 34 robot -> client text
-    // CUSTOM_TERMINAL  = 0x0310, // 300 VTM link
-    // CUSTOM_CMD       = 0x0311, // 60  VTM link
+    GROUND_ROBOT_POS = 0x020B, // 40 
+    RADAR_MARK       = 0x020C, // 2 
+    SENTRY_INFO      = 0x020D, // 14 
+    RADAR_INFO       = 0x020E, // 8  
 
     // Removed in 2027: 0x0004, 0x0005, 0x0102, 0x0205, 0x0302, 0x0304
 };
@@ -169,6 +163,11 @@ enum class PacketLength : uint16_t {
     ROBOT_RFID        = 15,
     DART_CLIENT       = 15,
     ROBOT_COMMUNICATE = 35, 
+    MAP_INTERACTION   = 21,
+    GROUND_ROBOT_POS  = 49,
+    RADAR_MARK        = 11,
+    SENTRY_INFO       = 23,
+    RADAR_INFO        = 17,
 };
 
 // needed for anonymous structs defined below
@@ -583,7 +582,59 @@ typedef struct __packed {
     uint16_t receiver_ID;
     robot_interactive_data_t data;  // ADDED
 } ext_student_interactive_header_data_robot_comm_t;
+/* 0x020B, 40 bytes. Own ground robot positions (m), sent to sentry. */
+typedef struct __packed {
+    float heavyengineer_x;
+    float heavyengineer_y;
+    float reserved1;
+    float reserved2;
+    float infantry_3_x;
+    float infantry_3_y;
+    float infantry_4_x;
+    float infantry_4_y;
+    float reserved3;
+    float reserved4;
+    uint8_t infoUpdateFlag;
+} ground_robot_position_t;
+static_assert(offsetof(ground_robot_position_t, infoUpdateFlag) == 40, "0x020B must be 40 bytes");
 
+/* 0x020C, 2 bytes. Radar tracking/vulnerability bits (Table 1-22). */
+typedef struct __packed {
+    uint16_t tracking_progress;
+    uint8_t infoUpdateFlag;
+} radar_mark_data_t;
+static_assert(offsetof(radar_mark_data_t, infoUpdateFlag) == 2, "0x020C must be 2 bytes");
+
+/* 0x020D, 14 bytes. Sentry decision sync (Table 1-23). */
+typedef struct __packed {
+    uint32_t sentry_info;   // exchanges, respawn flags, respawn cost
+    uint16_t sentry_info_2; // out of combat, remaining 17mm exchanges, mode
+    uint64_t sentry_info_3; // mode timers (seconds)
+    uint8_t infoUpdateFlag;
+} sentry_info_t;
+static_assert(offsetof(sentry_info_t, infoUpdateFlag) == 14, "0x020D must be 14 bytes");
+
+/* 0x020E, 8 bytes. Radar decision sync (Table 1-24). */
+typedef struct __packed {
+    uint8_t  radar_info;    // double vulnerability, level, key-change flag
+    uint8_t  radar_info_2;  // armor reinforcement zone status
+    uint16_t fortify_center_x; // mm
+    uint16_t fortify_center_y; // mm
+    uint16_t fortify_radius;   // mm
+    uint8_t infoUpdateFlag;
+} radar_info_t;
+static_assert(offsetof(radar_info_t, infoUpdateFlag) == 8, "0x020E must be 8 bytes");
+
+/* 0x0303, 12 bytes. Operator minimap click (Table 1-35). */
+typedef struct __packed {
+    float    target_position_x; // m, 0 if robot ID sent
+    float    target_position_y; // m
+    uint8_t  cmd_keyboard;      // key pressed, 0 if none
+    uint8_t  target_robot_id;   // opponent ID, 0 if coords sent
+    uint16_t source_id;         // who sent it
+    uint8_t infoUpdateFlag;
+} map_command_t;
+static_assert(offsetof(map_command_t, infoUpdateFlag) == 12, "0x0303 must be 12 bytes");
 // ------------------- Line 1330
 
 // /*机器人交互信息：0x0301*/

@@ -249,6 +249,16 @@ Referee::Referee(const struct device* uart, USART_TypeDef* ll_usart)
            &ext_dart_client_cmd.infoUpdateFlag, "DC"},
           {PacketHeader::ROBOT_COMMUNICATE, PacketLength::ROBOT_COMMUNICATE, Robot_Commute, nullptr,
            "RC"},
+           {PacketHeader::GROUND_ROBOT_POS, PacketLength::GROUND_ROBOT_POS, &ground_robot_position,
+           &ground_robot_position.infoUpdateFlag, "GP"},
+          {PacketHeader::RADAR_MARK, PacketLength::RADAR_MARK, &radar_mark_data,
+           &radar_mark_data.infoUpdateFlag, "RM"},
+          {PacketHeader::SENTRY_INFO, PacketLength::SENTRY_INFO, &sentry_info,
+           &sentry_info.infoUpdateFlag, "SI"},
+          {PacketHeader::RADAR_INFO, PacketLength::RADAR_INFO, &radar_info,
+           &radar_info.infoUpdateFlag, "RI"},
+          {PacketHeader::MAP_INTERACTION, PacketLength::MAP_INTERACTION, &map_command,
+           &map_command.infoUpdateFlag, "MC"},
 
           // unused
           // {PacketHeader::DART_LAUNCH, PacketLength::DART_LAUNCH, &ext_dart_status,

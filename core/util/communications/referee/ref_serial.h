@@ -115,7 +115,12 @@ private:
     projectile_allowance_t                  projectile_allowance;
     ext_rfid_status_t                       ext_rfid_status;
     ext_dart_client_cmd_t                   ext_dart_client_cmd;
-    
+    ground_robot_position_t                 ground_robot_position;
+    radar_mark_data_t                       radar_mark_data;
+    sentry_info_t                           sentry_info;
+    radar_info_t                            radar_info;
+    map_command_t                           map_command;
+
     // Unused
     // ext_dart_status_t                       ext_dart_status;
     // ext_ICRA_buff_debuff_zone_status_t      ext_ICRA_buff_debuff_zone_status;   
@@ -123,7 +128,7 @@ private:
     // aerial_robot_energy_t                   aerial_robot_energy;
 
     uint8_t Robot_Commute[26];
-    const Packet packets[16];
+    const Packet packets[21];
 
     uint8_t seq=0;
     unsigned char CliendTxBuffer[send_max_len];
