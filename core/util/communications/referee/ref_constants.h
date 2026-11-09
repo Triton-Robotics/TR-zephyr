@@ -45,7 +45,14 @@
 #define JUDGESYSTEM_PACKSIZE 389u
 
 
-// although definitions work fine, they clutter up the namespace and are prone to integer interpretation errors
+/*
+    Based on the RoboMaster 2027 Referee Communication Protocol
+    (https://drive.google.com/file/d/1HYB7Tj4u0AFA7-obBdLQBzYZNYMHihIQ/view?usp=sharing)
+
+    Last Updated: 11/09/2026
+*/
+
+
 enum class TeamColor : uint8_t {
     UNKNOWN = 0,
     RED = 1,
@@ -55,14 +62,15 @@ enum class TeamColor : uint8_t {
 constexpr const char* TeamColor_To_Str[] = {"UNKNOWN", "RED", "BLUE"};
 
 
-// unused but required for the game status packet
-//If commented not used in 2027
 enum class GameType : uint8_t {
-    RMUL_3V3 = 4,
-    RMUL_INFANTRY = 5,
     RMUC = 1, // RoboMaster University Championship
-    //RMUT = 2, // RoboMaster University Technical Challenge
-    //RMUA = 3, // ICRA RoboMaster University AI Challenge
+    RMUL_INFANTRY = 5,
+    RMUL_3V3 = 4,
+    
+    // not used in 2027
+    // included just in case server sends 2 or 3
+    RESERVED_1 = 2,
+    RESERVED_2 = 3,
 };
 
 enum class GameProgress : uint8_t {
@@ -81,7 +89,7 @@ enum class Result : uint8_t {
 };
 
 enum class PenaltyLevels : uint8_t {
-    BOTH_YELLOW = 1, // both teams receive yellow card
+    DUAL_YELLOW = 1, // both teams receive yellow card
     YELLOW_CARD = 2, // own robot received yellow
     RED_CARD = 3,
     FORFEITURE = 4,
@@ -187,6 +195,7 @@ typedef struct {
 
 } xFrameHeader;
 
+
 /* 
     ID: 0x0001    
     Byte: 11    
@@ -219,15 +228,13 @@ static_assert(offsetof(game_result_t, infoUpdateFlag) == 1, "game_result_t size 
     24 byte length
 
     Retrieves the hp of every robot in the round from the server and stores it here.
-    Although unused in this codebase right now, can be used to track states of every other robot.
-    DO NOT DELETE; required for correctly parsing the incoming server packet
 */
 typedef struct __packed {
-    uint16_t ally_1_robot_HP;
+    uint16_t ally_1_robot_HP; // if not in round or ejected, will be 0
     uint16_t reserved;
     uint16_t ally_3_robot_HP;
     uint16_t ally_4_robot_HP;
-    int16_t damage_differenceuint16_t;
+    int16_t damage_differenceuint16_t; // difference between own side total damage and opp total
     uint16_t ally_7_robot_HP;
     uint16_t outpost_R_HP;
     uint16_t ally_base_HP;
@@ -340,7 +347,8 @@ static_assert(offsetof(robot_pos_t, infoUpdateFlag) == 12, "robot_pos_t size mus
 /* 
     ID: 0X0204          
     Byte: 7       
-    Robot buffs data
+    Robot buff data. Units are in percent EXCEPT cooling buff, which is a flat value increase. 
+    (e.g recovery_buff = 50 means 50% recovery buff)
 */
 typedef struct __packed {
     uint8_t recovery_buff;
@@ -348,7 +356,6 @@ typedef struct __packed {
     uint8_t defence_buff;
     uint8_t vulnerability_buff;
     uint16_t attack_buff;
-    //uint8_t remaining_energy;
     uint8_t infoUpdateFlag;
 } buff_t;
 typedef buff_t ext_buff_t; // used for not breaking our serial defines
@@ -452,6 +459,12 @@ typedef struct __packed {
     uint8_t infoUpdateFlag;
 } ext_dart_client_cmd_t;
 static_assert(offsetof(ext_dart_client_cmd_t, infoUpdateFlag) == 6, "ext_dart_client_cmd_t size must be 6 bytes");
+
+/*
+    ID: 0x020C,
+    Byte: 40,
+    Contains coordinate position of own side robots
+*/
 typedef struct __packed {
     float heavyengineer_x;
     float heavyengineer_y;
@@ -465,25 +478,37 @@ typedef struct __packed {
     float reserved4;
     uint8_t infoUpdateFlag;
 } ground_robot_position_t;
-static_assert(offsetof(ground_robot_position_t, infoUpdateFlag) == 40, "0x020B must be 40 bytes");
+static_assert(offsetof(ground_robot_position_t, infoUpdateFlag) == 40, "ground_robot_position_t must be 40 bytes");
 
-/* 0x020C, 2 bytes. Radar tracking/vulnerability bits (Table 1-22). */
+/* 
+    0x020C, 
+    2 bytes. 
+    Radar tracking/vulnerability bits (Table 1-22). 
+*/
 typedef struct __packed {
     uint16_t tracking_progress;
     uint8_t infoUpdateFlag;
 } radar_mark_data_t;
-static_assert(offsetof(radar_mark_data_t, infoUpdateFlag) == 2, "0x020C must be 2 bytes");
+static_assert(offsetof(radar_mark_data_t, infoUpdateFlag) == 2, "radar_mark_data_t must be 2 bytes");
 
-/* 0x020D, 14 bytes. Sentry decision sync (Table 1-23). */
+/* 
+    0x020D, 
+    14 bytes. 
+    Sentry decision sync (Table 1-23). 
+*/
 typedef struct __packed {
     uint32_t sentry_info;   // exchanges, respawn flags, respawn cost
     uint16_t sentry_info_2; // out of combat, remaining 17mm exchanges, mode
     uint64_t sentry_info_3; // mode timers (seconds)
     uint8_t infoUpdateFlag;
 } sentry_info_t;
-static_assert(offsetof(sentry_info_t, infoUpdateFlag) == 14, "0x020D must be 14 bytes");
+static_assert(offsetof(sentry_info_t, infoUpdateFlag) == 14, "sentry_info_t must be 14 bytes");
 
-/* 0x020E, 8 bytes. Radar decision sync (Table 1-24). */
+/* 
+    0x020E, 
+    8 bytes. 
+    Radar decision sync (Table 1-24). 
+*/
 typedef struct __packed {
     uint8_t  radar_info;    // double vulnerability, level, key-change flag
     uint8_t  radar_info_2;  // armor reinforcement zone status
@@ -492,9 +517,13 @@ typedef struct __packed {
     uint16_t fortify_radius;   // mm
     uint8_t infoUpdateFlag;
 } radar_info_t;
-static_assert(offsetof(radar_info_t, infoUpdateFlag) == 8, "0x020E must be 8 bytes");
+static_assert(offsetof(radar_info_t, infoUpdateFlag) == 8, "radar_info_t must be 8 bytes");
 
-/* 0x0303, 12 bytes. Operator minimap click (Table 1-35). */
+/* 
+    0x0303, 
+    12 bytes. 
+    Operator minimap click (Table 1-35). 
+*/
 typedef struct __packed {
     float    target_position_x; // m, 0 if robot ID sent
     float    target_position_y; // m
@@ -503,7 +532,9 @@ typedef struct __packed {
     uint16_t source_id;         // who sent it
     uint8_t infoUpdateFlag;
 } map_command_t;
-static_assert(offsetof(map_command_t, infoUpdateFlag) == 12, "0x0303 must be 12 bytes");
+static_assert(offsetof(map_command_t, infoUpdateFlag) == 12, "map_command_t must be 12 bytes");
+
+
 // ----------------------- Line 1163
 
 /* ID: 0X0301          Byte: n       机器人间交互数据 */
