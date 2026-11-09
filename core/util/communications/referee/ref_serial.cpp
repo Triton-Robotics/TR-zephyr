@@ -33,80 +33,58 @@ int Referee::JudgeSystem_USART_Receive_DMA()  // modified
 }
 
 void Referee::Judge_GetMessage(uint16_t Data_Length) {
-    // These are the values that are needed depeneding on the cmd_id
-    // cnd_id the differnt possible packets
-    // frame_len the  byte length of the commands
-    // dest is where the data gets stored
-    // update flag idk what this is but it gets set to 1 if the packet gets updated
-
-    uint16_t n = 0;
-    while (n < Data_Length) {
-        // frame is the current byte the "cursor" is on
+    uint16_t n =0;
+    while(n<Data_Length){
+        //frame is the current byte the "cursor" is on
         uint8_t* frame = &JudgeSystem_rxBuff[n];
-        if (frame[0] != JUDGE_FRAME_HEADER) {
+        if(frame[0] != JUDGE_FRAME_HEADER){
             n++;
             continue;
         }
-
         // Constructs the command id header from buffer
-        PacketHeader cmd_id = static_cast<PacketHeader>(frame[5] | (frame[6] << 8));
-
-        // Searches through packets till the correct command id is found.
-        // The correct packet is then stored in val
+        uint16_t cmd_id = frame[5] | (frame[6] << 8);
+        //Searches throgh packets till the correct command id is found . val then points to the correct packet
         const Packet* val = nullptr;
-        for (const Packet& p : packets) {
-            if (p.cmd_id == cmd_id) {
+        for(const Packet& p : packets){
+            if(p.cmd_id == static_cast<PacketHeader>(cmd_id)){
                 val = &p;
                 break;
             }
         }
-
-        // Verify_CRC16_Check_Sum checks the data is uncorrupted
-        // If corrupted, skip over it
-        // Also skips if the cmd_id was not identified
-        if (val == nullptr ||
-            !Verify_CRC16_Check_Sum(frame, static_cast<uint16_t>(val->frame_len))) {
-#if REF_DEBUG
-            printf("%s_NO[%d]\n", val ? val->debug_print : "UNKNOWN", n);
-#endif
-
+        
+        //So Verify_CRC16_Check_Sum jsut checks the data is uncorrupted, so if it is we just skip over it, we also skip if the cmd_id was not identified
+        if(!(Verify_CRC16_Check_Sum(frame,static_cast<uint16_t>(val->frame_len)))||val==nullptr){
+            //prints if REF_Depug is postive to show that it failed
+            #if REF_DEBUG
+                printf("%s_NO[%d]\n", val->debug_print, n);
+            #endif
             n++;
             continue;
         }
-
-        // For the Power Heat it needs to be here otherwise it gets overwritten
+        uint16_t len = static_cast<uint16_t>(val->frame_len);
+        //For the Power Heat it needs to be here otherwise it gets overwritten
         power_heat_data_t preData = power_heat_data;
-
-        uint16_t frame_len = static_cast<uint16_t>(val->frame_len);
-
-        // Frame len specifies the TOTAL amount of bytes per packet of data
-        // Frame+7 bypasses the header + command ID prefix and skips to actual data
-        // JUDGE_EXTRA is a const that contains the length of the extra useless data,
-        // so we subtract to copy the right amount
-        bool unpackStatusCode =
-            unpack_payload(val->dest, frame + 7, frame_len - JUDGE_EXTRA, val->update_flag);
-        if (!unpackStatusCode) printf("fail to parse server packet\n");
-
-#if REF_DEBUG
-        printf("%s[%d]\n", val ? val->debug_print : "UNKNOWN", n);
-#endif
-
-        // skips over the frame that was just accounted for
-        n += frame_len;
-
-        // This is smth that Judge_Power_Heat has to deal with it kinda ruins the cleaness of the
-        // code :(
-        if (val->cmd_id == PacketHeader::POWER_HEAT) {
-            if (power_heat_data.shooter_17mm_1_barrel_heat == 0 &&
-                preData.shooter_17mm_1_barrel_heat != 0) {
+        //Andrew is gonan make a better function for this later but it just updates according to the nwe info
+        memcpy(val->dest, frame+7, len - JUDGE_EXTRA);
+        //prints if REF_Depug is postive to show that it worked
+        #if REF_DEBUG
+            printf("%s[%d]\n", val->debug_print, n);
+        #endif
+        //skips over the frame that was just accounted for
+        n += len;
+        //This chnages the update flag that all the vals have except for Judge_Robot_Communicate for some reason
+        if(val->update_flag!=nullptr){
+            *val->update_flag = 1;
+        }
+        //This is smth that Judge_Power_Heat has to deal with it kinda ruins the cleaness of the code :(
+        if(val->cmd_id==PacketHeader::POWER_HEAT){
+            if (power_heat_data.shooter_17mm_1_barrel_heat == 0 && preData.shooter_17mm_1_barrel_heat != 0) {
                 power_heat_data.shooter_17mm_1_barrel_heat = preData.shooter_17mm_1_barrel_heat;
             }
-            if (power_heat_data.shooter_17mm_2_barrel_heat == 0 &&
-                preData.shooter_17mm_2_barrel_heat != 0) {
+            if (power_heat_data.shooter_17mm_2_barrel_heat == 0 && preData.shooter_17mm_2_barrel_heat != 0) {
                 power_heat_data.shooter_17mm_2_barrel_heat = preData.shooter_17mm_2_barrel_heat;
             }
-            if (power_heat_data.shooter_42mm_barrel_heat == 0 &&
-                preData.shooter_42mm_barrel_heat != 0) {
+            if (power_heat_data.shooter_42mm_barrel_heat == 0 && preData.shooter_42mm_barrel_heat != 0) {
                 power_heat_data.shooter_42mm_barrel_heat = preData.shooter_42mm_barrel_heat;
             }
         }
