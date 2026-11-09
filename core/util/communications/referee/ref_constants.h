@@ -452,7 +452,58 @@ typedef struct __packed {
     uint8_t infoUpdateFlag;
 } ext_dart_client_cmd_t;
 static_assert(offsetof(ext_dart_client_cmd_t, infoUpdateFlag) == 6, "ext_dart_client_cmd_t size must be 6 bytes");
+typedef struct __packed {
+    float heavyengineer_x;
+    float heavyengineer_y;
+    float reserved1;
+    float reserved2;
+    float infantry_3_x;
+    float infantry_3_y;
+    float infantry_4_x;
+    float infantry_4_y;
+    float reserved3;
+    float reserved4;
+    uint8_t infoUpdateFlag;
+} ground_robot_position_t;
+static_assert(offsetof(ground_robot_position_t, infoUpdateFlag) == 40, "0x020B must be 40 bytes");
 
+/* 0x020C, 2 bytes. Radar tracking/vulnerability bits (Table 1-22). */
+typedef struct __packed {
+    uint16_t tracking_progress;
+    uint8_t infoUpdateFlag;
+} radar_mark_data_t;
+static_assert(offsetof(radar_mark_data_t, infoUpdateFlag) == 2, "0x020C must be 2 bytes");
+
+/* 0x020D, 14 bytes. Sentry decision sync (Table 1-23). */
+typedef struct __packed {
+    uint32_t sentry_info;   // exchanges, respawn flags, respawn cost
+    uint16_t sentry_info_2; // out of combat, remaining 17mm exchanges, mode
+    uint64_t sentry_info_3; // mode timers (seconds)
+    uint8_t infoUpdateFlag;
+} sentry_info_t;
+static_assert(offsetof(sentry_info_t, infoUpdateFlag) == 14, "0x020D must be 14 bytes");
+
+/* 0x020E, 8 bytes. Radar decision sync (Table 1-24). */
+typedef struct __packed {
+    uint8_t  radar_info;    // double vulnerability, level, key-change flag
+    uint8_t  radar_info_2;  // armor reinforcement zone status
+    uint16_t fortify_center_x; // mm
+    uint16_t fortify_center_y; // mm
+    uint16_t fortify_radius;   // mm
+    uint8_t infoUpdateFlag;
+} radar_info_t;
+static_assert(offsetof(radar_info_t, infoUpdateFlag) == 8, "0x020E must be 8 bytes");
+
+/* 0x0303, 12 bytes. Operator minimap click (Table 1-35). */
+typedef struct __packed {
+    float    target_position_x; // m, 0 if robot ID sent
+    float    target_position_y; // m
+    uint8_t  cmd_keyboard;      // key pressed, 0 if none
+    uint8_t  target_robot_id;   // opponent ID, 0 if coords sent
+    uint16_t source_id;         // who sent it
+    uint8_t infoUpdateFlag;
+} map_command_t;
+static_assert(offsetof(map_command_t, infoUpdateFlag) == 12, "0x0303 must be 12 bytes");
 // ----------------------- Line 1163
 
 /* ID: 0X0301          Byte: n       机器人间交互数据 */
@@ -583,58 +634,7 @@ typedef struct __packed {
     robot_interactive_data_t data;  // ADDED
 } ext_student_interactive_header_data_robot_comm_t;
 /* 0x020B, 40 bytes. Own ground robot positions (m), sent to sentry. */
-typedef struct __packed {
-    float heavyengineer_x;
-    float heavyengineer_y;
-    float reserved1;
-    float reserved2;
-    float infantry_3_x;
-    float infantry_3_y;
-    float infantry_4_x;
-    float infantry_4_y;
-    float reserved3;
-    float reserved4;
-    uint8_t infoUpdateFlag;
-} ground_robot_position_t;
-static_assert(offsetof(ground_robot_position_t, infoUpdateFlag) == 40, "0x020B must be 40 bytes");
 
-/* 0x020C, 2 bytes. Radar tracking/vulnerability bits (Table 1-22). */
-typedef struct __packed {
-    uint16_t tracking_progress;
-    uint8_t infoUpdateFlag;
-} radar_mark_data_t;
-static_assert(offsetof(radar_mark_data_t, infoUpdateFlag) == 2, "0x020C must be 2 bytes");
-
-/* 0x020D, 14 bytes. Sentry decision sync (Table 1-23). */
-typedef struct __packed {
-    uint32_t sentry_info;   // exchanges, respawn flags, respawn cost
-    uint16_t sentry_info_2; // out of combat, remaining 17mm exchanges, mode
-    uint64_t sentry_info_3; // mode timers (seconds)
-    uint8_t infoUpdateFlag;
-} sentry_info_t;
-static_assert(offsetof(sentry_info_t, infoUpdateFlag) == 14, "0x020D must be 14 bytes");
-
-/* 0x020E, 8 bytes. Radar decision sync (Table 1-24). */
-typedef struct __packed {
-    uint8_t  radar_info;    // double vulnerability, level, key-change flag
-    uint8_t  radar_info_2;  // armor reinforcement zone status
-    uint16_t fortify_center_x; // mm
-    uint16_t fortify_center_y; // mm
-    uint16_t fortify_radius;   // mm
-    uint8_t infoUpdateFlag;
-} radar_info_t;
-static_assert(offsetof(radar_info_t, infoUpdateFlag) == 8, "0x020E must be 8 bytes");
-
-/* 0x0303, 12 bytes. Operator minimap click (Table 1-35). */
-typedef struct __packed {
-    float    target_position_x; // m, 0 if robot ID sent
-    float    target_position_y; // m
-    uint8_t  cmd_keyboard;      // key pressed, 0 if none
-    uint8_t  target_robot_id;   // opponent ID, 0 if coords sent
-    uint16_t source_id;         // who sent it
-    uint8_t infoUpdateFlag;
-} map_command_t;
-static_assert(offsetof(map_command_t, infoUpdateFlag) == 12, "0x0303 must be 12 bytes");
 // ------------------- Line 1330
 
 // /*机器人交互信息：0x0301*/
