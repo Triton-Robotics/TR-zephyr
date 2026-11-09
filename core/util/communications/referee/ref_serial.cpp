@@ -33,12 +33,6 @@ int Referee::JudgeSystem_USART_Receive_DMA()  // modified
 }
 
 void Referee::Judge_GetMessage(uint16_t Data_Length) {
-    // These are the values that are needed depeneding on the cmd_id
-    // cnd_id the differnt possible packets
-    // frame_len the  byte length of the commands
-    // dest is where the data gets stored
-    // update flag idk what this is but it gets set to 1 if the packet gets updated
-
     uint16_t n = 0;
     while (n < Data_Length) {
         // frame is the current byte the "cursor" is on
@@ -73,7 +67,7 @@ void Referee::Judge_GetMessage(uint16_t Data_Length) {
             n++;
             continue;
         }
-
+        last_rx_ms = k_uptime_get_32();
         // For the Power Heat it needs to be here otherwise it gets overwritten
         power_heat_data_t preData = power_heat_data;
 
@@ -97,18 +91,14 @@ void Referee::Judge_GetMessage(uint16_t Data_Length) {
         // This is smth that Judge_Power_Heat has to deal with it kinda ruins the cleaness of the
         // code :(
         if (val->cmd_id == PacketHeader::POWER_HEAT) {
-            if (power_heat_data.shooter_17mm_1_barrel_heat == 0 &&
-                preData.shooter_17mm_1_barrel_heat != 0) {
-                power_heat_data.shooter_17mm_1_barrel_heat = preData.shooter_17mm_1_barrel_heat;
-            }
-            if (power_heat_data.shooter_17mm_2_barrel_heat == 0 &&
-                preData.shooter_17mm_2_barrel_heat != 0) {
-                power_heat_data.shooter_17mm_2_barrel_heat = preData.shooter_17mm_2_barrel_heat;
-            }
-            if (power_heat_data.shooter_42mm_barrel_heat == 0 &&
-                preData.shooter_42mm_barrel_heat != 0) {
-                power_heat_data.shooter_42mm_barrel_heat = preData.shooter_42mm_barrel_heat;
-            }
+            if (power_heat_data.shooter_17mm_barrel_heat == 0 &&
+            preData.shooter_17mm_barrel_heat != 0) {
+            power_heat_data.shooter_17mm_barrel_heat = preData.shooter_17mm_barrel_heat;
+        }
+        if (power_heat_data.shooter_42mm_barrel == 0 &&
+            preData.shooter_42mm_barrel != 0) {
+            power_heat_data.shooter_42mm_barrel = preData.shooter_42mm_barrel;
+        }
         }
     }
 }
