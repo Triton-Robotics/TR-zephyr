@@ -14,19 +14,7 @@
     };
 };
 
-&can1 {
-    pinctrl-0 = <&can1_rx_pa11 &can1_tx_pa12>;
-    pinctrl-names = "default";
-    status = "okay";
-    bitrate = <1000000>;
-};
-
-&can2 {
-    pinctrl-0 = <&can2_rx_pb12 &can2_tx_pb13>;
-    pinctrl-names = "default";
-    status = "okay";
-    bitrate = <1000000>;
-};
+// ADD YOUR CAN NODES HERE
 
 &usart1 { //Controller
     pinctrl-0 = <&usart1_rx_pa10>; // tx isn't connected because this is the controller
