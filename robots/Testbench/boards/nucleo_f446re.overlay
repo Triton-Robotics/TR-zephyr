@@ -15,7 +15,27 @@
 };
 
 // ADD YOUR CAN NODES HERE
-
+&can1{
+    pinctrl-0 = <&can1_rx_pa9 &can1_tx_pa8>;
+    pinctrl-names = "default";
+    status = "okay";
+    clock-frequency = <100000>;
+    }
+&can2{
+    pinctrl-0 = <&can1_rx_p12 &can1_tx_pa11>;
+    pinctrl-names = "default";
+    status = "okay";
+    clock-frequency = <100000>;
+    }
+DJIMotor motor{
+    motorID =
+    canBus =
+    type =
+    &name =
+}
+static const struct device canbus1 = DEVICE_DT_GET(DT_NODELABEL(can1));
+static const struct device canbus2 = DEVICE_DT_GET(DT_NODELABEL(can2));
+static const struct device motor = DJIMotor(short motorID, canBus1, motorType type,"practice")
 &usart1 { //Controller
     pinctrl-0 = <&usart1_rx_pa10>; // tx isn't connected because this is the controller
     pinctrl-names = "default";
