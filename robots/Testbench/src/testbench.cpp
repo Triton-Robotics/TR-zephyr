@@ -37,14 +37,14 @@ void periodic() {
 int main(void)
 {
     // I'm keeping these here just as debugging things. Don't worry about them 
-    printk("CAN SET MODE %d\n", can_set_mode(canbus1_dev, CAN_MODE_NORMAL));
-    printk("EBUSY %d, EIO %d, ENOTSUP %d\n", -EBUSY, -EIO, -ENOTSUP);
+    // printk("CAN SET MODE %d\n", can_set_mode(canbus1_dev, CAN_MODE_NORMAL));
+    // printk("EBUSY %d, EIO %d, ENOTSUP %d\n", -EBUSY, -EIO, -ENOTSUP);
     
     
-    can_state state;
-    can_bus_err_cnt err_cnt;
-    can_get_state(canbus1_dev, &state, &err_cnt);
-    printk("STATE %d, RX ERROR %d, TX ERROR %d\n", state, err_cnt.rx_err_cnt, err_cnt.tx_err_cnt);
+    // can_state state;
+    // can_bus_err_cnt err_cnt;
+    // can_get_state(canbus1_dev, &state, &err_cnt);
+    // printk("STATE %d, RX ERROR %d, TX ERROR %d\n", state, err_cnt.rx_err_cnt, err_cnt.tx_err_cnt);
 
 
     // --------------------------- Your code after this line 
