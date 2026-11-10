@@ -128,6 +128,8 @@ public:
 
     //EKF Seneor Fusion
 
+    void ekfStart();
+
     void ekfPredict(float gx, float gy, float gz, float dt);
 
     void ekfUpdate(float ax, float ay, float az);

@@ -93,10 +93,10 @@ bool ISM330::begin(float prop_gain, float int_gain) noexcept //TODO: Currently w
         return false;
     }
 
-    // mahonyStart(prop_gain, int_gain); ---do i need this for ekf?
     calibrate();
     // mahonyStart(prop_gain, int_gain);
     // madgwickStart(1.0f);
+    ekfStart();
 
     return true;
 }
@@ -350,6 +350,25 @@ void ISM330::rotMatFromQuat(float R[3][3], const float q[4])
     R[2][2] = 1.0f - 2.0f*(q1*q1 + q2*q2);
 }
 
+void ISM330::ekfStart()
+{
+    initQuaternionFromAccel();
+
+    // Initialize gyro bias to zero
+    gyro_bias[0] = gyro_bias[1] = gyro_bias[2] = 0.0f;
+
+    // Initialize covariance matrix P to small values
+    for (int i = 0; i < 6; i++)
+        for (int j = 0; j < 6; j++)
+            P[i][j] = (i == j) ? 1e-6f : 0.0f;
+
+    // Set process noise parameters
+    sigma_gyro  = 0.01f;   // rad/s
+    sigma_bias  = 0.0001f; // rad/s^2
+    sigma_accel = 0.05f;   // g or m/s^2?
+}
+
+
 void ISM330::ekfReset(float dtheta[3], float dbias[3])
 {
     // Apply small rotation correction to quaternion
@@ -593,7 +612,8 @@ void ISM330::initQuaternionFromAccel()
 
     float norm = sqrtf(ax*ax + ay*ay + az*az);
     if (norm < 0.001f) {
-        mahq0 = 1.0f; mahq1 = 0.0f; mahq2 = 0.0f; mahq3 = 0.0f;
+        // mahq0 = 1.0f; mahq1 = 0.0f; mahq2 = 0.0f; mahq3 = 0.0f;
+        ekfq0 = 1.0f; ekfq1 = 0.0f; ekfq2 = 0.0f; ekfq3 = 0.0f;
         return;
     }
     ax /= norm; ay /= norm; az /= norm;
@@ -609,10 +629,14 @@ void ISM330::initQuaternionFromAccel()
     float cy = cosf(yaw   * 0.5f);
     float sy = sinf(yaw   * 0.5f);
 
-    mahq0 = cr*cp*cy + sr*sp*sy;
-    mahq1 = sr*cp*cy - cr*sp*sy;
-    mahq2 = cr*sp*cy + sr*cp*sy;
-    mahq3 = cr*cp*sy - sr*sp*cy;
+    // mahq0 = cr*cp*cy + sr*sp*sy;
+    // mahq1 = sr*cp*cy - cr*sp*sy;
+    // mahq2 = cr*sp*cy + sr*cp*sy;
+    // mahq3 = cr*cp*sy - sr*sp*cy;
+    ekfq0 = cr*cp*cy + sr*sp*sy;
+    ekfq1 = sr*cp*cy - cr*sp*sy;
+    ekfq2 = cr*sp*cy + sr*cp*sy;
+    ekfq3 = cr*cp*sy - sr*sp*cy;
 
     q0 = cr*cp*cy + sr*sp*sy;
     q1 = sr*cp*cy - cr*sp*sy;
