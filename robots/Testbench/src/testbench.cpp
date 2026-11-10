@@ -26,6 +26,11 @@ const struct gpio_dt_spec led2_dev = GPIO_DT_SPEC_GET(DT_ALIAS(led2), gpios);
 
 short constexpr MOTOR_ID = 2;
 
+DJIMotor::config motorCFG {
+    .motorID = MOTOR_ID,
+    .canBus = CANHandler::CANBUS_1
+
+}
 
 
 
