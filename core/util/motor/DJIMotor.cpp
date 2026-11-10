@@ -16,7 +16,6 @@ DJIMotor::DJIMotor(bool isErroneousMotor) {
     motorID_0 = -1;
     canBus = CANHandler::NOBUS;
     value = 0;
-    mode = OFF;
 
     if (isErroneousMotor)
         mode = ERR;

@@ -260,15 +260,6 @@ Referee::Referee(const struct device* uart, USART_TypeDef* ll_usart)
           {PacketHeader::MAP_INTERACTION, PacketLength::MAP_INTERACTION, &map_command,
            &map_command.infoUpdateFlag, "MC"},
 
-          // unused
-          // {PacketHeader::DART_LAUNCH, PacketLength::DART_LAUNCH, &ext_dart_status,
-          // &ext_dart_status.infoUpdateFlag, "DL"}, {PacketHeader::AI_CHALLENGE_BUFF,
-          // PacketLength::AI_CHALLENGE_BUFF, &ext_ICRA_buff_debuff_zone_status,
-          // &ext_ICRA_buff_debuff_zone_status.infoUpdateFlag, "AI"}, {PacketHeader::SUPPLY_STATION,
-          // PacketLength::SUPPLY_STATION, &ext_supply_projectile_action,
-          // &ext_supply_projectile_action.infoUpdateFlag, "SS"}, {PacketHeader::AERIAL_ENERGY,
-          // PacketLength::AERIAL_ENERGY, &aerial_robot_energy, &aerial_robot_energy.infoUpdateFlag,
-          // "AE"},
       } {
 
     memset(JudgeSystem_rxBuff, 0, JUDGESYSTEM_PACKSIZE);
