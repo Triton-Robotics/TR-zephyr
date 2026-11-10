@@ -46,8 +46,8 @@ void updateOzone() {
 
 void periodic(const uint64_t dt_us) {
     // indexer.setSpeed(200);
-    indexer.setPosition(target);
-    // indexer.setPower(500);
+    // indexer.setPosition(target);
+    indexer.setPower(500);
 
     updateOzone();
 }

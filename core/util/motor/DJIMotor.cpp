@@ -90,18 +90,15 @@ void DJIMotor::setOutput() {
     double dt_ms = static_cast<double>(time - timeOfLastPID) / 1000.0;
 
     if (mode == SPD)
-        powerOut = (short) calculateSpeedPID(value, getData(VELOCITY),
-                                     dt_ms);
+        powerOut = (short) calculateSpeedPID(value, getData(VELOCITY), dt_ms);
 
     else if (mode == POS)
         if (!useAbsEncoder)
-            powerOut = (short) calculatePositionPID(value, getData(MULTITURNANGLE),
-                                     dt_ms);
+            powerOut = (short) calculatePositionPID(value, getData(MULTITURNANGLE), dt_ms);
 
         else
             powerOut = (short) calculatePeriodicPosition(
-                static_cast<float>(calculateDeltaPhase(value, getData(ANGLE))),
-                dt_ms);
+                static_cast<float>(calculateDeltaPhase(value, getData(ANGLE))), dt_ms);
 
     else if (mode == POW)
         powerOut = (short) value;
