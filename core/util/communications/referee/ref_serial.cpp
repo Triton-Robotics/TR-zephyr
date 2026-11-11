@@ -312,36 +312,6 @@ void Referee::readThread() {
         read();
         k_sleep(K_MSEC(5));
     }
-    /* This is just read again but in a loop with a slight delay
-    while (1) {
-        // Un-nested read since all it does is call another fn
-        // read();
-        if (ref.readable()) {
-            // int rad = JudgeSystem_USART_Receive_DMA();
-            // mutex_read_.lock();
-            // memcpy(JudgeSystem_rxBuff, JudgeSystem_rxBuff_priv,
-            // JUDGESYSTEM_PACKSIZE); mutex_read_.unlock(); Judge_GetMessage(rad);
-            int rad = JudgeSystem_USART_Receive_DMA();
-
-            if (rad > 0 && rad <= JUDGESYSTEM_PACKSIZE) {
-                mutex_read_.lock();
-                memcpy(JudgeSystem_rxBuff, JudgeSystem_rxBuff_priv, JUDGESYSTEM_PACKSIZE);
-                mutex_read_.unlock();
-                Judge_GetMessage(static_cast<uint16_t>(rad));
-
-                if (enablePrintRefData) printDebug();
-            }
-
-            else {
-                if (enablePrintRefData) printDebug();
-            }
-        } else {
-            if (enablePrintRefData) printDebug();
-        }
-
-        k_sleep(K_MSEC(5));
-    }
-        */
 }
 
 void Referee::writeThread() {
