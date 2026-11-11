@@ -25,13 +25,15 @@ const struct gpio_dt_spec led2_dev = GPIO_DT_SPEC_GET(DT_ALIAS(led2), gpios);
 
 
 short constexpr MOTOR_ID = 2;
-
+static const struct device *canbus1 = DEVICE_DT_GET(DT_NODELABEL(can1));
+static const struct device *canbus2 = DEVICE_DT_GET(DT_NODELABEL(can2));
 DJIMotor::config motorCFG {
     .motorID = MOTOR_ID,
-    .canBus = CANHandler::CANBUS_1
-
-}
-
+    .canBus = CANHandler::CANBUS_1,
+    .type = STANDARD,
+    .name = "placeholder",
+};
+DJIMotor motor(motorCFG);
 
 
 void periodic() {
@@ -53,4 +55,24 @@ int main(void)
 
 
     // --------------------------- Your code after this line 
+    if(device_is_ready(canbus1)){
+        printk("can1 initailized");
+    }
+    else{
+        motor.setSpeed(0);
+    }
+    DJIMotor::setCanHandlers();
+    DJIMotor::getCanHandler(CANHandler::CANBUS_1)->registerCallback(
+    0x201, 0x208, DJIMotor::getCanOneFeedback);
+    int power = 0;
+    bool increasing = true;
+    while(true){
+        if(power==1000){increasing =false;}
+        if(power==0){increasing=true;}
+        if(increasing){power+=20;}
+        else{power-=20;}
+        motor.setPower(power);
+        DJIMotor::sendValues(true);
+        k_sleep(K_MSEC(100));
+    }
 }
