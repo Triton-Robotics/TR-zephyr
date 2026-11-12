@@ -44,9 +44,13 @@ static const uint8_t tReg[] = {0x20, 0x21}; //Temperature register values
 static const uint8_t gyroLowPassFilter[] = {CTRL6_C, 0x03}; // Low pass filter
 static const uint8_t blockUpdate[] = {CTRL3_C, 0x44}; // Block update for reading consistent data
 
-float get_yaw;
-float get_pitch;
-float get_roll;
+float get_yaw_ekf;
+float get_pitch_ekf;
+float get_roll_ekf;
+
+float get_yaw_mah;
+float get_pitch_mah;
+float get_roll_mah;
 
 // ISM330::EulerAngles::EulerAngles(float roll, float pitch, float yaw) : roll(roll), pitch(pitch), yaw(yaw) {}
 
@@ -94,8 +98,7 @@ bool ISM330::begin(float prop_gain, float int_gain) noexcept //TODO: Currently w
     }
 
     calibrate();
-    // mahonyStart(prop_gain, int_gain);
-    // madgwickStart(1.0f);
+    mahonyStart(prop_gain, int_gain);
     ekfStart();
 
     return true;
@@ -293,18 +296,263 @@ float ISM330::gyroTempOffset(float temp) {
     return temp * 0.005f * dpsToRad; // Datasheet says 0.005 dps/C, but we're working in rad
 }
 
+// Mahony
+float ISM330::invSqrt(float x) 
+{ 
+    return 1/sqrt(x);
+}
 
-IMU::EulerAngles ISM330::getImuAngles() 
+// IMU::EulerAngles ISM330::getImuAngles() 
+// {
+//     IMU::EulerAngles angles;
+//     // computeAnglesMah(angles);
+//     computeAnglesEKF(angles);
+//     return angles;
+// }
+
+IMU::EulerAngles ISM330::getMahonyAngles()
 {
     IMU::EulerAngles angles;
-    // computeAnglesMah(angles);
+    computeAnglesMah(angles);
+    return angles;
+}
+
+IMU::EulerAngles ISM330::getEKFAngles()
+{
+    IMU::EulerAngles angles;
     computeAnglesEKF(angles);
     return angles;
 }
 
-int testfunc() {
-    return 0;
+void ISM330::update(float dt) noexcept
+{
+    auto s = readAG();                       // one read, m/s^2 and rad/s
+    mahonyUpdateIMU(s.ax, s.ay, s.az, s.gx, s.gy, s.gz, dt);
+    ekfPredict(s.gx, s.gy, s.gz, dt);
+    ekfUpdate(s.ax, s.ay, s.az);
 }
+
+// Mahony Sensor fusion
+void ISM330::mahonyStart(float prop_gain, float int_gain) 
+{
+    twoKp = 2.0f * prop_gain;
+    twoKi = 2.0f * int_gain;
+
+    // Initialize from accelerometer instead of identity
+    initQuaternionFromAccel();
+
+    integralFBx = 0.0f;
+    integralFBy = 0.0f;
+    integralFBz = 0.0f;
+    anglesComputed = false;
+}
+
+void ISM330::mahonyUpdate(float ax, float ay, float az, float gx, float gy, float gz, float mx, float my, float mz, float dt) 
+{
+    // Use IMU algorithm if magnetometer measurement invalid
+    // (avoids NaN in magnetometer normalisation)
+    if ((mx == 0.0f) && (my == 0.0f) && (mz == 0.0f)) {
+        mahonyUpdateIMU(ax, ay, az, gx, gy, gz, dt);
+        return;
+    }
+    // auto [ax, ay, az, gx, gy, gz] = readAG();
+
+    //Converting to g/s instead of m/s^2
+    ax /= g;
+    ay /= g;
+    az /= g;
+  
+    float recipNorm;
+    float q0q0, q0q1, q0q2, q0q3, q1q1, q1q2, q1q3, q2q2, q2q3, q3q3;
+    float hx, hy, bx, bz;
+    float halfvx, halfvy, halfvz, halfwx, halfwy, halfwz;
+    float halfex, halfey, halfez;
+    float qa, qb, qc;
+
+
+    // Compute feedback only if accelerometer measurement valid
+    // (avoids NaN in accelerometer normalisation)
+    if (!((ax == 0.0f) && (ay == 0.0f) && (az == 0.0f))) {
+
+        // Normalise accelerometer measurement
+        recipNorm = invSqrt(ax * ax + ay * ay + az * az);
+        ax *= recipNorm;
+        ay *= recipNorm;
+        az *= recipNorm;
+
+        // Normalise magnetometer measurement
+        recipNorm = invSqrt(mx * mx + my * my + mz * mz);
+        mx *= recipNorm;
+        my *= recipNorm;
+        mz *= recipNorm;
+
+        // Auxiliary variables to avoid repeated arithmetic
+        q0q0 = mahq0 * mahq0;
+        q0q1 = mahq0 * mahq1;
+        q0q2 = mahq0 * mahq2;
+        q0q3 = mahq0 * mahq3;
+        q1q1 = mahq1 * mahq1;
+        q1q2 = mahq1 * mahq2;
+        q1q3 = mahq1 * mahq3;
+        q2q2 = mahq2 * mahq2;
+        q2q3 = mahq2 * mahq3;
+        q3q3 = mahq3 * mahq3;
+
+        // Reference direction of Earth's magnetic field
+        hx = 2.0f *
+            (mx * (0.5f - q2q2 - q3q3) + my * (q1q2 - q0q3) + mz * (q1q3 + q0q2));
+        hy = 2.0f *
+            (mx * (q1q2 + q0q3) + my * (0.5f - q1q1 - q3q3) + mz * (q2q3 - q0q1));
+        bx = sqrtf(hx * hx + hy * hy);
+        bz = 2.0f *
+            (mx * (q1q3 - q0q2) + my * (q2q3 + q0q1) + mz * (0.5f - q1q1 - q2q2));
+
+        // Estimated direction of gravity and magnetic field
+        halfvx = q1q3 - q0q2;
+        halfvy = q0q1 + q2q3;
+        halfvz = q0q0 - 0.5f + q3q3;
+        halfwx = bx * (0.5f - q2q2 - q3q3) + bz * (q1q3 - q0q2);
+        halfwy = bx * (q1q2 - q0q3) + bz * (q0q1 + q2q3);
+        halfwz = bx * (q0q2 + q1q3) + bz * (0.5f - q1q1 - q2q2);
+
+        // Error is sum of cross product between estimated direction
+        // and measured direction of field vectors
+        halfex = (ay * halfvz - az * halfvy) + (my * halfwz - mz * halfwy);
+        halfey = (az * halfvx - ax * halfvz) + (mz * halfwx - mx * halfwz);
+        halfez = (ax * halfvy - ay * halfvx) + (mx * halfwy - my * halfwx);
+
+        // Compute and apply integral feedback if enabled
+        if (twoKi > 0.0f) {
+            // integral error scaled by Ki
+            integralFBx += twoKi * halfex * dt;
+            integralFBy += twoKi * halfey * dt;
+            integralFBz += twoKi * halfez * dt;
+            gx += integralFBx; // apply integral feedback
+            gy += integralFBy;
+            gz += integralFBz;
+        } else {
+            integralFBx = 0.0f; // prevent integral windup
+            integralFBy = 0.0f;
+            integralFBz = 0.0f;
+        }
+
+        // Apply proportional feedback
+        gx += twoKp * halfex;
+        gy += twoKp * halfey;
+        gz += twoKp * halfez;
+    }
+
+  // Integrate rate of change of quaternion
+  gx *= (0.5f * dt); // pre-multiply common factors
+  gy *= (0.5f * dt);
+  gz *= (0.5f * dt);
+  qa = mahq0;
+  qb = mahq1;
+  qc = mahq2;
+  mahq0 += (-qb * gx - qc * gy - mahq3 * gz);
+  mahq1 += (qa * gx + qc * gz - mahq3 * gy);
+  mahq2 += (qa * gy - qb * gz + mahq3 * gx);
+  mahq3 += (qa * gz + qb * gy - qc * gx);
+
+  // Normalise quaternion
+  recipNorm = invSqrt(mahq0 * mahq0 + mahq1 * mahq1 + mahq2 * mahq2 + mahq3 * mahq3);
+  mahq0 *= recipNorm;
+  mahq1 *= recipNorm;
+  mahq2 *= recipNorm;
+  mahq3 *= recipNorm;
+  anglesComputed = 0;
+}
+
+// void ISM330::mahonyUpdateIMU(float dt) 
+void ISM330::mahonyUpdateIMU(float ax, float ay, float az,
+                            float gx, float gy, float gz, float dt)
+{
+    // auto [ax, ay, az, gx, gy, gz] = readAG();
+    
+    ax /= g;
+    ay /= g;
+    az /= g;
+
+    float recipNorm;
+    float halfvx, halfvy, halfvz;
+    float halfex = 0.0f, halfey = 0.0f, halfez = 0.0f;
+    float qa, qb, qc;
+
+    // Only trust accel when it's reading close to 1g
+    // If we're accelerating, magnitude deviates from 1.0 — skip correction
+    float accelMag = sqrtf(ax*ax + ay*ay + az*az);
+    bool accelValid = (accelMag > 0.5f) && (accelMag < 1.5f);
+
+    if (accelValid && !((ax == 0.0f) && (ay == 0.0f) && (az == 0.0f))) {
+        // Normalise accelerometer measurement
+        recipNorm = invSqrt(ax * ax + ay * ay + az * az);
+        ax *= recipNorm;
+        ay *= recipNorm;
+        az *= recipNorm;
+
+        // Estimated direction of gravity
+        halfvx = mahq1 * mahq3 - mahq0 * mahq2;
+        halfvy = mahq0 * mahq1 + mahq2 * mahq3;
+        halfvz = mahq0 * mahq0 - 0.5f + mahq3 * mahq3;
+
+        // Error is sum of cross product between estimated
+        // and measured direction of gravity
+        halfex = (ay * halfvz - az * halfvy);
+        halfey = (az * halfvx - ax * halfvz);
+        halfez = (ax * halfvy - ay * halfvx);
+
+        // Compute and apply integral feedback if enabled
+        if (twoKi > 0.0f) {
+            integralFBx += twoKi * halfex * dt;
+            integralFBy += twoKi * halfey * dt;
+            integralFBz += twoKi * halfez * dt;
+            gx += integralFBx;
+            gy += integralFBy;
+            gz += integralFBz;
+        } else {
+            integralFBx = 0.0f;
+            integralFBy = 0.0f;
+            integralFBz = 0.0f;
+        }
+
+        gx += twoKp * halfex;
+        gy += twoKp * halfey;
+        gz += twoKp * halfez;
+    }
+
+    // Integrate rate of change of quaternion
+    gx *= (0.5f * dt);
+    gy *= (0.5f * dt);
+    gz *= (0.5f * dt);
+    qa = mahq0;
+    qb = mahq1;
+    qc = mahq2;
+    mahq0 += (-qb * gx - qc * gy - mahq3 * gz);
+    mahq1 += (qa * gx + qc * gz - mahq3 * gy);
+    mahq2 += (qa * gy - qb * gz + mahq3 * gx);
+    mahq3 += (qa * gz + qb * gy - qc * gx);
+
+    // Normalise quaternion
+    recipNorm = invSqrt(mahq0 * mahq0 + mahq1 * mahq1 + mahq2 * mahq2 + mahq3 * mahq3);
+    mahq0 *= recipNorm;
+    mahq1 *= recipNorm;
+    mahq2 *= recipNorm;
+    mahq3 *= recipNorm;
+    anglesComputed = 0;
+}
+
+void ISM330::computeAnglesMah(IMU::EulerAngles& angles) 
+{
+    angles.roll = atan2f(mahq0 * mahq1 + mahq2 * mahq3, 0.5f - mahq1 * mahq1 - mahq2 * mahq2)*radToDeg;
+    angles.pitch = asinf(-2.0f * (mahq1 * mahq3 - mahq0 * mahq2))*radToDeg;
+    angles.yaw = atan2f(mahq1 * mahq2 + mahq0 * mahq3, 0.5f - mahq2 * mahq2 - mahq3 * mahq3)*radToDeg;
+    grav[0] = 2.0f * (mahq1 * mahq3 - mahq0 * mahq2);
+    grav[1] = 2.0f * (mahq0 * mahq1 + mahq2 * mahq3);
+    grav[2] = 2.0f * (mahq0 * mahq0 - 0.5f + mahq3 * mahq3);
+    anglesComputed = 1;
+}
+
+
 
 // EKF Sensor fusion
 
@@ -567,17 +815,17 @@ void ISM330::ekfUpdate(float ax, float ay, float az)
 void ISM330::computeAnglesEKF(IMU::EulerAngles& angles)
 {
     // Read sensor and run one predict + update step
-    static uint32_t last_ms = 0;
-    uint32_t now_ms = k_uptime_get_32();
-    float dt = (last_ms == 0) ? 0.001f : (now_ms - last_ms) * 0.001f;
-    last_ms = now_ms;
-    if (dt <= 0.0f) dt = 0.001f;
-    if (dt > 0.1f)  dt = 0.1f;
+    // static uint32_t last_ms = 0;
+    // uint32_t now_ms = k_uptime_get_32();
+    // float dt = (last_ms == 0) ? 0.001f : (now_ms - last_ms) * 0.001f;
+    // last_ms = now_ms;
+    // if (dt <= 0.0f) dt = 0.001f;
+    // if (dt > 0.1f)  dt = 0.1f;
 
-    auto [ax, ay, az, gx, gy, gz] = readAG();
+    // auto [ax, ay, az, gx, gy, gz] = readAG();
 
-    ekfPredict(gx, gy, gz, dt);
-    ekfUpdate(ax, ay, az);
+    // ekfPredict(gx, gy, gz, dt);
+    // ekfUpdate(ax, ay, az);
 
     float q0 = ekfq0, q1 = ekfq1, q2 = ekfq2, q3 = ekfq3;
 
@@ -612,7 +860,7 @@ void ISM330::initQuaternionFromAccel()
 
     float norm = sqrtf(ax*ax + ay*ay + az*az);
     if (norm < 0.001f) {
-        // mahq0 = 1.0f; mahq1 = 0.0f; mahq2 = 0.0f; mahq3 = 0.0f;
+        mahq0 = 1.0f; mahq1 = 0.0f; mahq2 = 0.0f; mahq3 = 0.0f;
         ekfq0 = 1.0f; ekfq1 = 0.0f; ekfq2 = 0.0f; ekfq3 = 0.0f;
         return;
     }
@@ -629,10 +877,11 @@ void ISM330::initQuaternionFromAccel()
     float cy = cosf(yaw   * 0.5f);
     float sy = sinf(yaw   * 0.5f);
 
-    // mahq0 = cr*cp*cy + sr*sp*sy;
-    // mahq1 = sr*cp*cy - cr*sp*sy;
-    // mahq2 = cr*sp*cy + sr*cp*sy;
-    // mahq3 = cr*cp*sy - sr*sp*cy;
+    mahq0 = cr*cp*cy + sr*sp*sy;
+    mahq1 = sr*cp*cy - cr*sp*sy;
+    mahq2 = cr*sp*cy + sr*cp*sy;
+    mahq3 = cr*cp*sy - sr*sp*cy;
+
     ekfq0 = cr*cp*cy + sr*sp*sy;
     ekfq1 = sr*cp*cy - cr*sp*sy;
     ekfq2 = cr*sp*cy + sr*cp*sy;
@@ -664,24 +913,36 @@ int main(void)
     }
     printf("ISM330 initialized.");
 
+    // imu.ekfStart();
 
     const int64_t period_ms = 10; //100 Hz
     int64_t next_wake = k_uptime_get(); 
+    int64_t last = k_uptime_get(); 
 
     uint32_t i = 0;
 
     while (true) {
-        IMU::EulerAngles angles = imu.getImuAngles();
-        get_roll = angles.roll;
-        get_pitch = angles.pitch;
-        get_yaw = angles.yaw;
+        int64_t now = k_uptime_get(); 
+        float dt = (float)(now - last) / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
+        last = now;
+        imu.update(dt);
+
+        IMU::EulerAngles mah = imu.getMahonyAngles();
+        IMU::EulerAngles ekf = imu.getEKFAngles();
+        get_roll_mah = mah.roll;
+        get_pitch_mah = mah.pitch;
+        get_yaw_mah = mah.yaw;
+
+        get_roll_ekf = ekf.roll;
+        get_pitch_ekf = ekf.pitch;
+        get_yaw_ekf = ekf.yaw;
+        
 
         if ((i % 10u) == 0u) {
-            printf("t=%6u ms  roll=%8d  pitch=%8d  yaw=%8d (mdeg)\n",
-                   (uint32_t)k_uptime_get(),
-                   (int)(angles.roll  * 1000.0f),
-                   (int)(angles.pitch * 1000.0f),
-                   (int)(angles.yaw   * 1000.0f));
+            printf("t=%6u  EKF r=%8d p=%8d y=%8d | MAH r=%8d p=%8d y=%8d (mdeg)\n",
+               (uint32_t)k_uptime_get(),
+               (int)(get_roll_ekf*1000.0f), (int)(get_pitch_ekf*1000.0f), (int)(get_yaw_ekf*1000.0f),
+               (int)(get_roll_mah*1000.0f), (int)(get_pitch_mah*1000.0f), (int)(get_yaw_mah*1000.0f));
         }
 
         i++;

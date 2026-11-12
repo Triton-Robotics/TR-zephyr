@@ -23,5 +23,8 @@ public:
     void init();
     virtual EulerAngles read();
     virtual EulerAngles getImuAngles();
+    virtual EulerAngles getMahonyAngles();
+    virtual EulerAngles getEKFAngles();
+
     void reset();
 };
