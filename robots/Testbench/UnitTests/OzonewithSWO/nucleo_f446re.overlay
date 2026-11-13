@@ -2,3 +2,4 @@
     pinctrl-0 = <&debug_trace_swo_pb3>;
     pinctrl-names = "default";
 };
+// DON'T NEED THIS, the PB3 is SWO by default after reset, so no pinctrl needed.
