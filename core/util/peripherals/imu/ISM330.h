@@ -114,6 +114,8 @@ public:
 
     void computeAnglesMadgwick(IMU::EulerAngles& angles);
     
+    void computeAnglesEKF(IMU::EulerAngles& angles);
+
     // Mahony Sensor Fusion
     //Adafruit_Mahony(float prop_gain, float int_gain);
     void mahonyStart(float prop_gain, float int_gain);
@@ -131,6 +133,24 @@ public:
     void madgwickUpdate(float mx, float my, float mz, float dt);
     
     void madgwickUpdateIMU(float dt);
+
+    //EKF Seneor Fusion
+
+    void ekfStart();
+    
+    void ekfPredict(float gx, float gy, float gz, float dt);
+
+    void ekfUpdate(float ax, float ay, float az);
+
+    void ekfReset(float dtheta[3], float dbias[3]);
+
+    void quatMul(float out[4], const float a[4], const float b[4]);
+
+    void quatNormalize(float q[4]);
+
+    void QuatFromRotVec(float q[4], const float rv[3]);
+
+    void rotMatFromQuat(float R[3][3], const float q[4]);
 
     // Reading individual sensor values
     ISM330_VECTOR_TypeDef readAccel() noexcept;
@@ -183,6 +203,19 @@ private:
     float twoKi; // 2 * integral gain (Ki)
     float integralFBx, integralFBy, integralFBz; // integral error terms scaled by Ki
 
+    //EKF 
+    float ekfq0;
+    float ekfq1;
+    float ekfq2;
+    float ekfq3;
+    float gyro_bias[3];  // Estimated gyro bias (rad/s)
+    float P[6][6];       // Error covariance matrix (6x6)
+
+    //EKF tuning parameters
+    float sigma_gyro;    // Gyro noise (rad/s/sqrt(Hz))
+    float sigma_bias;    // Bias random walk (rad/s/sqrt(s))
+    float sigma_accel;   // Accelerometer noise (m/s^2)
+    
     bool anglesComputed = false; // Flag for whether or not angles have been computed
 };
 

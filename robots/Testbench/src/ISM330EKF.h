@@ -84,9 +84,7 @@ public:
     void calibrate() noexcept; 
     
     IMU::EulerAngles getImuAngles() override;
-    IMU::EulerAngles getMahonyAngles() override;
-    IMU::EulerAngles getEKFAngles() override;
-
+    
     IMU::EulerAngles read() override { return getImuAngles(); }
 
    //Full read functions
@@ -118,22 +116,20 @@ public:
     
     // void computeAnglesMadgwick(IMU::EulerAngles& angles);
     
-    void update(float dt) noexcept;
-
     // Mahony Sensor Fusion
     //Adafruit_Mahony(float prop_gain, float int_gain);
     void mahonyStart(float prop_gain, float int_gain);
 
     void initQuaternionFromAccel();
     
-    void mahonyUpdate(float ax, float ay, float az, float gx, float gy, float gz, float mx, float my, float mz, float dt);
+    void mahonyUpdate(float mx, float my, float mz, float dt);
     
-    void mahonyUpdateIMU(float ax, float ay, float az, float gx, float gy, float gz, float dt);
+    void mahonyUpdateIMU(float dt);
 
     //EKF Seneor Fusion
 
     void ekfStart();
-
+    
     void ekfPredict(float gx, float gy, float gz, float dt);
 
     void ekfUpdate(float ax, float ay, float az);
@@ -148,6 +144,13 @@ public:
 
     void rotMatFromQuat(float R[3][3], const float q[4]);
     
+    // Madgwick Sensor Fusion
+
+    // void madgwickStart(float gain);
+    
+    // void madgwickUpdate(float mx, float my, float mz, float dt);
+    
+    // void madgwickUpdateIMU(float dt);
 
     // Reading individual sensor values
     ISM330_VECTOR_TypeDef readAccel() noexcept;
