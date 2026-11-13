@@ -190,12 +190,12 @@ class BaseRobot {
         }
 
         //Driving input
-        scalar = 1;
+        scalar = 0.8f;
         jx = -remote_.getJoystickValue(DJIRemote2::Joystick::LEFT_HORIZONTAL) * scalar; // -1 to 1
         jy = remote_.getJoystickValue(DJIRemote2::Joystick::LEFT_VERTICAL) * scalar; // -1 to 1
         //Pitch, Yaw
-        jpitch = remote_.getJoystickValue(DJIRemote2::Joystick::RIGHT_VERTICAL) * scalar; // -1 to 1
-        jyaw = remote_.getJoystickValue(DJIRemote2::Joystick::RIGHT_HORIZONTAL) * scalar; // -1 to 1
+        jpitch = remote_.getJoystickValue(DJIRemote2::Joystick::RIGHT_VERTICAL); // -1 to 1
+        jyaw = remote_.getJoystickValue(DJIRemote2::Joystick::RIGHT_HORIZONTAL); // -1 to 1
 
         myaw = remote_.getMouseX();
         mpitch = remote_.getMouseY();
@@ -224,14 +224,14 @@ class BaseRobot {
             jy = jy / j_hypo;
         }
         //Bounding the four j variables
-        jx = fmaxf(-1.0F, fminf(1.0f, jx)) * -0.4f;
-        jy = fmaxf(-1.0F, fminf(1.0f, jy)) * -0.4f;
+        jx = fmaxf(-1.0F, fminf(1.0f, jx));
+        jy = fmaxf(-1.0F, fminf(1.0f, jy));
         jpitch = fmaxf(-1.0F, fminf(1.0f, jpitch));
         jyaw = fmaxf(-1.0F, fminf(1.0f, jyaw));
 
         // max_linear_vel = -1.24 + 0.0513 * chassis.power_limit + -0.000216 * (chassis.power_limit * chassis.power_limit);
         // float max_omega = 0.326 + 0.0857 * chassis_power_limit + -0.000183 * (chassis_power_limit * chassis_power_limit);
-        float max_omega = 2.4f;
+        float max_omega = 4.8f;
 
         if(remote_.keyPressed(DJIRemote2::Key::CTRL)){
             jx = 0.0f;

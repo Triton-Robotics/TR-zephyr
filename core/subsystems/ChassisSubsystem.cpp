@@ -700,16 +700,21 @@ bool ChassisSubsystem::setOdomReference() {
 // }
 
 void ChassisSubsystem::updateYawPhaseFromEncoder() {
-    float encoder_reading = 360 - encoder->encoderMovingAverage();
-        if (encoder_reading < 0.0f) {
-            encoder_reading += 360.0f;
-        }
-        else if (encoder_reading > 360.0f) {
-            encoder_reading -= 360.0f;
-        }
-    if (encoder_reading >= 0) {
-        yawPhase = encoder_reading;
-    }
+    // float encoder_reading = 360 - encoder->encoderMovingAverage();
+    //     if (encoder_reading < 0.0f) {
+    //         encoder_reading += 360.0f;
+    //     }
+    //     else if (encoder_reading > 360.0f) {
+    //         encoder_reading -= 360.0f;
+    //     }
+    // if (encoder_reading >= 0) {
+    //     yawPhase = encoder_reading;
+    // }
+
+    const float angle = encoder->encoderMovingAverage();
+    if (angle < 0.0f) return;  // No valid measurement.
+
+    yawPhase = angle;
 }
 
 float ChassisSubsystem::radiansToTicks(float radians)

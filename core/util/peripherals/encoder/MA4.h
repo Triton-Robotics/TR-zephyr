@@ -46,6 +46,8 @@ public:
     uint32_t periodCycles() const;
     uint32_t pulseCycles() const;
 
+    static constexpr int TICKS_PER_REVOLUTION = 4096;
+
 protected:
     static void capture_cb(const struct device *dev, uint32_t channel,
                            uint32_t period_cycles, uint32_t pulse_cycles,
