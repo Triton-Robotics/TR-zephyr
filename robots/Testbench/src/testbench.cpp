@@ -27,63 +27,67 @@ const struct gpio_dt_spec led0_dev = GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
 const struct gpio_dt_spec led1_dev = GPIO_DT_SPEC_GET(DT_ALIAS(led1), gpios);
 const struct gpio_dt_spec led2_dev = GPIO_DT_SPEC_GET(DT_ALIAS(led2), gpios);
 const struct device *canbus1_dev = DEVICE_DT_GET(DT_NODELABEL(can1));
-
-short constexpr MOTOR_ID = 2;
-int constexpr SWAP_TIME = 1000;
-int curr_time = 0;
-short current_motor_power = 1000;
-
-DJIMotor::config motorConfig = {canbus1_dev, MOTOR_ID, CANHandler::CANBUS_2, M3508};
-DJIMotor motor(motorConfig);
+const struct pwm_dt_spec encoderSpec = PWM_DT_SPEC_GET(DT_NODELABEL(pwm_encoder_ch));
 
 
-double AG[6];
+float encodersYaw = 0.0f;
+
+MA4 encoder_(&encoderSpec);
+
+
+static void dump_tim3() {
+    uint32_t c1 = TIM3->CNT;
+    k_busy_wait(200);
+    uint32_t c2 = TIM3->CNT;
+
+    // count edges on PB4 by polling the input data register for ~100 ms
+    int edges = 0;
+    uint32_t last = (GPIOB->IDR >> 4) & 1;
+    for (int i = 0; i < 10000; i++) {
+        k_busy_wait(10);
+        uint32_t now = (GPIOB->IDR >> 4) & 1;
+        if (now != last) { edges++; last = now; }
+    }
+
+    printk("TIM3 CNT %u->%u CR1=%08x SMCR=%08x DIER=%08x SR=%08x CCER=%08x CCR1=%u CCR2=%u\n",
+           c1, c2, (unsigned)TIM3->CR1, (unsigned)TIM3->SMCR, (unsigned)TIM3->DIER,
+           (unsigned)TIM3->SR, (unsigned)TIM3->CCER, (unsigned)TIM3->CCR1, (unsigned)TIM3->CCR2);
+    printk("PB4 edges in 100ms: %d | NVIC TIM3 enabled=%d pending=%d\n",
+           edges, (int)NVIC_GetEnableIRQ(TIM3_IRQn), (int)NVIC_GetPendingIRQ(TIM3_IRQn));
+    printk("PB4 MODER=%u AFRL=%u PUPDR=%u | CCMR1=%08x\n",
+       (unsigned)((GPIOB->MODER >> 8) & 3),
+       (unsigned)((GPIOB->AFR[0] >> 16) & 0xF),
+       (unsigned)((GPIOB->PUPDR >> 8) & 3),
+       (unsigned)TIM3->CCMR1);
+}
 
 void periodic() {
 
-    DJIMotor::getCanHandler(CANHandler::CANBUS_2)->readAllCan();
+    printk("Encoder: %.2f\n", static_cast<double>(encoder_.getEncoderYawPosition()));
+    // printk("cb_count=%u status=%d\n", encoder_.cbCount(), encoder_.lastStatus());
 
-    if(curr_time > SWAP_TIME) {
-        motor.setPower(current_motor_power);
-        current_motor_power *= -1;
-        DJIMotor::sendValues(true);
-        curr_time = 0;
-        printf("current time is : %d, swapping power to %d\n", curr_time, current_motor_power);
-
-    } else {
-        curr_time += 200;
-        // printf("current time is : %d\n", curr_time);
-    }
+    encodersYaw = encoder_.encoderMovingAverage();
+    printk("cb=%u st=%d period=%u pulse=%u SR=%08x\n",
+       encoder_.cbCount(), encoder_.lastStatus(),
+       encoder_.periodCycles(), encoder_.pulseCycles(),
+       (unsigned)TIM3->SR);
+    // dump_tim3();
+    
 }
 
 int main(void)
 {
     printk("HERROoooo\n");
 
-    
-    printk("CAN SET MODE %d\n", can_set_mode(canbus1_dev, CAN_MODE_NORMAL));
-    printk("EBUSY %d, EIO %d, ENOTSUP %d\n", -EBUSY, -EIO, -ENOTSUP);
-    
-    
-    can_state state;
-    can_bus_err_cnt err_cnt;
-    can_get_state(canbus1_dev, &state, &err_cnt);
-    printk("STATE %d, RX ERROR %d, TX ERROR %d\n", state, err_cnt.rx_err_cnt, err_cnt.tx_err_cnt);
-
-    if (device_is_ready(canbus1_dev)) {
-        printk("CANBUS 1 device is ready\n");
-    } else {
-        printk("CANBUS 1 device is not ready\n");
-        return -1;
+    int ret = encoder_.init();
+    if (ret) {
+        printk("Failed to initialize encoder: %d\n", ret);
+        return ret;
     }
 
-    DJIMotor::setCanHandlers();
-    DJIMotor::getCanHandler(CANHandler::CANBUS_1)->registerCallback(
-    0x201, 0x208, DJIMotor::getCanOneFeedback);
 
-    
     while (true) {
         periodic();
-        k_sleep(K_MSEC(200));
+        k_sleep(K_MSEC(2));
     }
 }
