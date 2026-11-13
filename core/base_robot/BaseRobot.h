@@ -224,14 +224,14 @@ class BaseRobot {
             jy = jy / j_hypo;
         }
         //Bounding the four j variables
-        jx = fmaxf(-1.0F, fminf(1.0f, jx));
-        jy = fmaxf(-1.0F, fminf(1.0f, jy));
+        jx = fmaxf(-1.0F, fminf(1.0f, jx)) * -0.4f;
+        jy = fmaxf(-1.0F, fminf(1.0f, jy)) * -0.4f;
         jpitch = fmaxf(-1.0F, fminf(1.0f, jpitch));
         jyaw = fmaxf(-1.0F, fminf(1.0f, jyaw));
 
         // max_linear_vel = -1.24 + 0.0513 * chassis.power_limit + -0.000216 * (chassis.power_limit * chassis.power_limit);
         // float max_omega = 0.326 + 0.0857 * chassis_power_limit + -0.000183 * (chassis_power_limit * chassis_power_limit);
-        float max_omega = 4.8f;
+        float max_omega = 2.4f;
 
         if(remote_.keyPressed(DJIRemote2::Key::CTRL)){
             jx = 0.0f;
