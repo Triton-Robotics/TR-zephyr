@@ -11,6 +11,7 @@ CANHandler* DJIMotor::s_canHandlers[2];
 bool DJIMotor::initializedWarning = false;
 std::optional<CANHandler> DJIMotor::s_canHandlerInstances[2];
 
+
 DJIMotor::DJIMotor(bool isErroneousMotor) {
     canID_0 = -1;
     motorID_0 = -1;
