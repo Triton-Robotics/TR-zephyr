@@ -307,7 +307,25 @@ class Infantry : public BaseRobot {
             referee_.is_aligned = false;
             referee_.is_cv_on = false;
             referee_.is_spinning = true;
-
+            // --- STEP 5: Debug output for capstone testing ---
+            static uint32_t last_print = 0;
+            if ((now_us() - last_print) / 1000 > 200) {
+                last_print = now_us();
+                printf("ENC:%.1f CMD_w:%.2f ACT_w:%.2f RATIO:%.0f%%\n",
+                    encoder_.encoderMovingAverage(),
+                    des_chassis_state.vOmega,
+                    chassis_.getChassisSpeeds().vOmega,
+                    (chassis_.getChassisSpeeds().vOmega / omega_speed) * 100);
+                printf("vX:%.2f vY:%.2f WHEELS:%.0f %.0f %.0f %.0f\n",
+                    chassis_.getChassisSpeeds().vX,
+                    chassis_.getChassisSpeeds().vY,
+                    chassis_.getWheelSpeeds().LF,
+                    chassis_.getWheelSpeeds().RF,
+                    chassis_.getWheelSpeeds().LB,
+                    chassis_.getWheelSpeeds().RB);
+                printf("SCALE:%.2f T_SCALE:%.2f PLIM:%.0f\n",
+                    last_chassis_scale, translation_scale, chassis_.power_limit);
+            }
         } else {
             chassis_.setWheelPower({0, 0, 0, 0});
 
@@ -373,7 +391,7 @@ class Infantry : public BaseRobot {
         // remote_.getSwitch(Remote::Switch::RIGHT_SWITCH));
         // %.2f\n", imu.getImuAngles().yaw);
         // printf("%d\n", referee_.get_game_progress());
-        printf("yp %.2f \n", encoder_.encoderMovingAverage());
+        // printf("yp %.2f \n", encoder_.encoderMovingAverage());
         // printf("%.2f, %.2f, %.2f\n", imuAngles.roll, imuAngles.pitch, imuAngles.yaw);
         // printf("remote state: %d\n", remote_.getMode());
         // printf("remote jx: %.2f, jy: %.2f, jpitch: %.2f, jyaw: %.2f\n", jx, jy, jpitch, jyaw);
