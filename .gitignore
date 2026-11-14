@@ -21,3 +21,8 @@ build/
 
 # ignore makefile
 Makefile
+
+.clang-format
+skills/
+robots/Testbench/boards/*.md
+.zed/
