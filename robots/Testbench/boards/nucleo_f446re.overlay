@@ -1,8 +1,4 @@
 
-// &itm {
-//     pinctrl-0 = <&debug_trace_swo_pb3>;
-//     pinctrl-names = "default";
-// };
 /* Board default puts I2C2 SDA on PB3, which is the SWO pin. Disable I2C2 so SWO can use PB3. */
 &i2c2 {
     status = "disabled";
