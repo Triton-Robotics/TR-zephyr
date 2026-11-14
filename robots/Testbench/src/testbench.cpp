@@ -36,8 +36,8 @@ DJIMotor::config motorCFG {
 };
 DJIMotor motor(motorCFG);
 CANHandler *can1;
-float current;
-float torque;
+float current = 0;
+float torque = 0;
 
 void testOne(){
     motor.setPower(600);
@@ -51,17 +51,20 @@ void testTwo(){
         if(power==-750){increasing=true;}
         if(increasing){power+=25;}
         else{power-=25;}
+
         std::clamp(power, -800, 800);
         motor.setPower(power);
+        
         DJIMotor::sendValues(true);
+        
         k_sleep(K_MSEC(100));
     }
 }
 void periodic() {
     can1->readAllCan();
     //idk if these vairables are right
-    current = motor.getData(POWEROUT);
-    torque = motor.getData(TORQUE);
+    current = motor.getData(TORQUE);
+    torque = ((current*20.0f)/16384.0f)*0.3f;
     //testOne();
     //testTwo;
 }
