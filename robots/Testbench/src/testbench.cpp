@@ -81,59 +81,6 @@ float raw_speed = 0;
 bool start_logging = false;
 bool end_logging = false;
 
-// last 15 records for multiturn angle
-int last_log_0 = 0;
-int last_log_1 = 0;
-int last_log_2 = 0;
-int last_log_3 = 0;
-int last_log_4 = 0;
-int last_log_5 = 0;
-int last_log_6 = 0;
-int last_log_7 = 0;
-int last_log_8 = 0;
-int last_log_9 = 0;
-int last_log_10 = 0;
-int last_log_11 = 0;
-int last_log_12 = 0;
-int last_log_13 = 0;
-int last_log_14 = 0;
-int log_index = 0;
-
-// last 15 records for current time
-int last_time_log_0 = 0;
-int last_time_log_1 = 0;
-int last_time_log_2 = 0;
-int last_time_log_3 = 0;
-int last_time_log_4 = 0;
-int last_time_log_5 = 0;
-int last_time_log_6 = 0;
-int last_time_log_7 = 0;
-int last_time_log_8 = 0;
-int last_time_log_9 = 0;
-int last_time_log_10 = 0;
-int last_time_log_11 = 0;
-int last_time_log_12 = 0;
-int last_time_log_13 = 0;
-int last_time_log_14 = 0;
-
-// last 15 records for raw encoder angle
-int last_curr_log_0 = 0;
-int last_curr_log_1 = 0;
-int last_curr_log_2 = 0;
-int last_curr_log_3 = 0;
-int last_curr_log_4 = 0;
-int last_curr_log_5 = 0;
-int last_curr_log_6 = 0;
-int last_curr_log_7 = 0;
-int last_curr_log_8 = 0;
-int last_curr_log_9 = 0;
-int last_curr_log_10 = 0;
-int last_curr_log_11 = 0;
-int last_curr_log_12 = 0;
-int last_curr_log_13 = 0;
-int last_curr_log_14 = 0;
-
-
 
 
 CANHandler canHandler1_(canbus1_dev);
@@ -141,6 +88,10 @@ CANHandler canHandler1_(canbus1_dev);
 
 DJIMotor::config m3508Config = {canbus1_dev, MOTOR_ID, CANHandler::CANBUS_1, M3508};  //C620, motorid = 2
 DJIMotor motorM3508(m3508Config);
+// std::string buffer1Name = 
+auto (&buffer1)[motorM3508.log_size] = motorM3508.buffer1;
+auto (&buffer2)[motorM3508.log_size] = motorM3508.buffer2;
+auto (&buffer3)[motorM3508.log_size] = motorM3508.buffer3;
 
 
 void periodic() {
@@ -171,75 +122,20 @@ void periodic() {
     integration_time = motorM3508.integration_time;
     delta_time = motorM3508.delta_time;
 
-    log_index = motorM3508.log_index;
+    // log_index = motorM3508.log_index;
 
-    int log_size = 15;
 
     // last 15 records for angles
-    last_log_0 = motorM3508.last_multiturn_angles_log[log_index];
-    last_log_1 = motorM3508.last_multiturn_angles_log[(log_index + 1) % log_size];
-    last_log_2 = motorM3508.last_multiturn_angles_log[(log_index + 2) % log_size];
-    last_log_3 = motorM3508.last_multiturn_angles_log[(log_index + 3) % log_size];
-    last_log_4 = motorM3508.last_multiturn_angles_log[(log_index + 4) % log_size];
-    last_log_5 = motorM3508.last_multiturn_angles_log[(log_index + 5) % log_size];
-    last_log_6 = motorM3508.last_multiturn_angles_log[(log_index + 6) % log_size];
-    last_log_7 = motorM3508.last_multiturn_angles_log[(log_index + 7) % log_size];
-    last_log_8 = motorM3508.last_multiturn_angles_log[(log_index + 8) % log_size];
-    last_log_9 = motorM3508.last_multiturn_angles_log[(log_index + 9) % log_size];
-    last_log_10 = motorM3508.last_multiturn_angles_log[(log_index + 10) % log_size];
-    last_log_11 = motorM3508.last_multiturn_angles_log[(log_index + 11) % log_size];
-    last_log_12 = motorM3508.last_multiturn_angles_log[(log_index + 12) % log_size];
-    last_log_13 = motorM3508.last_multiturn_angles_log[(log_index + 13) % log_size];
-    last_log_14 = motorM3508.last_multiturn_angles_log[(log_index + 14) % log_size];
+    // last_log_0 = motorM3508.last_multiturn_angles_log[log_index];
+    // last_log_1 = motorM3508.last_multiturn_angles_log[(log_index + 1) % motorM3508.log_size];
+    // last_log_2 = motorM3508.last_multiturn_angles_log[(log_index + 2) % motorM3508.log_size];
+    // last_log_3 = motorM3508.last_multiturn_angles_log[(log_index + 3) % motorM3508.log_size];
+    // last_log_4 = motorM3508.last_multiturn_angles_log[(log_index + 4) % motorM3508.log_size];
+    // last_log_5 = motorM3508.last_multiturn_angles_log[(log_index + 5) % motorM3508.log_size];
 
     // last 15 records for now_us()
-    last_time_log_0 = motorM3508.last_time_log[log_index];
-    last_time_log_1 = motorM3508.last_time_log[(log_index + 1) % log_size];
-    last_time_log_2 = motorM3508.last_time_log[(log_index + 2) % log_size];
-    last_time_log_3 = motorM3508.last_time_log[(log_index + 3) % log_size];
-    last_time_log_4 = motorM3508.last_time_log[(log_index + 4) % log_size];
-    last_time_log_5 = motorM3508.last_time_log[(log_index + 5) % log_size];
-    last_time_log_6 = motorM3508.last_time_log[(log_index + 6) % log_size];
-    last_time_log_7 = motorM3508.last_time_log[(log_index + 7) % log_size];
-    last_time_log_8 = motorM3508.last_time_log[(log_index + 8) % log_size];
-    last_time_log_9 = motorM3508.last_time_log[(log_index + 9) % log_size];
-    last_time_log_10 = motorM3508.last_time_log[(log_index + 10) % log_size];
-    last_time_log_11 = motorM3508.last_time_log[(log_index + 11) % log_size];
-    last_time_log_12 = motorM3508.last_time_log[(log_index + 12) % log_size];
-    last_time_log_13 = motorM3508.last_time_log[(log_index + 13) % log_size];
-    last_time_log_14 = motorM3508.last_time_log[(log_index + 14) % log_size];
-    // last_time_log_0 = motorM3508.last_encoder_angles_log[0];
-    // last_time_log_1 = motorM3508.last_encoder_angles_log[1];
-    // last_time_log_2 = motorM3508.last_encoder_angles_log[2];
-    // last_time_log_3 = motorM3508.last_encoder_angles_log[3];
-    // last_time_log_4 = motorM3508.last_encoder_angles_log[4];
-    // last_time_log_5 = motorM3508.last_encoder_angles_log[5];
-    // last_time_log_6 = motorM3508.last_encoder_angles_log[6];
-    // last_time_log_7 = motorM3508.last_encoder_angles_log[7];
-    // last_time_log_8 = motorM3508.last_encoder_angles_log[8];
-    // last_time_log_9 = motorM3508.last_encoder_angles_log[9];
-    // last_time_log_10 = motorM3508.last_encoder_angles_log[10];
-    // last_time_log_11 = motorM3508.last_encoder_angles_log[11];
-    // last_time_log_12 = motorM3508.last_encoder_angles_log[12];
-    // last_time_log_13 = motorM3508.last_encoder_angles_log[13];
-    // last_time_log_14 = motorM3508.last_encoder_angles_log[14];
 
     // last 15 record for raw encoder value
-    last_curr_log_0 = motorM3508.last_encoder_angles_log[log_index];
-    last_curr_log_1 = motorM3508.last_encoder_angles_log[(log_index + 1) % log_size];
-    last_curr_log_2 = motorM3508.last_encoder_angles_log[(log_index + 2) % log_size];
-    last_curr_log_3 = motorM3508.last_encoder_angles_log[(log_index + 3) % log_size];
-    last_curr_log_4 = motorM3508.last_encoder_angles_log[(log_index + 4) % log_size];
-    last_curr_log_5 = motorM3508.last_encoder_angles_log[(log_index + 5) % log_size];
-    last_curr_log_6 = motorM3508.last_encoder_angles_log[(log_index + 6) % log_size];
-    last_curr_log_7 = motorM3508.last_encoder_angles_log[(log_index + 7) % log_size];
-    last_curr_log_8 = motorM3508.last_encoder_angles_log[(log_index + 8) % log_size];
-    last_curr_log_9 = motorM3508.last_encoder_angles_log[(log_index + 9) % log_size];
-    last_curr_log_10 = motorM3508.last_encoder_angles_log[(log_index + 10) % log_size];
-    last_curr_log_11 = motorM3508.last_encoder_angles_log[(log_index + 11) % log_size];
-    last_curr_log_12 = motorM3508.last_encoder_angles_log[(log_index + 12) % log_size];
-    last_curr_log_13 = motorM3508.last_encoder_angles_log[(log_index + 13) % log_size];
-    last_curr_log_14 = motorM3508.last_encoder_angles_log[(log_index + 14) % log_size];
 
     end_logging = !end_logging;
 

@@ -99,11 +99,14 @@ public:
     double delta_time = 0;
 
     
-    int log_size = 15; // size of record
+    static const int log_size = 7; // size of record
     int log_index = 0; // next index to log data to (LAST RECORDED DATA IS STORED IN curr_index - 1!!!)
-    int last_multiturn_angles_log[15]; // last 15 records for angles
-    int last_encoder_angles_log[15]; // last 15 record for raw encoder value
-    int last_time_log[15]; // last 15 record for time
+    
+    // string buffer1Name = "";
+    int buffer1[log_size];
+    int buffer2[log_size];
+    long buffer3[log_size];
+    int buffer[log_size];
     
 
     int outputCap = INT16_T_MAX;
