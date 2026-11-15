@@ -34,6 +34,7 @@ DJIMotor::config motorConfig = {
     canbus1,
     MOTOR_ID,
     CANHandler::CANBUS_1,
+    M2006,
 };
 CANHandler* can1{nullptr};
 DJIMotor motor = DJIMotor(motorConfig);
@@ -46,28 +47,24 @@ void testOne() {
     DJIMotor::sendValues(true);
 }
 
+int motorPower{0};
+bool increasing{true};
+
 void testTwo() {
-    int motorPower{0};
-    bool increasing{true};
-
-    while (true) {
-        if (motorPower >= 750) {
-            increasing = false;
-        } else if (motorPower <= -750) {
-            increasing = true;
-        }
-
-        if (increasing) {
-            motorPower += 25;
-        } else {
-            motorPower -= 25;
-        }
-
-        motorPower = std::clamp(motorPower, -750, 750);
-        DJIMotor::sendValues(true);
-
-        k_msleep(100);
+    if (motorPower >= 750) {
+        increasing = false;
+    } else if (motorPower <= -750) {
+        increasing = true;
     }
+
+    if (increasing) {
+        motorPower += 25;
+    } else {
+        motorPower -= 25;
+    }
+
+    motorPower = std::clamp(motorPower, -750, 750);
+    DJIMotor::sendValues(true);
 }
 
 
@@ -101,10 +98,10 @@ int main(void)
         return -1;
     }
 
-    if (!device_is_ready(canbus2)) {
-        printf("fail to init can2!\n");
-        return -1;
-    }
+    // if (!device_is_ready(canbus2)) {
+    //     printf("fail to init can2!\n");
+    //     return -1;
+    // }
 
     DJIMotor::setCanHandlers();
     can1 = DJIMotor::getCanHandler(CANHandler::CANBUS_1);
@@ -114,7 +111,6 @@ int main(void)
     }
 
     can1->registerCallback(0x201, 0x208, DJIMotor::getCanOneFeedback);
-
 
     while (true) {
         periodic();
