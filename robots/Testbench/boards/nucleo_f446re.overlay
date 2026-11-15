@@ -15,8 +15,8 @@
 };
 
 // ADD YOUR CAN NODES HERE
-&can1 {
-    pinctrl-0 = <&can1_tx_pa12 &can1_rx_pa11>;
+&can1{
+    pinctrl-0 = <&can1_rx_pa11 &can1_tx_pa12>;
     pinctrl-names = "default";
     status = "okay";
     bitrate = <100000>;

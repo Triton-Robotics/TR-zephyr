@@ -28,7 +28,7 @@ const struct gpio_dt_spec led2_dev = GPIO_DT_SPEC_GET(DT_ALIAS(led2), gpios);
 
 short constexpr MOTOR_ID = 2;
 static const struct device* canbus1 = DEVICE_DT_GET(DT_NODELABEL(can1));
-static const struct device* canbus2 = DEVICE_DT_GET(DT_NODELABEL(can2));
+//static const struct device* canbus2 = DEVICE_DT_GET(DT_NODELABEL(can2));
 
 DJIMotor::config motorConfig = {
     canbus1,
@@ -36,7 +36,7 @@ DJIMotor::config motorConfig = {
     CANHandler::CANBUS_1,
     M2006,
 };
-CANHandler* can1{nullptr};
+CANHandler* can1;
 DJIMotor motor = DJIMotor(motorConfig);
 
 float current{};
