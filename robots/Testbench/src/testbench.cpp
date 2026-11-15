@@ -22,16 +22,53 @@
 const struct gpio_dt_spec led0_dev = GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
 const struct gpio_dt_spec led1_dev = GPIO_DT_SPEC_GET(DT_ALIAS(led1), gpios);
 const struct gpio_dt_spec led2_dev = GPIO_DT_SPEC_GET(DT_ALIAS(led2), gpios);
+static const struct device *canbus1 = DEVICE_DT_GET(DT_NODELABEL(can1));
+static const struct device *canbus2 = DEVICE_DT_GET(DT_NODELABEL(can2));
 
 
 short constexpr MOTOR_ID = 2;
+float motorTorque = 0.0f;
+float motorCurrent = 0.0f;
+int step = 25;
+int power = 0;
 
+DJIMotor::config motorConfig = {canbus1, MOTOR_ID, CANHandler::CANBUS_1};
+DJIMotor motor(motorConfig);
 
+void testOne() {
+    while (true){
+        motor.setPower(600);
+        motor.sendValues(true);
 
+        motorTorque = motor.getData(TORQUE);
+        motorCurrent = motor.getData(VALUE);
+    }
+}
+
+void testTwo() {
+    while (true){
+        power = std::clamp(power, -800, 800);
+        motor.setPower(power);
+        motor.sendValues(true);
+
+        motorTorque = motor.getData(TORQUE);
+        motorCurrent = motor.getData(VALUE);
+
+        power+=step;
+        if (power >= 800){
+            power = 800;
+            step = -25;
+        } else if (power <= -750){
+            power = -750;
+            step = 25;
+        }
+    }
+}
 
 void periodic() {
-
-    
+    DJIMotor::getCanHandler(CANHandler::CANBUS_1)->readAllCan();
+    testOne();
+    testTwo();
 }
 
 int main(void)
@@ -48,4 +85,25 @@ int main(void)
 
 
     // --------------------------- Your code after this line 
+    if (device_is_ready(canbus1)){
+        printk("CAN bus 1 is ready\n");
+    } else {
+        printk("CAN bus 1 is not ready\n");
+        return -1;
+    }
+
+    DJIMotor::setCanHandlers();
+
+    CANHandler *can1 = DJIMotor::getCanHandler(CANHandler::CANBUS_1);
+    if (!can1) {
+        printk("CAN bus 1 initialization failed\n");
+        return -1;
+    }
+
+    can1->registerCallback(0x201, 0x208, DJIMotor::getCanOneFeedback);
+
+    while (true){
+        periodic();
+        k_sleep(K_MSEC(100));
+    }
 }
