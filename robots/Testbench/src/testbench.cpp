@@ -27,6 +27,7 @@ static const struct device *canbus2 = DEVICE_DT_GET(DT_NODELABEL(can2));
 
 
 short constexpr MOTOR_ID = 2;
+CANHandler *can1;
 float motorTorque = 0.0f;
 float motorCurrent = 0.0f;
 int step = 25;
@@ -66,7 +67,7 @@ void testTwo() {
 }
 
 void periodic() {
-    DJIMotor::getCanHandler(CANHandler::CANBUS_1)->readAllCan();
+    can1->readAllCan();
     testOne();
     testTwo();
 }
