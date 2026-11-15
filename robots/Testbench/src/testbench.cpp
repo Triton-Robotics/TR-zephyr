@@ -31,10 +31,42 @@ short constexpr MOTOR_ID = 2;
 
 DJIMotor testMotor(MOTOR_ID, CANHandler::CANBUS_1, GM6020, "testMotor"); 
 
+float motorCurrent;
+float motorTorque;
+
 
 void periodic(CANHandler* can) {
     can->readAllCan();
-    
+    motorCurrent = testMotor.getData(POWEROUT);
+    motorTorque = testMotor.getData(TORQUE);
+}
+
+void testOne() {
+    testMotor.setPower(600);
+    DJIMotor::sendValues(true);
+}
+
+bool increasing = true;
+int power = 0;
+
+void testTwo() {
+    if (power <= -750) {
+        increasing = true;
+        power+= 25;
+    }
+    else if (power >= 750) {
+        increasing = false;
+        power -= 25;
+    }
+    else if (increasing) {
+        power+= 25;
+    }
+    else {
+        power -= 25;
+    }
+    testMotor.setPower(std::clamp(power, -800, 800));
+    testMotor.setPower(power);
+    DJIMotor::sendValues(true);
 }
 
 int main(void)
@@ -53,13 +85,14 @@ int main(void)
     // --------------------------- Your code after this line 
 
     if (device_is_ready(canbus1)) {
-        printk("canbus1");
+        printk("canbus1\n");
     }
     else {
-        printk("can1 not ready");
+        printk("can1 not ready\n");
         return -1;
     }
 
+    
 
     DJIMotor::setCanHandlers();
 
@@ -73,8 +106,14 @@ int main(void)
 
     while (true) {
         periodic(can1);
+        testOne();
         k_sleep(K_MSEC(100));
+
     }
         
+    
+
+
+
 
 }
