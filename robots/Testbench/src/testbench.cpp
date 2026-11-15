@@ -24,14 +24,15 @@ const struct gpio_dt_spec led1_dev = GPIO_DT_SPEC_GET(DT_ALIAS(led1), gpios);
 const struct gpio_dt_spec led2_dev = GPIO_DT_SPEC_GET(DT_ALIAS(led2), gpios);
 
 
-short constexpr MOTOR_ID = 2;
+short constexpr MOTOR_ID = 1;
 static const struct device *canbus1 = DEVICE_DT_GET(DT_NODELABEL(can1));
 static const struct device *canbus2 = DEVICE_DT_GET(DT_NODELABEL(can2));
-
+int power = 0;
+bool increasing = true;
 DJIMotor::config motorCFG {
     .motorID = MOTOR_ID,
     .canBus = CANHandler::CANBUS_1,
-    .type = STANDARD,
+    .type = M2006,
     .name = "placeholder",
 };
 DJIMotor motor(motorCFG);
@@ -44,21 +45,16 @@ void testOne(){
     DJIMotor::sendValues(true);
 }
 void testTwo(){
-    int power = 0;
-    bool increasing = true;
-    while(true){
-        if(power==800){increasing =false;}
-        if(power==-750){increasing=true;}
-        if(increasing){power+=25;}
-        else{power-=25;}
+    if(power==800){increasing =false;}
+    if(power==-750){increasing=true;}
+    if(increasing){power+=25;}
+    else{power-=25;}
 
-        std::clamp(power, -800, 800);
-        motor.setPower(power);
+    std::clamp(power, -800, 800);
+    motor.setPower(power);
+    
+    DJIMotor::sendValues(true);
         
-        DJIMotor::sendValues(true);
-        
-        k_sleep(K_MSEC(100));
-    }
 }
 void periodic() {
     can1->readAllCan();
@@ -66,7 +62,7 @@ void periodic() {
     current = motor.getData(TORQUE);
     torque = ((current*20.0f)/16384.0f)*0.3f;
     //testOne();
-    //testTwo;
+    testTwo();
 }
 
 
@@ -84,19 +80,25 @@ int main(void)
 
 
     // --------------------------- Your code after this line 
-    DJIMotor::setCanHandlers();
-    can1 = DJIMotor::getCanHandler(CANHandler::CANBUS_1);
     if(device_is_ready(canbus1)){
         printk("can1 initailized");
     }
     else{
         motor.setSpeed(0);
     }
+
+    DJIMotor::setCanHandlers();
+    can1 = DJIMotor::getCanHandler(CANHandler::CANBUS_1);
     if (!can1) {
         printk("CAN bus 1 initialization failed\n");
         return -1;
     }
     can1->registerCallback(0x201, 0x208, DJIMotor::getCanOneFeedback);
+    while(true){
+        periodic();
+        k_sleep(K_MSEC(2));
+    }
+    /** 
     int power = 0;
     bool increasing = true;
     while(true){
@@ -104,8 +106,10 @@ int main(void)
         if(power==0){increasing=true;}
         if(increasing){power+=20;}
         else{power-=20;}
+        std::clamp(power, 0, 1000);
         motor.setPower(power);
         DJIMotor::sendValues(true);
         k_sleep(K_MSEC(100));
     }
+        */
 }

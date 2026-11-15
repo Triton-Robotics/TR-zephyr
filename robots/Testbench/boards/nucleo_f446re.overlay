@@ -15,18 +15,19 @@
 };
 
 // ADD YOUR CAN NODES HERE
-&can1{
-    pinctrl-0 = <&can1_rx_pB9 &can1_tx_pB8>;
+&can1 {
+    pinctrl-0 = <&can1_rx_pa11 &can1_tx_pa12>;
     pinctrl-names = "default";
     status = "okay";
-    clock-frequency = <100000>;
-    }
-&can2{
-    pinctrl-0 = <&can1_rx_p12 &can1_tx_pa11>;
+    bitrate = <1000000>;
+};
+
+&can2 {
+    pinctrl-0 = <&can2_rx_pb12 &can2_tx_pb13>;
     pinctrl-names = "default";
     status = "okay";
-    clock-frequency = <100000>;
-    }
+    bitrate = <1000000>;
+};
 
 
 
