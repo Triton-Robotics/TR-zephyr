@@ -27,23 +27,29 @@ const struct gpio_dt_spec led2_dev = GPIO_DT_SPEC_GET(DT_ALIAS(led2), gpios);
 short constexpr MOTOR_ID = 1;
 static const struct device *canbus1 = DEVICE_DT_GET(DT_NODELABEL(can1));
 static const struct device *canbus2 = DEVICE_DT_GET(DT_NODELABEL(can2));
-int power = 0;
-bool increasing = true;
+
+float current = 0;
+float torque = 0;
+
 DJIMotor::config motorCFG {
     .motorID = MOTOR_ID,
     .canBus = CANHandler::CANBUS_1,
     .type = M2006,
     .name = "placeholder",
 };
+
 DJIMotor motor(motorCFG);
 CANHandler *can1;
-float current = 0;
-float torque = 0;
+
 
 void testOne(){
     motor.setPower(600);
     DJIMotor::sendValues(true);
 }
+
+int power = 0;
+bool increasing = true;
+
 void testTwo(){
     if(power==800){increasing =false;}
     if(power==-750){increasing=true;}
@@ -98,18 +104,5 @@ int main(void)
         periodic();
         k_sleep(K_MSEC(2));
     }
-    /** 
-    int power = 0;
-    bool increasing = true;
-    while(true){
-        if(power==1000){increasing =false;}
-        if(power==0){increasing=true;}
-        if(increasing){power+=20;}
-        else{power-=20;}
-        std::clamp(power, 0, 1000);
-        motor.setPower(power);
-        DJIMotor::sendValues(true);
-        k_sleep(K_MSEC(100));
-    }
-        */
+    
 }
