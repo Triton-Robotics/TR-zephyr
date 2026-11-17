@@ -106,7 +106,7 @@ int main(void)
 
     while (true) {
         periodic(can1);
-        testOne();
+        testTwo();
         k_sleep(K_MSEC(100));
 
     }

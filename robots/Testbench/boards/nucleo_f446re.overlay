@@ -19,14 +19,14 @@
     pinctrl-0 = <&can1_tx_pa12 &can1_rx_pa11>;
     pinctrl-names = "default";
     status = "okay";
-    bitrate = <10000000>;
+    bitrate = <1000000>;
 };
 
 &can2 {
     pinctrl-0 = <&can2_tx_pb13 &can2_rx_pb12>;
     pinctrl-names = "default";
     status = "okay";
-    bitrate = <10000000>;
+    bitrate = <1000000>;
 };
 
 
