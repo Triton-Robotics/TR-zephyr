@@ -27,9 +27,9 @@ const struct gpio_dt_spec led2_dev = GPIO_DT_SPEC_GET(DT_ALIAS(led2), gpios);
 static const struct device *canbus1 = DEVICE_DT_GET(DT_NODELABEL(can1));
 static const struct device *canbus2 = DEVICE_DT_GET(DT_NODELABEL(can2));
 
-short constexpr MOTOR_ID = 2;
+short constexpr MOTOR_ID = 7;
 
-DJIMotor testMotor(MOTOR_ID, CANHandler::CANBUS_1, GM6020, "testMotor"); 
+DJIMotor testMotor(MOTOR_ID, CANHandler::CANBUS_1, M3508, "testMotor"); 
 
 float motorCurrent;
 float motorTorque;
@@ -64,7 +64,7 @@ void testTwo() {
     else {
         power -= 25;
     }
-    testMotor.setPower(std::clamp(power, -800, 800));
+    testMotor.setPower(std::clamp(power, -750, 750));
     testMotor.setPower(power);
     DJIMotor::sendValues(true);
 }
