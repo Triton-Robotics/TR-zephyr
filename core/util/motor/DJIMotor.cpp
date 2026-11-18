@@ -457,8 +457,9 @@ void DJIMotor::updateOneMultiTurn(int canBus, int can_line, int motor_id) {
 
 
         curMotor->buffer1[curMotor->log_index] = curMotor->multiturn_angle;
-        curMotor->buffer2[curMotor->log_index] = curMotor->multiturn_angle;
+        curMotor->buffer2[curMotor->log_index] = curAngle;
         curMotor->buffer3[curMotor->log_index] = long(time);
+        curMotor->buffer4[curMotor->log_index] = raw_speed;
         curMotor->log_index = (curMotor->log_index + 1) % curMotor->log_size;
         
     }

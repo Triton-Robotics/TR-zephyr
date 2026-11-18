@@ -4,6 +4,7 @@
 // #include "syscalls/can.h"
 // #include <zephyr/drivers/can.h>
 #include "zephyr/sys/printk.h"
+#include "zephyr/sys/util.h"
 #include <cerrno>
 #include <zephyr/drivers/i2c.h>
 #include <zephyr/drivers/pwm.h>
@@ -89,9 +90,10 @@ CANHandler canHandler1_(canbus1_dev);
 DJIMotor::config m3508Config = {canbus1_dev, MOTOR_ID, CANHandler::CANBUS_1, M3508};  //C620, motorid = 2
 DJIMotor motorM3508(m3508Config);
 // std::string buffer1Name = 
-auto (&buffer1)[motorM3508.log_size] = motorM3508.buffer1;
-auto (&buffer2)[motorM3508.log_size] = motorM3508.buffer2;
-auto (&buffer3)[motorM3508.log_size] = motorM3508.buffer3;
+decltype(motorM3508.buffer1) buffer1;
+decltype(motorM3508.buffer2) buffer2;
+decltype(motorM3508.buffer3) buffer3;
+decltype(motorM3508.buffer4) buffer4;
 
 
 void periodic() {
@@ -122,37 +124,35 @@ void periodic() {
     integration_time = motorM3508.integration_time;
     delta_time = motorM3508.delta_time;
 
-    // log_index = motorM3508.log_index;
 
-
-    // last 15 records for angles
-    // last_log_0 = motorM3508.last_multiturn_angles_log[log_index];
-    // last_log_1 = motorM3508.last_multiturn_angles_log[(log_index + 1) % motorM3508.log_size];
-    // last_log_2 = motorM3508.last_multiturn_angles_log[(log_index + 2) % motorM3508.log_size];
-    // last_log_3 = motorM3508.last_multiturn_angles_log[(log_index + 3) % motorM3508.log_size];
-    // last_log_4 = motorM3508.last_multiturn_angles_log[(log_index + 4) % motorM3508.log_size];
-    // last_log_5 = motorM3508.last_multiturn_angles_log[(log_index + 5) % motorM3508.log_size];
-
-    // last 15 records for now_us()
-
-    // last 15 record for raw encoder value
+    for(int i = 0; i < motorM3508.log_size; i++) {
+        buffer1[i] = motorM3508.buffer1[(motorM3508.log_index + i) % motorM3508.log_size];
+        buffer2[i] = motorM3508.buffer2[(motorM3508.log_index + i) % motorM3508.log_size];
+        buffer3[i] = motorM3508.buffer3[(motorM3508.log_index + i) % motorM3508.log_size];
+        buffer4[i] = motorM3508.buffer4[(motorM3508.log_index + i) % motorM3508.log_size];
+    }
 
     end_logging = !end_logging;
 
     
-    // if(time_ctrl < SWAP_TIME) {
+    if(time_ctrl < SWAP_TIME) {
+        if(current_motor_power < 1000) {
+            current_motor_power = CLAMP(current_motor_power + 5, 0, 1000);
+        }
+        // 1 rotation
         motorM3508.setPower(-current_motor_power);
         DJIMotor::sendValues(true);
     // } else if(time_ctrl < 6 * SWAP_TIME && time_ctrl > 5 * SWAP_TIME) {
     //     motorM3508.setPower(-current_motor_power);
     //     DJIMotor::sendValues(true);
-    // } else {
-    //     motorM3508.setPower(0);
+    } else {
+        motorM3508.setPower(0);
+        DJIMotor::sendValues(true);
     //     if(go) {
     //         DJIMotor::sendValues(true);
     //         go = false;
     //     }
-    // }
+    }
 
     // printf("HOI: %f, %f, %f\n", static_cast<double>(current_motor_multiturn), static_cast<double>(current_motor_velocity), static_cast<double>(current_motor_angle));
     // printf("%d\n", motorM3508.delta_angle);

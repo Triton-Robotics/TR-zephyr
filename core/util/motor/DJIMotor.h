@@ -106,7 +106,7 @@ public:
     int buffer1[log_size];
     int buffer2[log_size];
     long buffer3[log_size];
-    int buffer[log_size];
+    float buffer4[log_size];
     
 
     int outputCap = INT16_T_MAX;
