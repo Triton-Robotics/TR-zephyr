@@ -3,13 +3,8 @@
 
 #include "crc.h"
 
-// Frame header CRC8 verification: (assuming the frame header is stored in array frame_header[])
-unsigned char frame_header[3];        // 4-Byte
+unsigned char frame_header[3];
 unsigned int frame_crc_dwLength = 3;  // stream length
-
-// First receive data into array frame_header[3]; // 4-Byte
-
-// Then call Verify_CRC8_Check_Sum(), returns TRUE/FALSE
 
 /************************************ Frame Header CRC8 Verification *******************************************/
 // crc8 generator polynomial: G(x)=x8+x5+x4+1 // Generator polynomial
@@ -62,7 +57,6 @@ unsigned int Verify_CRC8_Check_Sum(unsigned char* pchMessage, unsigned int dwLen
 /*
 ** Descriptions: append CRC8 to the end of data
 ** Input: Data to CRC and append,Stream length = Data + checksum
-** Output: True or False (CRC Verify Result)
 */
 void Append_CRC8_Check_Sum(unsigned char* pchMessage, unsigned int dwLength) {
     unsigned char ucCRC = 0;
@@ -134,7 +128,6 @@ uint32_t Verify_CRC16_Check_Sum(uint8_t* pchMessage, uint32_t dwLength) {
 /*
 ** Descriptions: append CRC16 to the end of data
 ** Input: Data to CRC and append,Stream length = Data + checksum
-** Output: True or False (CRC Verify Result)
 */
 void Append_CRC16_Check_Sum(uint8_t* pchMessage, uint32_t dwLength) {
     uint16_t wCRC = 0;

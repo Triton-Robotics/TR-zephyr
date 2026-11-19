@@ -73,11 +73,11 @@ void Referee::Judge_GetMessage(uint16_t Data_Length) {
         uint16_t frame_len = static_cast<uint16_t>(val->frame_len);
 
         // Frame len specifies the TOTAL amount of bytes per packet of data
-        // Frame+7 bypasses the header + command ID prefix and skips to actual data
+        // frame + LEN_HEADER + LEN_CMDID bypasses the header + command ID prefix and skips to actual data
         // JUDGE_EXTRA is a const that contains the length of the extra useless data,
         // so we subtract to copy the right amount
         bool unpackStatusCode =
-            unpack_payload(val->dest, frame + 7, frame_len - JUDGE_EXTRA, val->update_flag);
+            unpack_payload(val->dest, frame + LEN_HEADER + LEN_CMDID, frame_len - JUDGE_EXTRA, val->update_flag);
         if (!unpackStatusCode) printf("fail to parse server packet\n");
 
 #if REF_DEBUG
@@ -127,7 +127,7 @@ void Referee::referee_data_pack_handle(uint8_t sof, uint16_t cmd_id, uint8_t* p_
 
     mutex_write_.lock();
     // Data frame length
-    uint16_t frame_length = frameheader_len + cmd_len + len + crc_len;
+    uint16_t frame_length = LEN_HEADER + LEN_CMDID + len + LEN_TAIL;
 
     // Clear the data storage array to zero
     memset(tx_buff, 0, frame_length);
@@ -144,13 +144,13 @@ void Referee::referee_data_pack_handle(uint8_t sof, uint16_t cmd_id, uint8_t* p_
     tx_buff[3] = seq;
 
     // Frame header check CRC8
-    Append_CRC8_Check_Sum(tx_buff, frameheader_len);
+    Append_CRC8_Check_Sum(tx_buff, LEN_HEADER);
 
     /***** Command code packaging *****/
-    memcpy(&tx_buff[frameheader_len], (uint8_t*)&cmd_id, cmd_len);
+    memcpy(&tx_buff[LEN_HEADER], (uint8_t*)&cmd_id, LEN_CMDID);
 
     /***** Data packaging *****/
-    memcpy(&tx_buff[frameheader_len + cmd_len], p_data, len);
+    memcpy(&tx_buff[LEN_HEADER + LEN_CMDID], p_data, len);
 
     // Full frame data check CRC16
     Append_CRC16_Check_Sum(tx_buff, frame_length);
@@ -192,14 +192,6 @@ void Referee::referee_data_pack_handle(uint8_t* packet, uint16_t len) {
     ref.write(packet, len);
 }
 
-// Referee::Referee(PinName pin_tx, PinName pin_rx) : ref(pin_tx, pin_rx,
-// 115200)
-// {
-//     memset(JudgeSystem_rxBuff, 0, JUDGESYSTEM_PACKSIZE);
-
-//     this->readThread_.start(callback(this, &Referee::readThread));
-//     this->writeThread_.start(callback(this, &Referee::writeThread));
-// } 
 
 Referee::Referee(const struct device* uart, USART_TypeDef* ll_usart)
     : ref(uart, ll_usart),

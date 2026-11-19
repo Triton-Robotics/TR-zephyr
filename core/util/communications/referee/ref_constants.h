@@ -9,12 +9,6 @@
 // Writing data stuff
 // Maximum length of uploaded data
 #define MAX_SIZE 128
-// Frame header length
-#define frameheader_len 5
-// Command code length
-#define cmd_len 2
-// CRC16 checksum
-#define crc_len 2
 
 #define send_max_len 300  // 200
 
@@ -142,7 +136,7 @@ enum class PacketHeader : uint16_t {
 
 /***************************DATA_Length*************************/
 
-#define JUDGE_EXTRA 9
+#define JUDGE_EXTRA (LEN_HEADER + LEN_CMDID + LEN_TAIL)  // 9
 /*Calculation:frame_header(5-byte)+cmd_id(2-byte)+data(n-byte)+frame_tail(2-byte,CRC16)*/
 
 enum class PacketLength : uint16_t {
@@ -442,7 +436,7 @@ typedef struct __packed {
 static_assert(offsetof(ext_dart_client_cmd_t, infoUpdateFlag) == 6, "ext_dart_client_cmd_t size must be 6 bytes");
 
 /*
-    ID: 0x020C,
+    ID: 0x020B,
     Byte: 40,
     Contains coordinate position of own side robots
 */
@@ -634,55 +628,6 @@ typedef struct __packed {
     uint16_t receiver_ID;
     robot_interactive_data_t data;  // ADDED
 } ext_student_interactive_header_data_robot_comm_t;
-/* 0x020B, 40 bytes. Own ground robot positions (m), sent to sentry. */
 
-// ------------------- Line 1330
-
-// /* Robot interactive information: 0x0301 */
-// typedef __packed struct
-// {
-// 	// Frame header
-// 	xFrameHeader   							txFrameHeader;
-// 	// Command code
-// 	uint16_t								CmdID;
-// 	// Data segment header structure
-// 	ext_student_interactive_header_data_t   dataFrameHeader;
-// 	// Data segment
-// 	robot_interactive_data_t  	 			interactData;
-// 	// Frame tail
-// 	uint16_t		 						FrameTail;
-// }ext_CommunatianData_t;
-
-// // Frame header | Command code | Data segment header | Data segment | Frame tail
-
-// /* Client structure */
-// // Upload to client
-// typedef __packed struct
-// {
-// 	// Frame header
-// 	xFrameHeader   							txFrameHeader;
-// 	// Command code
-// 	uint16_t		 						CmdID;
-// 	// Data segment header structure
-// 	ext_student_interactive_header_data_t   dataFrameHeader;
-// 	// Data segment
-// 	graphic_data_struct_t cilentData[7];
-// 	// Frame tail
-// 	uint16_t		 						FrameTail;
-// }ext_SendClientData_t;
-
-// typedef __packed struct
-// {
-// 	// Frame header
-// 	xFrameHeader   							txFrameHeader;
-// 	// Command code
-// 	uint16_t		 						CmdID;
-// 	// Data segment header structure
-// 	ext_student_interactive_header_data_t   dataFrameHeader;
-// 	// Data segment
-// 	graphic_data_struct_t cilentData[5];
-// 	// Frame tail
-// 	uint16_t		 						FrameTail;
-// }ext_ShowCrossHair_t;
 
 #pragma GCC diagnostic pop
