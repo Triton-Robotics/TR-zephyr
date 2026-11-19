@@ -7,40 +7,33 @@
 #define SCREEN_WIDTH 1080
 
 // Writing data stuff
-// 上传数据最大的长度
 // Maximum length of uploaded data
 #define MAX_SIZE 128
-// 帧头长度
 // Frame header length
 #define frameheader_len 5
-// 命令码长度
 // Command code length
 #define cmd_len 2
-// CRC16校验
 // CRC16 checksum
 #define crc_len 2
 
 #define send_max_len 300  // 200
 
 // -------------------------------------
-// From South China University of Technology 华南理工大学广州学院-野狼战队-步兵代码
+// From South China University of Technology
 // ---------------------------------- 
 
 // From South China University of Technology Guangzhou College - Wild Wolf Team - Infantry Code 
 // https://github.com/wuzjun/2021RM_Infantry/blob/master/Devices/Devices.h/RM_JudgeSystem.h
 // 2021 section
 
-// 对应通信协议格式 frame_header(5-byte)+cmd_id(2-byte)+data(n-byte)+frame_tail(2-byte,CRC16,整包校验)
 //  Corresponding communication protocol format:
 //  frame_header(5-byte)+cmd_id(2-byte)+data(n-byte)+frame_tail(2-byte,CRC16,whole packet check)
 #define LEN_HEADER 5 /*frame_header*/
 #define LEN_CMDID 2  /*cmd_id*/
 #define LEN_TAIL 2   /*frame_tail*/
 
-// 起始字节，协议固定为0xA5
 // Start byte, protocol fixed at 0xA5
 #define JUDGE_FRAME_HEADER 0xA5
-// 裁判系统包大小(354+35)
 // Referee system packet size (354+35)
 #define JUDGESYSTEM_PACKSIZE 389u
 
@@ -114,12 +107,10 @@ enum class DartStatus: uint8_t {
 
 
 
-// 信息传输
 // Information transmission
 #define TRUE 1
 #define FALSE 0
 
-/***********************************命令码ID*************************************/
 /*********************************** Command Code ID *************************************/
 
 enum class PacketHeader : uint16_t {
@@ -185,7 +176,6 @@ enum class PacketLength : uint16_t {
 // -------------------------------------
 // BELOW: from SCUT code line 733-1102
 
-/* 自定义帧头 */
 /* Custom frame header */
 typedef struct {
     uint8_t SOF;
@@ -415,23 +405,14 @@ static_assert(offsetof(projectile_allowance_t, infoUpdateFlag) == 8, "projectile
     Byte: 4       
     Robot RFID status 
     
-    bit 0：基地增益点 RFID 状态；
     bit 0: Base buff point RFID status;
-    bit 1：高地增益点 RFID 状态；
     bit 1: Elevated ground buff point RFID status;
-    bit 2：能量机关激活点 RFID 状态；
     bit 2: Power Rune activation point RFID status;
-    bit 3：飞坡增益点 RFID 状态；
     bit 3: Launch ramp buff point RFID status;
-    bit 4：前哨岗增益点 RFID 状态；
     bit 4: Outpost buff point RFID status;
-    bit 5：资源岛增益点 RFID 状态；
     bit 5: Resource island buff point RFID status;
-    bit 6：补血点增益点 RFID 状态；
     bit 6: HP recovery point buff point RFID status;
-    bit 7：工程机器人补血卡 RFID 状态；
     bit 7: Engineer robot HP recovery card RFID status;
-    RFID 状态不完全代表对应的增益或处罚状态，例如敌方已占领的高地增益点，不能获取对应的增益效果。
     RFID status does not entirely represent the corresponding buff or penalty status; for example, if
     the enemy has occupied an elevated ground buff point, the corresponding buff effect cannot be
     obtained.
@@ -537,7 +518,6 @@ static_assert(offsetof(map_command_t, infoUpdateFlag) == 12, "map_command_t must
 
 // ----------------------- Line 1163
 
-/* ID: 0X0301          Byte: n       机器人间交互数据 */
 /* ID: 0X0301          Byte: n       Robot-to-robot interaction data */
 typedef struct {
     uint16_t data_cmd_id;
@@ -547,20 +527,17 @@ typedef struct {
 
 /* data */
 typedef struct {
-    // 数据段n小于113
     //  Data segment n is less than 113
     uint8_t data[20];
 } robot_interactive_data_t;
 
 /*
-        客户端 客户端自定义数据：cmd_id:0x0301。内容 ID:0x0100   0x0101  0x0102  0x0103  0x0110
-   0x0104 Client custom data: cmd_id: 0x0301. Content ID: 0x0100, 0x0101, 0x0102, 0x0103, 0x0110,
-   0x0104 发送频率：上限 10Hz Transmission frequency: max 10Hz
+   Client custom data: cmd_id: 0x0301. Content ID: 0x0100, 0x0101, 0x0102, 0x0103, 0x0110, 0x0104
+   Transmission frequency: max 10Hz
 
 
 */
 
-/* 客户端删除图形 机器人间通信：0x0301 */
 /* Client delete graphic | Robot communication: 0x0301 */
 typedef struct {
     uint8_t operate_tpye;
@@ -575,7 +552,6 @@ typedef struct {
     ext_client_custom_graphic_delete_t graphic_custom;  // ADDED
 } ext_student_interactive_header_data_delete_t;
 
-/* 图形数据 */
 /* Graphic data */
 typedef struct {
     uint8_t graphic_name[3];
@@ -607,31 +583,26 @@ typedef struct {
     int32_t data;
 } ClientData_struct_t;
 
-/* 客户端绘制一个图形 机器人间通信：0x0301 */
 /* Client draw one graphic | Robot communication: 0x0301 */
 typedef struct {
     graphic_data_struct_t grapic_data_struct;
 } ext_client_custom_graphic_single_t;
 
-/* 客户端绘制二个图形 机器人间通信：0x0301 */
 /* Client draw two graphics | Robot communication: 0x0301 */
 typedef struct {
     graphic_data_struct_t grapic_data_struct[2];
 } ext_client_custom_graphic_double_t;
 
-/* 客户端绘制五个图形 机器人间通信：0x0301 */
 /* Client draw five graphics | Robot communication: 0x0301 */
 typedef struct {
     graphic_data_struct_t grapic_data_struct[5];
 } ext_client_custom_graphic_five_t;
 
-/* 客户端绘制七个图形 机器人间通信：0x0301 */
 /* Client draw seven graphics | Robot communication: 0x0301 */
 typedef struct {
     graphic_data_struct_t grapic_data_struct[7];
 } ext_client_custom_graphic_seven_t;
 
-/* 客户端绘制字符 机器人间通信：0x0301 */
 /* Client draw characters | Robot communication: 0x0301 */
 typedef struct {
     graphic_data_struct_t grapic_data_struct;
@@ -640,7 +611,6 @@ typedef struct {
 
 // MY ADDED STRUCTS ------------------
 
-/* ID: 0X0301          Byte: n       机器人间交互数据 */
 /* ID: 0X0301          Byte: n       Robot-to-robot interaction data */
 typedef struct {
     uint16_t data_cmd_id;
@@ -668,68 +638,49 @@ typedef struct __packed {
 
 // ------------------- Line 1330
 
-// /*机器人交互信息：0x0301*/
 // /* Robot interactive information: 0x0301 */
 // typedef __packed struct
 // {
-// 	//帧头
 // 	// Frame header
 // 	xFrameHeader   							txFrameHeader;
-// 	//命令码
 // 	// Command code
 // 	uint16_t								CmdID;
-// 	//数据段头结构
 // 	// Data segment header structure
 // 	ext_student_interactive_header_data_t   dataFrameHeader;
-// 	//数据段
 // 	// Data segment
 // 	robot_interactive_data_t  	 			interactData;
-// 	//帧尾
 // 	// Frame tail
 // 	uint16_t		 						FrameTail;
 // }ext_CommunatianData_t;
 
-// //帧头  命令码   数据段头结构  数据段   帧尾
 // // Frame header | Command code | Data segment header | Data segment | Frame tail
 
-// /*客户端结构体*/
 // /* Client structure */
-// //上传客户端
 // // Upload to client
 // typedef __packed struct
 // {
-// 	//帧头
 // 	// Frame header
 // 	xFrameHeader   							txFrameHeader;
-// 	//命令码
 // 	// Command code
 // 	uint16_t		 						CmdID;
-// 	//数据段头结构
 // 	// Data segment header structure
 // 	ext_student_interactive_header_data_t   dataFrameHeader;
-// 	//数据段
 // 	// Data segment
 // 	graphic_data_struct_t cilentData[7];
-// 	//帧尾
 // 	// Frame tail
 // 	uint16_t		 						FrameTail;
 // }ext_SendClientData_t;
 
 // typedef __packed struct
 // {
-// 	//帧头
 // 	// Frame header
 // 	xFrameHeader   							txFrameHeader;
-// 	//命令码
 // 	// Command code
 // 	uint16_t		 						CmdID;
-// 	//数据段头结构
 // 	// Data segment header structure
 // 	ext_student_interactive_header_data_t   dataFrameHeader;
-// 	//数据段
 // 	// Data segment
 // 	graphic_data_struct_t cilentData[5];
-// 	//帧尾
 // 	// Frame tail
 // 	uint16_t		 						FrameTail;
 // }ext_ShowCrossHair_t;

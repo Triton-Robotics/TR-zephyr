@@ -1,23 +1,17 @@
-// By: 水木皆Ming on CSDN & RoboMaster Referee System Serial Port Protocol Appendix
 // By: ShuiMuJieMing on CSDN & RoboMaster Referee System Serial Port Protocol Appendix
 // https://blog.csdn.net/zhang1079528541/article/details/115435696
 
 #include "crc.h"
 
-// 帧头crc8校验：(假设帧头保存在数组frame_header[]里面)
 // Frame header CRC8 verification: (assuming the frame header is stored in array frame_header[])
 unsigned char frame_header[3];        // 4-Byte
 unsigned int frame_crc_dwLength = 3;  // stream length
 
-// 先接收数据到数组frame_header[3];//4-Byte
 // First receive data into array frame_header[3]; // 4-Byte
 
-// 然后调用Verify_CRC8_Check_Sum()，返回TRUE/FAULSE
 // Then call Verify_CRC8_Check_Sum(), returns TRUE/FALSE
 
-/************************************帧头CRC8校验**************************************************************/
 /************************************ Frame Header CRC8 Verification *******************************************/
-// crc8 generator polynomial:G(x)=x8+x5+x4+1//生成多项式
 // crc8 generator polynomial: G(x)=x8+x5+x4+1 // Generator polynomial
 const unsigned char CRC8_INIT = 0xff;
 const unsigned char CRC8_TAB[256] = {
@@ -77,7 +71,6 @@ void Append_CRC8_Check_Sum(unsigned char* pchMessage, unsigned int dwLength) {
     pchMessage[dwLength - 1] = ucCRC;
 }
 
-/************************************数据尾CRC16校验**************************************************************/
 /************************************ Data Tail CRC16 Verification *********************************************/
 uint16_t CRC_INIT = 0xffff;
 const uint16_t wCRC_Table[256] = {
@@ -152,7 +145,6 @@ void Append_CRC16_Check_Sum(uint8_t* pchMessage, uint32_t dwLength) {
     pchMessage[dwLength - 2] = (uint8_t)(wCRC & 0x00ff);
     pchMessage[dwLength - 1] = (uint8_t)((wCRC >> 8) & 0x00ff);
 }
-/*整数型转化为字符型*/
 /* Convert integer to characters/string */
 
 // void int_into_char(char *Data, int16_t i)

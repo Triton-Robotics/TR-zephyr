@@ -16,7 +16,6 @@ K_THREAD_STACK_DEFINE(referee_write_stack, REFEREE_WRITE_STACK_SIZE);
 
 // -------------------------------------
 // From South China University of Technology
-// 华南理工大学广州学院-野狼战队-步兵代码
 // ----------------------------------
 // From South China University of Technology Guangzhou College - Wild Wolf Team
 // - Infantry Code ----------------------
@@ -127,42 +126,32 @@ void Referee::referee_data_pack_handle(uint8_t sof, uint16_t cmd_id, uint8_t* p_
     uint8_t tx_buff[MAX_SIZE];
 
     mutex_write_.lock();
-    // 数据帧长度
     // Data frame length
     uint16_t frame_length = frameheader_len + cmd_len + len + crc_len;
 
-    // 存储数据的数组清零
     // Clear the data storage array to zero
     memset(tx_buff, 0, frame_length);
 
-    /***** 帧头打包 *****/
     /***** Frame header packaging *****/
 
-    // 数据帧起始字节
     // Data frame start byte
     tx_buff[0] = sof;
 
-    // 数据帧中data的长度
     // Length of data field in data frame
     memcpy(&tx_buff[1], (uint8_t*)&len, sizeof(len));
 
-    // 包序号
     // Packet sequence number
     tx_buff[3] = seq;
 
-    // 帧头校验CRC8
     // Frame header check CRC8
     Append_CRC8_Check_Sum(tx_buff, frameheader_len);
 
-    /***** 命令码打包 *****/
     /***** Command code packaging *****/
     memcpy(&tx_buff[frameheader_len], (uint8_t*)&cmd_id, cmd_len);
 
-    /***** 数据打包 *****/
     /***** Data packaging *****/
     memcpy(&tx_buff[frameheader_len + cmd_len], p_data, len);
 
-    // 一帧数据校验CRC16
     // Full frame data check CRC16
     Append_CRC16_Check_Sum(tx_buff, frame_length);
 
@@ -171,7 +160,6 @@ void Referee::referee_data_pack_handle(uint8_t sof, uint16_t cmd_id, uint8_t* p_
     else
         seq++;
 
-    /***** 数据上传 *****/
     /***** Data upload *****/
 
     // USART_ClearFlag(UART4,USART_FLAG_TC);
@@ -184,7 +172,6 @@ void Referee::referee_data_pack_handle(uint8_t sof, uint16_t cmd_id, uint8_t* p_
         LL_USART_TransmitData8(USART3, tx_buff[i]);                        //
     // HAL_UART_Transmit(huart4, tx_buff[i], sizeof(tx_buff[i]), 10);
 
-        // 等待之前的字符发送完成
         // Wait for previous characters to finish sending
         //   while (USART_GetFlagStatus(UART4,USART_FLAG_TC) == RESET);
                 while(LL_USART_IsActiveFlag_TC(USART3) == RESET);
@@ -198,7 +185,6 @@ void Referee::referee_data_pack_handle(uint8_t sof, uint16_t cmd_id, uint8_t* p_
 void Referee::referee_data_pack_handle(uint8_t* packet, uint16_t len) {
     // Accquires thread resources
     mutex_write_.lock();
-    /***** 数据上传 *****/
     /***** Data upload *****/
     LL_USART_ClearFlag_TC(ref.usart_getter());
     mutex_write_.unlock();
@@ -403,8 +389,7 @@ GameProgress Referee::get_game_progress() { return game_status.game_progress; }
  * @brief  Determine whether the robot is on the Red or Blue team
  * @param  void
  * @retval RED, BLUE, UNKNOWN
- * @attention  数据打包,打包完成后通过串口发送到裁判系统
- *             Package data; once packaged, send to the referee system via
+ * @attention  Package data; once packaged, send to the referee system via
  *             serial port
  */
 TeamColor Referee::is_red_or_blue() {
