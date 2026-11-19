@@ -11,6 +11,7 @@ CANHandler* DJIMotor::s_canHandlers[2];
 bool DJIMotor::initializedWarning = false;
 std::optional<CANHandler> DJIMotor::s_canHandlerInstances[2];
 
+//constructor0 used to determine whether the motor is under error
 DJIMotor::DJIMotor(bool isErroneousMotor) {
     canID_0 = -1;
     motorID_0 = -1;
@@ -23,11 +24,11 @@ DJIMotor::DJIMotor(bool isErroneousMotor) {
 
     powerOut = 0;
 }
-
+//constructor1
 DJIMotor::DJIMotor(short motorID, CANHandler::CANBus canBus, motorType type,
                    const std::string &name) {
     DJIMotor::motorCount++;
-    canID_0 = static_cast<short>(motorID - 1);
+    canID_0 = static_cast<short>(motorID - 1);//Used to group the motors.
     motorID_0 = canID_0;
     this->canBus = canBus;
     this->type = type;
@@ -70,13 +71,13 @@ DJIMotor::DJIMotor(short motorID, CANHandler::CANBus canBus, motorType type,
 
     powerOut = 0;
 }
-
-DJIMotor::DJIMotor(config cfg)
+//constructor 2
+DJIMotor::DJIMotor(config cfg)//using constructor 1
     : DJIMotor(cfg.motorID, cfg.canBus, cfg.type, cfg.name) {
-    pidSpeed = PID(cfg.vel_cfg);
+    pidSpeed = PID(cfg.vel_cfg);//vel_cfg is the config in PID class
     pidPosition = PID(cfg.pos_cfg);
 }
-
+//destructor
 DJIMotor::~DJIMotor() {
     mode = OFF;
     s_motorsExist[canBus][canID_0 / 4][canID_0 % 4] = false;

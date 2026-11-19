@@ -107,7 +107,7 @@ struct lastfew {
     int arm = 0;
     int lastY = 1;
 
-    lastfew(int lastY_ = 1) {
+    lastfew(int lastY_ = 1) {//currently the last is set to 1 so maximum of 2 taken into account
         if(lastY_ > lastX){
             lastY = lastX;
         }else{
@@ -119,14 +119,14 @@ struct lastfew {
         last[arm] = l;
         arm++;
         if (arm == lastY)
-            arm = 0;
+            arm = 0;//start from the beginning
     }
 
     long long time() {
         long long t = 0;
         for (int i = 0; i < lastY; i++)
             t += last[i];
-        return t / lastY;
+        return t / lastY;//calculate the average data from recent
     }
 };
 
@@ -136,6 +136,8 @@ struct lastfew {
  */
 class PID {
 private:
+// line 175
+
     float kP = 0;
     float kI = 0;
     float kD = 0;
@@ -164,6 +166,8 @@ public:
     float pC, iC, dC = 0;
 
     lastfew dBuffer;
+
+    //Below are the constructors.
 
     /**
      * Creates a new PID object with the default control parameters
@@ -200,7 +204,7 @@ public:
      *
      * @param desired The desired speed/position
      * @param current The current speed/position
-     * @param dt The time that has passed since the last calculation, in milliseconds
+     * @param dt_ms The time that has passed since the last calculation, in milliseconds
      * @return The output control power
      */
     float calculate(float desired, float current, float dt_ms);

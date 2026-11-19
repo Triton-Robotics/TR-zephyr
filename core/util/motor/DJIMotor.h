@@ -9,7 +9,7 @@
 #include <string>
 #include <optional>
 
-constexpr float M3508_GEAR_RATIO = 3591.0f / 187.0f;
+constexpr float M3508_GEAR_RATIO = 3591.0f / 187.0f;//Difference I/O due to the gear system.
 constexpr float M2006_GEAR_RATIO = 36.0f;
 
 constexpr int TICKS_REVOLUTION = 8192;
@@ -19,11 +19,12 @@ constexpr int CAN_HANDLER_NUMBER = 2;
 constexpr int INT16_T_MAX = 32767;
 constexpr int INT15_T_MAX = 16383;
 
-constexpr int s_sendIDs[3] = {0x200, 0x1FF, 0x2FF};                //IDs to send data
+//Three sets of motors, each of which accepts and processes corresponding CAN IDs.
+constexpr int s_sendIDs[3] = {0x200, 0x1FF, 0x2FF};//IDs to send data CAN IDs, one CAN message can contain more than one piece of information so can provide information for more than 1 motor at once.
 
 
 
-enum motorDataType {
+enum motorDataType {//These are the information a motor have.
     ANGLE,
     VELOCITY,
     TORQUE,
@@ -34,10 +35,8 @@ enum motorDataType {
 };
 
 
-//keep in mind that in the constructor, this is only used to
-//set the default pid values and gear ratio. The motorType will
-//be changed to STANDARD, because that's what the code uses.
-
+//keep in mind that in the constructor, this is only used to set the default pid values and gear ratio. The motorType will be changed to STANDARD, because that's what the code uses.
+//different motor has different gear ratios, different CAN ID rules etc.
 enum motorType {
     NONE = 0,
     STANDARD = 1,       //identifier for all motors that use the standard can protocol, used by the C610 and C620
@@ -49,17 +48,17 @@ enum motorType {
 
 class DJIMotor {
 public:
-    enum motorMoveMode{
-        OFF,
-        POS,
-        SPD,
-        POW,
+    enum motorMoveMode{//used to describe what the motor is asked to do: Switched to particular mode, then input then wanted value, finally control this property of the motor.
+        OFF,//Stop Output
+        POS,//Control Position
+        SPD,//Control Speed
+        POW,//Control Power
         ERR
     };
 
-    struct config
+    struct config//used to initiate the DJI motor, not for CAN transfer. FOR ONE MOTOR!!
     {
-        const struct device *can_dev; 
+        const struct device *can_dev; //CAN controller
         short motorID;
         CANHandler::CANBus canBus; 
         motorType type = STANDARD;
@@ -74,6 +73,7 @@ public:
     std::string name = "NO_NAME";
     int16_t powerOut = 0;
 
+    //These are two PID objects that present PID rules for them.
     PID pidSpeed;
     PID pidPosition;
 
@@ -84,10 +84,10 @@ public:
 
     motorType type = NONE;
 
-
+//constructor of the motor, used under different conditions, different inputs
     explicit DJIMotor(bool isErroneousMotor = false);
     DJIMotor(short motorID, CANHandler::CANBus canBus, motorType type = STANDARD, const std::string& name = "NO_NAME");
-    DJIMotor(config cfg);
+    DJIMotor(config cfg);//constructor 2
     ~DJIMotor();
 
     static int calculateDeltaPhase(int target, int current, int max = TICKS_REVOLUTION);

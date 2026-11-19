@@ -117,6 +117,8 @@ void PID::setOutputCap(float outputCap)
 
 #include "PID.h"
 
+//constructor default
+//why there is no this->
 PID::PID()
 {
     kP = 0;
@@ -127,6 +129,7 @@ PID::PID()
     feedForward = 0;
 }
 
+//constructor
 PID::PID(float kP, float kI, float kD, float integralCap, float outputCap)
 {
     this->kP = kP;
@@ -136,6 +139,7 @@ PID::PID(float kP, float kI, float kD, float integralCap, float outputCap)
     this->outputCap = outputCap;
 }
 
+//constructor config
 PID::PID(PID::config cfg)
 {
     kP = cfg.p;
@@ -174,27 +178,30 @@ void PID::resetErrorIntegral()
 
 float PID::calculate(float desired, float current, float dt_ms)
 {
-    float error = static_cast<float>(desired - current);
+    float error = static_cast<float>(desired - current);//the current difference
     return calculatePeriodic(error, dt_ms);
 }
 
-float PID::calculatePeriodic(float error, float dt_ms)
+float PID::calculatePeriodic(float error, float dt_ms)//The output is actually the power output
 {
     dt_ms /= 1000; // Convert to seconds
+    //This is the method to calculate the integration
     errorIntegral += kI * dt_ms * (error + lastError) / 2;
     limitErrorIntegral();
 
-    iC = errorIntegral;
+    iC = errorIntegral;//integral conponent
 
-    float PIDCalc = (kP * error) + (errorIntegral) + feedForward;
-    pC = kP * error;
+    float PIDCalc = (kP * error) + (errorIntegral) + feedForward;// what does feedForward do?
+    pC = kP * error; //proportional component
 
-    float dTerm = 0;
+    float dTerm = 0;//the derivative term
     if (dt_ms > 0)
     {
-        dTerm = (kD * (error - lastError) / dt_ms);
+        dTerm = (kD * (error - lastError) / dt_ms);//calculate the rate of change within dt
+        //dBuffer is a lastfew struct
         dBuffer.add(dTerm);
-        dTerm = dBuffer.time();
+        dTerm = dBuffer.time();//neutralized with the previous derivative
+        //see line110 the lastY_ which sets the amount of derivative to neutralize
         PIDCalc += dTerm;
     }
 
@@ -205,7 +212,8 @@ float PID::calculatePeriodic(float error, float dt_ms)
     return static_cast<int>(PIDCalc);
 }
 
-void PID::limitErrorIntegral()
+void PID::limitErrorIntegral()//it tests the two ends of the limit.
+//errorIntegral is the integral of the error
 {
     if (integralCap != 0)
     {

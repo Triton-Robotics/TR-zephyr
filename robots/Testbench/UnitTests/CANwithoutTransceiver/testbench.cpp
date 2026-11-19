@@ -6,7 +6,6 @@ It just loops back each canbus controller to itself, which is done internally on
 */
 
 
-
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/can.h>

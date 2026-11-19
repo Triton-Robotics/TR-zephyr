@@ -1,20 +1,36 @@
-&i2c1 {
-    pinctrl-0 = <&i2c1_scl_pb8 &i2c1_sda_pb7>;
-    pinctrl-names = "default";
-    status = "okay";
-    clock-frequency = <100000>;
+&i2c1 { //The node is labeled with &i2c1, which just lets zephyr know to reference its internal i2c1 setting for our board
+    pinctrl-0 = <&i2c1_scl_pb8 &i2c1_sda_pb7>; // pinctrl-0 just sets the pins we want, in this case we're using & again since these are specific pins within the .dtsi
+    pinctrl-names = "default"; // This just lets the compiler know we're using the default names and not some alias
+    status = "okay"; // status is what enables/disables the node; okay means enabled, "disabled" means disabled
+    clock-frequency = <100000>; // Note that each communication protocol can have a different keyword for clockspeed
 
-	scl-gpios = <&gpiob 8 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
-	sda-gpios = <&gpiob 7 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
+    scl-gpios = <&gpiob 8 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>; // These two lines set default behavior for the clock and datalines
+    sda-gpios = <&gpiob 7 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
 
 
-    imu: ism330@6a {
-        compatible = "st,ism330dhcx";
-        reg = <0x6a>;
+    imu: ism330@6a { //This is a childnode, note the @6a, which just lets zephyr know what the address is
+        compatible = "st,ism330dhcx"; //listing compatible drivers
+        reg = <0x6a>; // defining the register again
     };
 };
 
+//Here in the overlay, I assigned the particular pin of the controller to act as particular lines required for the transmission of information under particular protocols.
 // ADD YOUR CAN NODES HERE
+
+&can1{
+    pinctrl-0=<&can1_tx_pa12 &can1_rx_pa11>;//structure: &can1_td(the trans out)_pinname(pb8)
+    pinctrl-names="default";
+    status="okay";
+    bitrate=<1000000>;
+};
+
+&can2{
+    pinctrl-0=<&can2_tx_pb13 &can2_rx_pb12>;
+    pinctrl-names="default";
+    status="okay";
+    bitrate=<1000000>;
+};
+
 
 &usart1 { //Controller
     pinctrl-0 = <&usart1_rx_pa10>; // tx isn't connected because this is the controller
