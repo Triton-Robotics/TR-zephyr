@@ -23,6 +23,11 @@ enum ShootState {OFF, FLYWHEEL, SHOOT, JAM};
 
 enum FeederState {POS_1, POS_2, POS_3, NOTINUSE};
 
+struct IndexerData {
+    float velocity;
+    float power;
+};
+
 // struct for config
 class ShooterSubsystem : public Subsystem
 {
@@ -41,14 +46,14 @@ public:
         short flywheelL_id;
         short flywheelR_id;
         short indexer_id;
-        short feeder_id;
+        // short feeder_id;
 
         PID::config flywheelL_PID;
         PID::config flywheelR_PID;
         PID::config indexer_PID_vel;
         PID::config indexer_PID_pos;
-        PID::config feeder_PID_vel;
-        PID::config feeder_PID_pos;
+        // PID::config feeder_PID_vel;
+        // PID::config feeder_PID_pos;
 
 
         bool invert = false;
@@ -61,6 +66,8 @@ public:
     void periodic(int curr_heat, int heat_limit);
     float getFlywheelL();
     float getFlywheelR();
+
+    IndexerData getIndexerData();
 
 private:
     unsigned long shooter_time;

@@ -3,6 +3,7 @@
 #include "util/motor/DJIMotor.h"
 #include <util/algorithms/general_functions.h>
 
+
 ShooterSubsystem::ShooterSubsystem(config cfg):
     flywheelL({
         cfg.can_device,
@@ -28,16 +29,16 @@ ShooterSubsystem::ShooterSubsystem(config cfg):
         "Indexer",
         cfg.indexer_PID_vel,
         cfg.indexer_PID_pos
-    }),
-    feeder({
-        cfg.can_device,
-        cfg.feeder_id,
-        cfg.canBus,
-        M2006,
-        "Feeder",
-        cfg.feeder_PID_vel,
-        cfg.indexer_PID_pos
     })
+    // feeder({
+    //     cfg.can_device,
+    //     cfg.feeder_id,
+    //     cfg.canBus,
+    //     M2006,
+    //     "Feeder",
+    //     cfg.feeder_PID_vel,
+    //     cfg.indexer_PID_pos
+    // })
 {
     // initialize all other vars
     shoot = OFF;
@@ -81,14 +82,27 @@ void ShooterSubsystem::reverseFlywheels() {
         }
 }
 
+IndexerData ShooterSubsystem::getIndexerData() {
+    return {
+        .velocity = indexer.getData(VELOCITY),
+        .power = indexer.getData(VALUE)
+    };
+}
+
 
 void ShooterSubsystem::setState(ShootState shoot_state)
 {
     shoot = shoot_state;
 }
 
+const int MAX_POWER = 500;
+const int INTERVALS = 10;
+
 void ShooterSubsystem::periodic(int curr_heat, int heat_limit) 
 {
+    static long last_time_us = now_us();
+    static int current_power = 0;
+
     // // These first 3 if statements do dedicated unjamming at start up
     // if (shooter_start_timer == 0) {
     //     shooter_start_timer = now_us();
@@ -114,8 +128,24 @@ void ShooterSubsystem::periodic(int curr_heat, int heat_limit)
         flywheelR.setSpeed(0);
         // flywheelL.setPower(0);
         // flywheelR.setPower(0);
+
+        long time_us = now_us();
+
+        if (time_us - last_time_us >= 10e6 && current_power <= MAX_POWER) {
+            current_power += MAX_POWER / INTERVALS;
+            last_time_us = time_us;
+        }
+
+        // printf(
+        //     "Indexer | Mode: %d | Target: %.2f | Velocity: %.2f | Connected: %d\n",
+        //     indexer.getMode(),
+        //     indexer.getData(VALUE),
+        //     indexer.getData(VELOCITY),
+        //     indexer.isConnected()
+        // );
         
-        indexer.setPower(0);
+        // indexer.setPower(0);
+        indexer.setPower(current_power);
         shootReady = true;
         shooter_time = 0;
     }
@@ -124,6 +154,8 @@ void ShooterSubsystem::periodic(int curr_heat, int heat_limit)
 
         indexer.pidSpeed.feedForward = 0;
         indexer.setSpeed(0);
+        // indexer.setPower(500);
+        
         shootReady = true;
     }
     else if (shoot == SHOOT && shooter_type == BURST) {

@@ -18,6 +18,8 @@
 // Globals (testing)
 float left_flywheel_vel = -1.0f, right_flywheel_vel = -1.0f;
 float ball_exit_speed = -1.0f;
+float indexer_vel = 0.0f;
+int indexer_power = 0;
 
 // Robot Constants
 constexpr float PITCH_LOWER_BOUND{-22.0};
@@ -111,13 +113,13 @@ ShooterSubsystem::config shooter_config = { // TODO - fix for updated configs
     2,
     4,
     6,
-    8,
+    // 8,
     FLYWHEEL_L_PID,
     FLYWHEEL_R_PID,
     INDEXER_PID_VEL,
     INDEXER_PID_POS,
-    FEEDER_PID_VEL,
-    FEEDER_PID_POS,
+    // FEEDER_PID_VEL,
+    // FEEDER_PID_POS,
     false
 };
 
@@ -289,6 +291,9 @@ class Infantry : public BaseRobot {
         left_flywheel_vel = shooter_.getFlywheelL();
         right_flywheel_vel = shooter_.getFlywheelR();
         ball_exit_speed = referee_.get_ball_exit_speed();
+        auto indexer_data = shooter_.getIndexerData();
+        indexer_vel = indexer_data.velocity;
+        indexer_power = indexer_data.power;
 
         // printf("Left Flywheel Velocity: %f\n", left_flywheel_vel);
         // printf("Right Flywheel Velocity: %f\n", right_flywheel_vel);
