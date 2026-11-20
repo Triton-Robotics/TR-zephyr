@@ -217,7 +217,7 @@ class Hero : public BaseRobot {
         }  else if (drive == 'd' || 
                    (drive == 'o' &&
                     remote_.getMode() == DJIRemote2::ModeSwitch::MODE_S)) {
-            des_chassis_state.vOmega = omega_speed;
+            des_chassis_state.vOmega = ChassisSubsystem::allocateBeybladeOmega(jx, jy, omega_speed);
             chassis_.setChassisSpeeds(des_chassis_state, ChassisSubsystem::DRIVE_MODE::YAW_ORIENTED);
             des_turret_state.turret_mode = TurretState::AIM;
             referee_.is_aligned = false;

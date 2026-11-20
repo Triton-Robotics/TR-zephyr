@@ -66,7 +66,7 @@ class BaseRobot {
     double tolerance = 0.05;
     // Keyboard Driving
     float mult = 0.7;
-    float omega_speed = 0;
+    float omega_speed = 0; // max beyblade spin (rad/s); each robot applies allocateBeybladeOmega itself
     float max_linear_vel = 0;
 
     // drive and shooting mode
@@ -239,6 +239,6 @@ class BaseRobot {
             max_omega = 6.1f;
         }
 
-        omega_speed = ChassisSubsystem::allocateBeybladeOmega(jx, jy, max_omega);
+        omega_speed = max_omega;
     }
 };
