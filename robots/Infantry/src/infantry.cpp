@@ -316,7 +316,7 @@ class Infantry : public BaseRobot {
                     des_chassis_state.vOmega,
                     chassis_.getChassisSpeeds().vOmega,
                     (chassis_.getChassisSpeeds().vOmega / omega_speed) * 100);
-                printf("vX:%.2f vY:%.2f WHEELS:%.0f %.0f %.0f %.0f\n",
+                printf("vX:%.2f vY:%.2f WHEELS:%.2f %.2f %.2f %.2f\n",
                     chassis_.getChassisSpeeds().vX,
                     chassis_.getChassisSpeeds().vY,
                     chassis_.getWheelSpeeds().LF,
