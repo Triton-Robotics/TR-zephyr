@@ -325,6 +325,13 @@ class Infantry : public BaseRobot {
                     chassis_.getWheelSpeeds().RB);
                 printf("SCALE:%.2f T_SCALE:%.2f PLIM:%.0f\n",
                     last_chassis_scale, translation_scale, chassis_.power_limit);
+                // TEMP: raw motor feedback to diagnose RF reading 0
+                printf("RAW_VEL LF:%.2f RF:%.2f LB:%.2f RB:%.2f\n",
+                    chassis_.LF.getData(VELOCITY), chassis_.RF.getData(VELOCITY),
+                    chassis_.LB.getData(VELOCITY), chassis_.RB.getData(VELOCITY));
+                printf("RAW_TRQ LF:%.0f RF:%.0f LB:%.0f RB:%.0f\n",
+                    chassis_.LF.getData(TORQUE), chassis_.RF.getData(TORQUE),
+                    chassis_.LB.getData(TORQUE), chassis_.RB.getData(TORQUE));
             }
         } else {
             chassis_.setWheelPower({0, 0, 0, 0});
