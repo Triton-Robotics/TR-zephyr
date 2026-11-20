@@ -142,6 +142,9 @@ class Infantry : public BaseRobot {
     float translation_scale{1.0f};
     float last_chassis_scale{1.0f};
 
+    static constexpr float TRANSLATION_CUT_GAIN = 0.5f;       // fraction of the power overshoot removed per loop
+    static constexpr float TRANSLATION_RECOVER_PER_S = 1.0f;  // translation regained per second when under budget (0 -> full in 1 s)
+
     Infantry(Config &config)
         : BaseRobot(config),
           // clang-format off
@@ -276,24 +279,17 @@ class Infantry : public BaseRobot {
                 float cut_needed = 1.0f - last_chassis_scale;
 
                 if (omega > omega_floor) {
-                    // Rotation is above the floor. Both share the cut.
-                    // But rotation stops at the floor.
                     float omega_headroom = (omega - omega_floor) / omega;
                     float omega_cut = fminf(omega_headroom, cut_needed * 0.5f);
                     omega *= (1.0f - omega_cut);
-
-                    // Translation absorbs the rest
-                    float remaining_cut = cut_needed - omega_cut;
-                    translation_scale *= (1.0f - remaining_cut);
-                } else {
-                    // Rotation is already at the floor. Only translation absorbs.
-                    translation_scale *= last_chassis_scale;
+                    cut_needed -= omega_cut;
                 }
-                translation_scale = fmaxf(translation_scale, 0.0f);
+
+                translation_scale -= TRANSLATION_CUT_GAIN * cut_needed;
             } else {
-                // Under budget. Gradually restore translation toward full.
-                translation_scale = fminf(translation_scale * 1.05f, 1.0f);
+                translation_scale += TRANSLATION_RECOVER_PER_S * (dt_us / 1000000.0f);
             }
+            translation_scale = fminf(fmaxf(translation_scale, 0.0f), 1.0f);
 
             // --- STEP 3: Build the command ---
             des_chassis_state.vX = jy * max_linear_vel * translation_scale;
@@ -323,8 +319,9 @@ class Infantry : public BaseRobot {
                     chassis_.getWheelSpeeds().RF,
                     chassis_.getWheelSpeeds().LB,
                     chassis_.getWheelSpeeds().RB);
-                printf("SCALE:%.2f T_SCALE:%.2f PLIM:%.0f\n",
-                    last_chassis_scale, translation_scale, chassis_.power_limit);
+                printf("SCALE:%.2f T_SCALE:%.2f PLIM:%.0f BUF:%d\n",
+                    last_chassis_scale, translation_scale, chassis_.power_limit,
+                    (int)referee_.power_heat_data.buffer_energy);
                 // TEMP: raw motor feedback to diagnose RF reading 0
                 printf("RAW_VEL LF:%.2f RF:%.2f LB:%.2f RB:%.2f\n",
                     chassis_.LF.getData(VELOCITY), chassis_.RF.getData(VELOCITY),
