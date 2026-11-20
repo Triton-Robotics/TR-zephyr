@@ -7,15 +7,17 @@
 #include <base_robot/BaseRobot.h>
 #include <util/motor/DJIMotor.h>
 
-// Devices from DT
-static const struct device *canbus2_dev = DEVICE_DT_GET(DT_NODELABEL(can2));
-static const struct device *canbus1_dev = DEVICE_DT_GET(DT_NODELABEL(can1));
+// Devices from DT | Leaving these here for now, but these are debugging LEDs on the coverboard
+const struct gpio_dt_spec led0_dev = GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
+const struct gpio_dt_spec led1_dev = GPIO_DT_SPEC_GET(DT_ALIAS(led1), gpios);
+const struct gpio_dt_spec led2_dev = GPIO_DT_SPEC_GET(DT_ALIAS(led2), gpios);
 
-short constexpr MOTOR_ID = 1;
+static const struct device *canbus1 = DEVICE_DT_GET(DT_NODELABEL(can1));
+CANHandler* can1;
 
 DJIMotor::config indexerConfig = {
-    canbus1_dev,
-    MOTOR_ID,
+    canbus1,
+    1,
     CANHandler::CANBUS_1,
     M2006,
     "indexer",
@@ -23,8 +25,19 @@ DJIMotor::config indexerConfig = {
     {0.032, 0.001, 0.0015}
 };
 
+DJIMotor::config feederConfig = {
+    canbus1,
+    6,
+    CANHandler::CANBUS_1,
+    M2006,
+    "feeder",
+    {3.0, 0.001, 0.0},
+    {0.032, 0.001, 0.0015}
+};
+
 
 DJIMotor indexer(indexerConfig);
+DJIMotor feeder(feederConfig);
 
 constexpr double TICKS_PER_OUTPUT_REV = static_cast<double>(TICKS_PER_ROTATION) * static_cast<double>(M2006_GEAR_RATIO);
 constexpr double TICKS_PER_SLOT = static_cast<double>(TICKS_PER_ROTATION * (M2006_GEAR_RATIO) / NUM_INDEXER_SLOTS);
@@ -36,20 +49,25 @@ float INDEXER_TORQUE = -1.0f;
 float INDEXER_POWEROUT = -1.0f;
 double start_angle = -1.0;
 
-void updateOzone() {
-    double ticks_from_start = static_cast<double>(indexer >> MULTITURNANGLE) - start_angle;
-    INDEXER_ANGLE = ticks_from_start / TICKS_PER_OUTPUT_REV * 360.0;  // degrees
-    INDEXER_SPEED = indexer.getData(VELOCITY) / M2006_GEAR_RATIO; // rad/s
-    INDEXER_TORQUE = indexer.getData(TORQUE);
-    INDEXER_POWEROUT = indexer.getData(POWEROUT);
-}
+// void updateOzone() {
+//     double ticks_from_start = static_cast<double>(indexer >> MULTITURNANGLE) - start_angle;
+//     INDEXER_ANGLE = ticks_from_start / TICKS_PER_OUTPUT_REV * 360.0;  // degrees
+//     INDEXER_SPEED = indexer.getData(VELOCITY) / M2006_GEAR_RATIO; // rad/s
+//     INDEXER_TORQUE = indexer.getData(TORQUE);
+//     INDEXER_POWEROUT = indexer.getData(POWEROUT);
+// }
 
-void periodic(const uint64_t dt_us) {
+void periodic() {
+    can1->readAllCan();
     // indexer.setSpeed(200);
     // indexer.setPosition(target);
-    indexer.setPower(500);
+    // indexer.setPower(500);
 
-    updateOzone();
+    // updateOzone();
+    indexer.setPower(100);
+    feeder.setPower(100);
+    DJIMotor::sendValues();
+    // printf("sending\n");
 }
 
 int main(void)
@@ -58,30 +76,21 @@ int main(void)
     uint64_t prev_loop_time_us = loop_clock_us;
 
     uint64_t main_loop_dt_ms = 2;
+    
 
-    // CAN2 is the bxCAN slave, so CAN1 must be up too
-    if (!device_is_ready(canbus1_dev) || !device_is_ready(canbus2_dev)) {
-        printk("CAN device not ready!\n");
+    if (!device_is_ready(canbus1)) {
+        printf("fail to init can1!\n");
         return -1;
     }
 
     DJIMotor::setCanHandlers();
-
-    CANHandler *can1 = DJIMotor::getCanHandler(CANHandler::CANBUS_1);
-    CANHandler *can2 = DJIMotor::getCanHandler(CANHandler::CANBUS_2);
-    if (can1) can1->registerCallback(0x201, 0x208, DJIMotor::getCanOneFeedback);
-    if (can2) can2->registerCallback(0x201, 0x208, DJIMotor::getCanTwoFeedback);
-
-    // enum can_state st; struct can_bus_err_cnt cnt;
-    // can_get_state(canbus1_dev, &st, &cnt);
-    // printf("can1 state=%d tx_err=%u rx_err=%u\n", st, cnt.tx_err_cnt, cnt.rx_err_cnt);
-
-    uint64_t wait_start = now_us();
-    while (now_us() - wait_start < 500000) { // 500 ms
-        if (can1) can1->readAllCan();
-        if (can2) can2->readAllCan();
-        k_sleep(K_MSEC(5));
+    can1 = DJIMotor::getCanHandler(CANHandler::CANBUS_1);
+    if (!can1) {
+        printk("CAN bus 1 initialization failed\n");
+        return -1;
     }
+
+    can1->registerCallback(0x201, 0x208, DJIMotor::getCanOneFeedback);
 
 
     start_angle = indexer >> MULTITURNANGLE;
@@ -94,28 +103,22 @@ int main(void)
     printf("warmup angle=%d\n", (int)(indexer >> MULTITURNANGLE));
 
     while (true) {
-        // printk("CAN RX queue: %d / 128\n", can1->rxQueueDepth());
         loop_clock_us = now_us();
 
         if (loop_clock_us - startTime > 10e6) {
-            indexer.setPower(0.0f);
+            // indexer.setPower(0.0f);
             DJIMotor::sendValues(false);
-            updateOzone();
-            // printf("stopped motor\n");
+            // updateOzone();
+            printf("stopped motor\n");
             continue;
         }
 
         if ((loop_clock_us - prev_loop_time_us) / 1000 >= main_loop_dt_ms) {
-            periodic(loop_clock_us - prev_loop_time_us);
+            periodic();
             prev_loop_time_us = loop_clock_us;
 
-            // Motor updates
-            DJIMotor::sendValues();
         }
 
-        if (can1) can1->readAllCan();
-        if (can2) can2->readAllCan();
-
-        k_sleep(K_MSEC(10));
+        k_sleep(K_MSEC(2));
     }
 }
