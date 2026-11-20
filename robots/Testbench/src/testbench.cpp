@@ -31,8 +31,8 @@ DJIMotor::config feederConfig = {
     CANHandler::CANBUS_1,
     M2006,
     "feeder",
-    {3.0, 0.001, 0.0},
-    {0.032, 0.001, 0.0015}
+    {3.3, 0.001, 0.0},
+    {0.04, 0.001, 0.0015}
 };
 
 
@@ -57,26 +57,11 @@ double start_angle = -1.0;
 //     INDEXER_POWEROUT = indexer.getData(POWEROUT);
 // }
 
-void periodic() {
-    can1->readAllCan();
-    // indexer.setSpeed(200);
-    // indexer.setPosition(target);
-    // indexer.setPower(500);
-
-    // updateOzone();
-    indexer.setPower(100);
-    feeder.setPower(100);
-    DJIMotor::sendValues();
-    // printf("sending\n");
-}
-
 int main(void)
 {
     uint64_t loop_clock_us = now_us();
     uint64_t prev_loop_time_us = loop_clock_us;
 
-    uint64_t main_loop_dt_ms = 2;
-    
 
     if (!device_is_ready(canbus1)) {
         printf("fail to init can1!\n");
@@ -102,23 +87,44 @@ int main(void)
 
     printf("warmup angle=%d\n", (int)(indexer >> MULTITURNANGLE));
 
+    bool stopped = false;
+
     while (true) {
         loop_clock_us = now_us();
 
-        if (loop_clock_us - startTime > 10e6) {
-            // indexer.setPower(0.0f);
+        if (!stopped && (loop_clock_us - startTime >= 10'000'000ULL)) {
+            indexer.setPower(0);
+            feeder.setPower(0);
+            DJIMotor::sendValues(true);
+
+            stopped = true;
+            printf("Stopped motors\n");
+        }
+
+        if ((loop_clock_us - prev_loop_time_us) >= 2000) {
+            can1->readAllCan();
+            printf("Indexer: angle=%d velocity=%d torque=%d\n",
+                (int)indexer.getData(ANGLE),
+                (int)indexer.getData(VELOCITY),
+                (int)indexer.getData(TORQUE));
+
+            printf("Feeder: angle=%d velocity=%d torque=%d\n",
+                (int)feeder.getData(ANGLE),
+                (int)feeder.getData(VELOCITY),
+                (int)feeder.getData(TORQUE));
+
+            if (!stopped) {
+                // indexer.setPower(500);
+                // feeder.setPower(500);
+                indexer.setPosition(target);
+                feeder.setPosition(target);
+            }
+
             DJIMotor::sendValues(false);
-            // updateOzone();
-            printf("stopped motor\n");
-            continue;
-        }
 
-        if ((loop_clock_us - prev_loop_time_us) / 1000 >= main_loop_dt_ms) {
-            periodic();
             prev_loop_time_us = loop_clock_us;
-
         }
 
-        k_sleep(K_MSEC(2));
+        k_sleep(K_MSEC(10));
     }
 }
