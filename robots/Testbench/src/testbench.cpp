@@ -35,22 +35,45 @@ DJIMotor::config feederConfig = {
     {0.04, 0.001, 0.0015}
 };
 
+DJIMotor::config rightFlyConfig = {
+    canbus1,
+    3,
+    CANHandler::CANBUS_1,
+    M3508,
+    "right flywheel",
+    {7.4, 0.00015268, 0.0005}
+};
+
+DJIMotor::config leftFlyConfig = {
+    canbus1,
+    4,
+    CANHandler::CANBUS_1,
+    M3508,
+    "left flywheel",
+    {7.4, 0.00015268, 0.0005}
+};
+
 
 DJIMotor indexer(indexerConfig);
 DJIMotor feeder(feederConfig);
+DJIMotor rightFlywheel(rightFlyConfig);
+DJIMotor leftFlywheel(leftFlyConfig);
 
 constexpr double TICKS_PER_OUTPUT_REV = static_cast<double>(TICKS_PER_ROTATION) * static_cast<double>(M2006_GEAR_RATIO);
-constexpr double TICKS_PER_SLOT = static_cast<double>(TICKS_PER_ROTATION * (M2006_GEAR_RATIO) / NUM_INDEXER_SLOTS);
+constexpr double INDEXER_TICKS_PER_SLOT = static_cast<double>(TICKS_PER_ROTATION * (M2006_GEAR_RATIO) / NUM_INDEXER_SLOTS);
+constexpr double FEEDER_TICKS_PER_SLOT = static_cast<double>(TICKS_PER_ROTATION * (M2006_GEAR_RATIO) / 6);
 
-int target;
+int indexer_target;
+int feeder_target;
 float INDEXER_ANGLE = -1.0f;
 float INDEXER_SPEED = -1.0f;
 float INDEXER_TORQUE = -1.0f;
 float INDEXER_POWEROUT = -1.0f;
-double start_angle = -1.0;
+double indexer_start_angle = -1.0;
+double feeder_start_angle = -1.0;
 
 // void updateOzone() {
-//     double ticks_from_start = static_cast<double>(indexer >> MULTITURNANGLE) - start_angle;
+//     double ticks_from_start = static_cast<double>(indexer >> MULTITURNANGLE) - indexer_start_angle;
 //     INDEXER_ANGLE = ticks_from_start / TICKS_PER_OUTPUT_REV * 360.0;  // degrees
 //     INDEXER_SPEED = indexer.getData(VELOCITY) / M2006_GEAR_RATIO; // rad/s
 //     INDEXER_TORQUE = indexer.getData(TORQUE);
@@ -78,10 +101,12 @@ int main(void)
     can1->registerCallback(0x201, 0x208, DJIMotor::getCanOneFeedback);
 
 
-    start_angle = indexer >> MULTITURNANGLE;
+    indexer_start_angle = indexer >> MULTITURNANGLE;
+    feeder_start_angle = feeder >> MULTITURNANGLE;
 
     INDEXER_ANGLE = 0;
-    target = static_cast<int>(start_angle + (TICKS_PER_SLOT * NUM_BALLS_SHOT));
+    indexer_target = static_cast<int>(indexer_start_angle + (INDEXER_TICKS_PER_SLOT * NUM_BALLS_SHOT));
+    feeder_target = static_cast<int>(feeder_start_angle + (FEEDER_TICKS_PER_SLOT * NUM_BALLS_SHOT));
 
     uint64_t startTime = now_us();
 
@@ -92,32 +117,34 @@ int main(void)
     while (true) {
         loop_clock_us = now_us();
 
-        if (!stopped && (loop_clock_us - startTime >= 10'000'000ULL)) {
-            indexer.setPower(0);
-            feeder.setPower(0);
-            DJIMotor::sendValues(true);
+        // if (!stopped && (loop_clock_us - startTime >= 1000'000'000ULL)) {
+        //     indexer.setPower(0);
+        //     feeder.setPower(0);
+        //     DJIMotor::sendValues(true);
 
-            stopped = true;
-            printf("Stopped motors\n");
-        }
+        //     stopped = true;
+        //     printf("Stopped motors\n");
+        // }
 
         if ((loop_clock_us - prev_loop_time_us) >= 2000) {
             can1->readAllCan();
-            printf("Indexer: angle=%d velocity=%d torque=%d\n",
-                (int)indexer.getData(ANGLE),
-                (int)indexer.getData(VELOCITY),
-                (int)indexer.getData(TORQUE));
+            // printf("Indexer: angle=%d velocity=%d torque=%d\n",
+            //     (int)indexer.getData(ANGLE),
+            //     (int)indexer.getData(VELOCITY),
+            //     (int)indexer.getData(TORQUE));
 
-            printf("Feeder: angle=%d velocity=%d torque=%d\n",
-                (int)feeder.getData(ANGLE),
-                (int)feeder.getData(VELOCITY),
-                (int)feeder.getData(TORQUE));
+            // printf("Feeder: angle=%d velocity=%d torque=%d\n",
+            //     (int)feeder.getData(ANGLE),
+            //     (int)feeder.getData(VELOCITY),
+            //     (int)feeder.getData(TORQUE));
 
             if (!stopped) {
-                // indexer.setPower(500);
-                // feeder.setPower(500);
-                indexer.setPosition(target);
-                feeder.setPosition(target);
+                leftFlywheel.setSpeed(25);
+                rightFlywheel.setSpeed(-25);
+                indexer.setSpeed(750);
+                feeder.setSpeed(1000);
+                // indexer.setPosition(indexer_target);
+                // feeder.setPosition(feeder_target);
             }
 
             DJIMotor::sendValues(false);
