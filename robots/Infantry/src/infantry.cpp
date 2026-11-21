@@ -180,6 +180,7 @@ class Infantry : public BaseRobot {
     printf("[ERROR] controllerUart (usart1) not ready!\n");
     }
         imu_.begin(0.9, 0);
+        encoder_.init();
     }
 
     void periodic(unsigned long dt_us) override {

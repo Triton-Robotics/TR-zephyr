@@ -84,6 +84,7 @@ class ISM330 : public IMU {
 class MA4 {
   public:
     MA4(const pwm_dt_spec *) {}
+    int init() { return 0; }
 };
 struct ChassisSpeeds { float vX, vY, vOmega; };
 struct WheelSpeeds { float LF, RF, LB, RB; };

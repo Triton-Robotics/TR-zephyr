@@ -176,6 +176,7 @@ class Hero : public BaseRobot {
     void init() override {
         // timer = us_ticker_read();
         imu_.begin(0.9, 0);
+        encoder_.init();
     }
 
     void periodic(unsigned long dt_us) override {

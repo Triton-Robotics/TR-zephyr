@@ -23,6 +23,8 @@ public:
      */ 
     MA4(const struct pwm_dt_spec *pwm, bool invert=false);
     
+    int init();
+
     /** Read the current period
      *
      * @returns the period in seconds
@@ -53,6 +55,11 @@ public:
      */
     float encoderMovingAverage();
     
+    uint32_t cbCount() const { return _cb_count; }
+    int lastStatus() const { return _last_status; }
+
+    uint32_t periodCycles() const;
+    uint32_t pulseCycles() const;
 
 protected:
 
@@ -73,6 +80,17 @@ protected:
     bool _invert;
     volatile float _pulsewidth, _period; // Volatile since Zephyr does PWM stuff thru interrupts, and so we're basically telling the compiler
                                          // that we want to actually check what these are and not use any cache'd results
+    volatile float    _duty = 0.0f;
+    volatile uint32_t _cb_count = 0;
+    volatile int      _last_status = 0;
+
+    volatile uint32_t _period_cycles = 0, _pulse_cycles = 0;
+
+    float _filtered = 0.0f;
+    bool  _have_filter = false;
+    float _alpha = 0.2f;
+
+
 };
 
 #endif

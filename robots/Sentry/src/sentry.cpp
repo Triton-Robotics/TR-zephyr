@@ -172,6 +172,7 @@ class Sentry : public BaseRobot {
             printf("[ERROR] jetsonUart (uart5) not ready!\n");
         }
         imu_.begin(0.9, 0);
+        encoder_.init();
     }
 
     // Same override scheme as infantry: 'u' forces the first mode, 'd' forces
