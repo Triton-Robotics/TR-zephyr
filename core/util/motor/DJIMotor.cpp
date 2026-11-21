@@ -1,6 +1,7 @@
 
 #include "DJIMotor.h"
 #include "CANHandler.h"
+#include <cstdint>
 
 
 // Here to prevent any linker errors, since these are static variables that need to be defined somewhere in the cpp
@@ -341,7 +342,7 @@ void DJIMotor::updateOneMultiTurn(int canBus, int can_line, int motor_id) {
     **/
 
     int Threshold = 3000; // From 0 to 8191
-    int ENCODER_WRAP = 8192;
+    double timeThresholdMs = 1; //
     int curAngle, lastAngle, deltaAngle;
     float raw_speed, raw_rps, curRev;
     DJIMotor *curMotor;
@@ -351,16 +352,6 @@ void DJIMotor::updateOneMultiTurn(int canBus, int can_line, int motor_id) {
     if (s_motorsExist[canBus][can_line][motor_id]) {
         curMotor = s_allMotors[canBus][can_line][motor_id];
 
-        // Update data from most recent frame
-        curAngle = curMotor->getData(ANGLE);
-        lastAngle = curMotor->lastMotorAngle;
-        raw_speed = curMotor->getData(VELOCITY_RAW);
-        raw_rps = curMotor->getData(VELOCITY_RAW) / 60.0f;
-        curRev = curAngle/ENCODER_WRAP;
-
-        deltaAngle = curAngle - lastAngle;
-        
-        
         // Update multiturn data using latest data
         double dt_ms = 0;
         // gets delta time
@@ -370,6 +361,19 @@ void DJIMotor::updateOneMultiTurn(int canBus, int can_line, int motor_id) {
             curMotor->lastIntegrationTime = static_cast<long>(time);
             return;
         }
+
+        if(dt_ms < timeThresholdMs) {
+            return;
+        }
+        
+        // Update data from most recent frame
+        curAngle = curMotor->getData(ANGLE);
+        lastAngle = curMotor->lastMotorAngle;
+        raw_speed = curMotor->getData(VELOCITY_RAW);
+        raw_rps = curMotor->getData(VELOCITY_RAW) / 60.0f;
+        curRev = curAngle/ENCODER_WRAP;
+
+        deltaAngle = curAngle - lastAngle;
         
         // don't want this to be called twice accidentally
         if(dt_ms > 0.0d) {
@@ -466,6 +470,10 @@ void DJIMotor::updateOneMultiTurn(int canBus, int can_line, int motor_id) {
     }
 }
 
+void DJIMotor::zeroTicks() {
+    tickOffset = static_cast<int16_t>(getData(ANGLE_RAW));
+}
+
 float DJIMotor::getData(motorDataType data) {
     if (data <= 3) {
         if (data == VELOCITY && type == M3508) {
@@ -473,6 +481,8 @@ float DJIMotor::getData(motorDataType data) {
         }
         else if (data == VELOCITY) {
             return (float)(motorData[data]) * 2 * PI / 60;
+        } else if(data == ANGLE) {
+            return (float)((motorData[data] - tickOffset + ENCODER_WRAP) % ENCODER_WRAP);
         }
         return (float)(motorData[data]);
     }

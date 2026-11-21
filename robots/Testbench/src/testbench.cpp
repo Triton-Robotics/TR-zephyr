@@ -180,6 +180,9 @@ int main(void)
     DJIMotor::setCanHandlers();
     DJIMotor::getCanHandler(CANHandler::CANBUS_1)->registerCallback(
     0x201, 0x208, DJIMotor::getCanOneFeedback);
+
+    motorM3508.zeroTicks();
+
     while (true) {
         periodic();
         k_sleep(K_MSEC(2));

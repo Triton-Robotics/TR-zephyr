@@ -11,6 +11,7 @@
 
 constexpr float M3508_GEAR_RATIO = 3591.0f / 187.0f;
 constexpr float M2006_GEAR_RATIO = 36.0f;
+constexpr int ENCODER_WRAP = 8193;
 
 constexpr int TICKS_REVOLUTION = 8192;
 constexpr int TIMEOUT_MS = 400;
@@ -31,7 +32,8 @@ enum motorDataType {
     MULTITURNANGLE,
     POWEROUT,
     VALUE,
-    VELOCITY_RAW
+    VELOCITY_RAW,
+    ANGLE_RAW
 };
 
 
@@ -137,6 +139,7 @@ public:
     static void sendValues(bool debug = false);
 
     float getData(motorDataType data);
+    void zeroTicks();
 
     inline void setMotorOutput(int val, motorMoveMode mod)
     {
@@ -200,6 +203,7 @@ private:
 
     //  angle | velocity | torque | temperature
     int16_t motorData[4] = {};
+    int16_t tickOffset = 0;
     float value = 0;
 
     int lastMotorAngle = 0;
