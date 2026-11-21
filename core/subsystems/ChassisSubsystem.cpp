@@ -304,29 +304,23 @@ float ChassisSubsystem::p_theory(int LeftFrontPower, int RightFrontPower, int Le
 
 // }
 
-float ChassisSubsystem::estimatePowerWatts(int torqueCounts)
+// Electrical power drawn by one M3508 (W), from its CAN feedback:
+//   current:  C620 torque-current counts, 16384 counts = 20 A
+//   motoring: torque x speed = Kt * I * omega at the output shaft (braking/regen counted as 0)
+//   copper:   I^2 * R
+// DRIVE_EFFICIENCY folds in ESC and other losses. Calibrate it against the referee buffer
+// energy (BUF): the limiter should start acting right as BUF starts to drain.
+float ChassisSubsystem::estimatePowerWatts(float torqueCounts, float wheelRadPerSec)
 {
-    constexpr int   PEAK_TORQUE_COUNTS  = 5596;
-    constexpr float SATURATION_RATIO    = 0.4375f;
-    constexpr float SATURATION_CURRENT  = 1.22f;   // [A]
-    constexpr float TORQUE_TO_AMP        = 0.3f;   // N*m / A From datasheet
-    constexpr float BUS_VOLTAGE         = 24.0f;   // [V]
+    constexpr float COUNTS_TO_AMPS   = 20.0f / 16384.0f; // C620: +-16384 counts = +-20 A
+    constexpr float TORQUE_CONSTANT  = 0.3f;             // N*m/A at the output shaft (M3508 datasheet)
+    constexpr float PHASE_RESISTANCE = 0.194f;           // ohm, approximate
+    constexpr float DRIVE_EFFICIENCY = 0.85f;            // ESC + unmodeled losses; calibrate with BUF
 
-    float torque = std::abs(static_cast<float>(torqueCounts)) / PEAK_TORQUE_COUNTS;
-
-    float currentA;
-    if (torque > SATURATION_RATIO) {
-        // Log an over-torque event at most once every 200 ms
-        if ((now_us() - m_lastTorqueUs) / 1000UL > 200UL) {
-            m_lastTorqueUs = now_us();
-            currentA = SATURATION_CURRENT;
-        }
-        currentA = SATURATION_CURRENT;
-    } else {
-        currentA = torque * TORQUE_TO_AMP;
-    }
-
-    return BUS_VOLTAGE * currentA;
+    float currentA = torqueCounts * COUNTS_TO_AMPS;
+    float mechanicalW = fmaxf(0.0f, TORQUE_CONSTANT * currentA * wheelRadPerSec);
+    float copperW = currentA * currentA * PHASE_RESISTANCE;
+    return (mechanicalW + copperW) / DRIVE_EFFICIENCY;
 }
 
 float ChassisSubsystem::setWheelSpeeds(WheelSpeeds wheelSpeeds)
@@ -406,10 +400,10 @@ float ChassisSubsystem::setWheelSpeeds(WheelSpeeds wheelSpeeds)
     // int r3 = abs(getMotorSpeed(MotorLocation::LEFT_BACK, RPM));
     // int r4 = abs(getMotorSpeed(MotorLocation::RIGHT_BACK, RPM));
 
-    float totalEstimatedWatts = estimatePowerWatts(LF.getData(TORQUE))
-                               + estimatePowerWatts(RF.getData(TORQUE))
-                               + estimatePowerWatts(LB.getData(TORQUE))
-                               + estimatePowerWatts(RB.getData(TORQUE));
+    float totalEstimatedWatts = estimatePowerWatts(LF.getData(TORQUE), LF.getData(VELOCITY))
+                              + estimatePowerWatts(RF.getData(TORQUE), RF.getData(VELOCITY))
+                              + estimatePowerWatts(LB.getData(TORQUE), LB.getData(VELOCITY))
+                              + estimatePowerWatts(RB.getData(TORQUE), RB.getData(VELOCITY));
 
     // A small epsilon in the denominator prevents division by zero when idle.
     constexpr float POWER_MARGIN_W = 10.0f;

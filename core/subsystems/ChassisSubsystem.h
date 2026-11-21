@@ -141,7 +141,9 @@ public:
 
     static float p_theory(int LeftFrontPower, int RightFrontPower, int LeftBackPower, int RightBackPower, int LeftFrontRpm, int RightFrontRpm, int LeftBackRpm, int RightBackRpm);
 
-    float estimatePowerWatts(int torqueCounts);
+    // Estimated electrical power of one chassis motor (W), from raw C620 torque counts and
+    // output-shaft speed (rad/s, as returned by getData(VELOCITY))
+    float estimatePowerWatts(float torqueCounts, float wheelRadPerSec);
 
     static float Bisection(int LeftFrontPower, int RightFrontPower, int LeftBackPower, int RightBackPower, int LeftFrontRpm, int RightFrontRpm, int LeftBackRpm, int RightBackRpm, float chassisPowerLimit);
 
@@ -395,7 +397,6 @@ private:
     float testAngle;
     int lastTimeMs;
 
-    unsigned long m_lastTorqueUs = 0;
 };
 
 #endif // TR_EMBEDDED_CHASSIS_SUBSYSTEM_H
