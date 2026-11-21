@@ -84,23 +84,13 @@ public:
 
     // ----------------------- DEBUGGING VARS ----------------------- 
 
-    long curr_time = 0; // current time of now_us()
-    long function_call_counter = 0; // records how many times the multiturn angle has been called
-
     int low_speeds_neg_skip_log = 0; // records cases in which a specific if statementa should NOT be running
     int low_speeds_pos_skip_log = 0; // records cases in which a specific if statementa should NOT be running
     int low_speeds_default_log = 0; // records cases in which a specific if statementa should NOT be running
     int high_speeds_neg_skip_log = 0;
     int high_speeds_pos_skip_log = 0;
     int high_speeds_default_log = 0;
-    float rps_raw = 0;
-    float raw_speed = 0;
-    int delta_angle = 0;
-    int multiturn_angle = 0;
-    double integration_time = 0;
-    double delta_time = 0;
-
-    
+        
     static const int log_size = 7; // size of record
     int log_index = 0; // next index to log data to (LAST RECORDED DATA IS STORED IN curr_index - 1!!!)
     

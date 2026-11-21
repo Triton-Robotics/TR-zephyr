@@ -333,7 +333,8 @@ void DJIMotor::getCanTwoFeedback(const struct can_frame *msg) {
 }
 
 
-// TODO: Fix again
+// Samples angle and updates multiturn angle to match angle and accounts for any
+//      wrap-arounds to keep a consistent count of multiturn angle 
 void DJIMotor::updateOneMultiTurn(int canBus, int can_line, int motor_id) {
     /** 
         8192 is encoder reading
@@ -341,85 +342,120 @@ void DJIMotor::updateOneMultiTurn(int canBus, int can_line, int motor_id) {
         integratedAngle = (-4096, 4096)
     **/
 
-    int Threshold = 3000; // From 0 to 8191
-    double timeThresholdMs = 1; //
-    int curAngle, lastAngle, deltaAngle;
-    float raw_speed, raw_rps, curRev;
+    constexpr int Threshold = 4096; // From 0 to 8191
+    constexpr double time_threshold_ms = 1; 
+
+    float raw_speed, raw_rps, cur_angle, last_angle, delta_angle;
+    double dt_ms = 0;
     DJIMotor *curMotor;
 
     unsigned long time = now_us();
 
+
     if (s_motorsExist[canBus][can_line][motor_id]) {
         curMotor = s_allMotors[canBus][can_line][motor_id];
-
-        // Update multiturn data using latest data
-        double dt_ms = 0;
-        // gets delta time
+        
+        // calculates delta time and handles first itteration setup
         if (curMotor->lastIntegrationTime != -1) {
-            dt_ms = (double)(time - curMotor->lastIntegrationTime) / 1000.0d; // ms
+            dt_ms = static_cast<double>(time - curMotor->lastIntegrationTime) / 1000.0d; // ms
         } else {
+            curMotor->lastRps = curMotor->getData(VELOCITY_RAW) / 60.0f;
+            curMotor->lastMotorAngle = curMotor->getData(ANGLE);
             curMotor->lastIntegrationTime = static_cast<long>(time);
             return;
         }
 
-        if(dt_ms < timeThresholdMs) {
+        // Forces to sample at consistent intervals/frequencies
+        if(dt_ms < time_threshold_ms) {
             return;
         }
         
-        // Update data from most recent frame
-        curAngle = curMotor->getData(ANGLE);
-        lastAngle = curMotor->lastMotorAngle;
+        cur_angle = curMotor->getData(ANGLE);
+        last_angle = curMotor->lastMotorAngle;
+        delta_angle = cur_angle - last_angle;
+        
         raw_speed = curMotor->getData(VELOCITY_RAW);
         raw_rps = curMotor->getData(VELOCITY_RAW) / 60.0f;
-        curRev = curAngle/ENCODER_WRAP;
 
-        deltaAngle = curAngle - lastAngle;
-        
-        // don't want this to be called twice accidentally
-        if(dt_ms > 0.0d) {
 
-        // "slow speed mode"
+        /*
+            Slow speed mode where we assume that inbetween intervals, our motor
+            does not spin more than one full rotation
+            This allows us to base our multiturn adjustement to be more accurate
+            by using pure encoder (low speeds have some trouble with velocity
+            being accurate)
+        */
         if (fabsf(raw_rps) < 100.0f) {
-            if (curAngle > (ENCODER_WRAP - Threshold) && lastAngle < Threshold) {
-                // negative wrap (pos -> neg)
-                deltaAngle -= ENCODER_WRAP;
+            // negative wrap (pos -> neg)
+            if (cur_angle > (ENCODER_WRAP - Threshold) && last_angle < Threshold) {
+                delta_angle -= ENCODER_WRAP;
                 curMotor->low_speeds_neg_skip_log++;
-            } else if (curAngle < Threshold && lastAngle > (ENCODER_WRAP - Threshold)) {
-                // positive wrap (neg -> pos)
-                deltaAngle += ENCODER_WRAP;
+            } 
+            // positive wrap (neg -> pos)
+            else if (cur_angle < Threshold && last_angle > (ENCODER_WRAP - Threshold)) {
+                delta_angle += ENCODER_WRAP;
                 curMotor->low_speeds_pos_skip_log++;
-            } else {
+            }
+            // no wrap (just for logging rn) 
+            else {
                 curMotor->low_speeds_default_log++;
             }
-            curMotor->multiTurn += deltaAngle;
-        } else {
+            curMotor->multiTurn += delta_angle;
+        } 
+        /*
+            High speeds logic where we assume that inbetween intervals, our motor
+            has a change to spin more than one full rotation
+            Here, we use velocity and encoder values to calculate when we do a jump
+            (in order to have our percentage of rotation value be accurate to motor
+            encoder) as well as estimate the amount of rotation we need to add onto
+            via velocity * dt
+        */
+        else {
             float predictedRev = (curMotor->lastRps + raw_rps)/2.0f * (dt_ms / 1000);
-            float actualRev = static_cast<float>(curAngle)/ENCODER_WRAP;
-            float lastRev = static_cast<float>(lastAngle)/ENCODER_WRAP;       
+            float actualRev = static_cast<float>(cur_angle)/ENCODER_WRAP;
+            float lastRev = static_cast<float>(last_angle)/ENCODER_WRAP;       
 
-
-            if (predictedRev < 0 && deltaAngle > 0) { 
-                // speed is backwards, deltaAngle = positive, so make do neg skip
-                deltaAngle -= ENCODER_WRAP;
+            // speed is backwards while our deltaAngle =ispositive
+            //  thus we know for certain we have done a neg wrap (pos -> neg)
+            if (predictedRev < 0 && delta_angle > 0) { 
+                delta_angle -= ENCODER_WRAP;
                 curMotor->high_speeds_neg_skip_log++;
-            } else if (predictedRev > 0 && deltaAngle < 0) { 
-                // speed is forwards, deltaAngle is negative, so make do pos skip
-                deltaAngle += ENCODER_WRAP;
+            } 
+            // speed is forwards while our deltaAngle is negative
+            //  thus we know for certain we have done a pow wrap (neg -> pos)
+            else if (predictedRev > 0 && delta_angle < 0) { 
+                delta_angle += ENCODER_WRAP;
                 curMotor->high_speeds_pos_skip_log++;
             } else {
                 curMotor->high_speeds_default_log++;
             }   
             
-            // shifts the predicted rev to have it's zero at last rev, range: [0,1]
+            // shifts the predicted rev to have it's zero centered at last rev, range: [0,1]
             float predictedRevCenteredAtLast = (predictedRev - static_cast<int>(predictedRev) + 1);
             predictedRevCenteredAtLast -= static_cast<int>(predictedRevCenteredAtLast);
 
-            // shifts the actual rev to have it's zero at last rev, range: [0,1]
+            // shifts the actual rev to have it's zero centered at last rev, range: [0,1]
             float actualRevCenteredAtLast = actualRev + 2 - lastRev;
             actualRevCenteredAtLast -= static_cast<int>(actualRevCenteredAtLast);
             
+            // amount of revolutions we think we will jump by
             int revolutionJump = static_cast<int>(predictedRev);
 
+            /*
+                Split by speed direction (based on predicted rev)
+                For positive:
+                    If our predicted revoliution's angle is ahead of last 
+                    recorded angle but our actual rev is behind last recored angle
+                    our predicted amount of revolution is too high
+
+                    If our predicted rev is behind our last recorded angle
+                    but our actual rev is ahead, that means our predicted amount of
+                    revolution is too low and needs to be increased
+
+                For Negative:
+                    Same as positive but reversed
+                     
+            */
             if(predictedRev > 0) {
                 if(predictedRevCenteredAtLast < 0.25f && actualRevCenteredAtLast > 0.75f) {
                     // overshoot by one revolution
@@ -438,35 +474,21 @@ void DJIMotor::updateOneMultiTurn(int canBus, int can_line, int motor_id) {
                 }
             }
 
-            deltaAngle += revolutionJump*ENCODER_WRAP;
-            curMotor->multiTurn += deltaAngle; 
+            delta_angle += revolutionJump*ENCODER_WRAP;
+            curMotor->multiTurn += delta_angle; 
         }
-
-        curMotor->function_call_counter++;
-
-        curMotor->rps_raw = raw_rps;
-        curMotor->raw_speed = raw_speed;
-        curMotor->delta_angle = deltaAngle;
-        curMotor->multiturn_angle = curMotor->multiTurn;
-        curMotor->curr_time = time;
-
         
         // Update new multiturn
-        curMotor->delta_time = time - curMotor->lastIntegrationTime;
-        curMotor->lastMotorAngle = curAngle;
+        curMotor->lastMotorAngle = cur_angle;
         curMotor->lastRps = raw_rps;
-        curMotor->lastIntegrationTime = long(time);
-        curMotor->integration_time = long(time);
-        // log current data into data
+        curMotor->lastIntegrationTime = static_cast<long>(time);
 
-
-        curMotor->buffer1[curMotor->log_index] = curMotor->multiturn_angle;
-        curMotor->buffer2[curMotor->log_index] = curAngle;
-        curMotor->buffer3[curMotor->log_index] = long(time);
+        curMotor->buffer1[curMotor->log_index] = curMotor->multiTurn;
+        curMotor->buffer2[curMotor->log_index] = cur_angle;
+        curMotor->buffer3[curMotor->log_index] = static_cast<long>(time);
         curMotor->buffer4[curMotor->log_index] = raw_speed;
         curMotor->log_index = (curMotor->log_index + 1) % curMotor->log_size;
         
-    }
     }
 }
 

@@ -115,14 +115,6 @@ void periodic() {
     high_speeds_neg_skip_log = motorM3508.high_speeds_neg_skip_log;
     high_speeds_pos_skip_log = motorM3508.high_speeds_pos_skip_log;
     high_speeds_default_log = motorM3508.high_speeds_default_log;
-    high_speeds_velocity_raw = motorM3508.rps_raw;
-    raw_speed = motorM3508.raw_speed;
-    high_speeds_delta_angle = motorM3508.delta_angle;
-    high_speeds_multiturn_angle = motorM3508.multiturn_angle;
-    function_call_counter = motorM3508.function_call_counter;
-    curr_time_function_call = motorM3508.curr_time;
-    integration_time = motorM3508.integration_time;
-    delta_time = motorM3508.delta_time;
 
 
     for(int i = 0; i < motorM3508.log_size; i++) {
