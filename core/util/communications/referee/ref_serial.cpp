@@ -189,6 +189,8 @@ void Referee::referee_data_pack_handle(uint8_t* packet, uint16_t len) {
     LL_USART_ClearFlag_TC(ref.usart_getter());
     mutex_write_.unlock();
 
+    // TEMP: confirm UI frames are being sent
+    printf("UI tx %d bytes, cmd 0x%02X%02X\n", len, packet[6], packet[5]);
     ref.write(packet, len);
 }
 
