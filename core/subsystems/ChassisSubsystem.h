@@ -176,6 +176,11 @@ public:
      */
     WheelSpeeds normalizeWheelSpeeds(WheelSpeeds wheelSpeeds) const;
 
+    WheelSpeeds limitWheelSpeedsSpinPriority(ChassisSpeeds chassisSpeeds);
+
+    // Translation fraction kept by the last limitWheelSpeedsSpinPriority call (1 = no limit hit)
+    float translationLimitScale = 1.0f;
+
     /**
      * The driveMotors method drives each motor at a specific speed
      * @param wheelPower The speeds in [-1, 1] to drive each motor at

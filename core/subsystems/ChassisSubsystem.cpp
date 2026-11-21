@@ -166,9 +166,9 @@ float ChassisSubsystem::setChassisSpeeds(ChassisSpeeds desiredChassisSpeeds_, DR
     }
     yawPrior = encoder->encoderMovingAverage();
     //one chassis velocity (vX, vY, vOmega) becomes four wheel speeds in m/s.
-    WheelSpeeds wheelSpeeds = chassisSpeedsToWheelSpeeds(desiredChassisSpeeds); // in m/s (for now)
-    //STEP 4 — Speed normalization (inside setChassisSpeeds())
-    wheelSpeeds = normalizeWheelSpeeds(wheelSpeeds);
+    //STEP 4 — Speed limit (inside setChassisSpeeds())
+    //Keeps every wheel under max_Vel; translation is cut first so spin keeps priority.
+    WheelSpeeds wheelSpeeds = limitWheelSpeedsSpinPriority(desiredChassisSpeeds); // in m/s
     //STEP 5 — Unit conversion (inside setChassisSpeeds())
     //Purpose: m/s → motor RPM so PID can compare against motor encoder feedback.
     wheelSpeeds *= (1 / (WHEEL_DIAMETER_METERS / 2) / (2 * PI / 60) * M3508_GEAR_RATIO);
@@ -437,6 +437,41 @@ WheelSpeeds ChassisSubsystem::normalizeWheelSpeeds(WheelSpeeds wheelSpeeds) cons
 
     return {speeds[0], speeds[1], speeds[2], speeds[3]};
 }
+
+
+WheelSpeeds ChassisSubsystem::limitWheelSpeedsSpinPriority(ChassisSpeeds chassisSpeeds)
+{
+    const float maxVel = m_OmniKinematicsLimits.max_Vel;
+
+    // Each wheel = translation part + spin part (the kinematics are linear)
+    WheelSpeeds t = chassisSpeedsToWheelSpeeds({chassisSpeeds.vX, chassisSpeeds.vY, 0.0f});
+    WheelSpeeds r = chassisSpeedsToWheelSpeeds({0.0f, 0.0f, chassisSpeeds.vOmega});
+    float trans[4] = {t.LF, t.RF, t.LB, t.RB};
+    float spin[4] = {r.LF, r.RF, r.LB, r.RB};
+
+    // If spinning alone is over the limit, there's no room to keep: scale everything together
+    for (float s : spin) {
+        if (fabsf(s) > maxVel) {
+            translationLimitScale = 1.0f;
+            return normalizeWheelSpeeds({t.LF + r.LF, t.RF + r.RF, t.LB + r.LB, t.RB + r.RB});
+        }
+    }
+
+    // Largest translation fraction k (0..1) with |k * trans + spin| <= maxVel on every wheel
+    float k = 1.0f;
+    for (int i = 0; i < 4; i++) {
+        if (fabsf(trans[i]) < 1e-6f) {
+            continue;
+        }
+        float room = (trans[i] > 0.0f) ? (maxVel - spin[i]) : (maxVel + spin[i]);
+        k = fminf(k, room / fabsf(trans[i]));
+    }
+    k = fmaxf(k, 0.0f);
+    translationLimitScale = k;
+
+    return {k * trans[0] + spin[0], k * trans[1] + spin[1], k * trans[2] + spin[2], k * trans[3] + spin[3]};
+}
+
 
 
 void ChassisSubsystem::setWheelPower(WheelSpeeds wheelPower)
