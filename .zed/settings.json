@@ -1,0 +1,11 @@
+{
+  "lsp": {
+    "clangd": {
+      "binary": {
+        "arguments": [
+          "--query-driver=/Users/andrewtrinh/zephyr-sdk-0.16.8/arm-zephyr-eabi/bin/arm-zephyr-eabi-*"
+        ]
+      }
+    }
+  }
+}

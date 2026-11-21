@@ -103,7 +103,7 @@ HeroShooterSubsystem::config shooter_config = {
     2,
     4,
     1,
-    0, // MAKE SURE TO CHANGE THIS 
+    0, // MAKE SURE TO CHANGE THIS
     FLYWHEEL_L_PID,
     FLYWHEEL_R_PID,
     FEEDER_PID,
@@ -126,7 +126,7 @@ IMU::EulerAngles imuAngles;
 class Hero : public BaseRobot {
   public:
     ISM330 imu_;
-    MA4 encoder_;  
+    MA4 encoder_;
     // BufferedSerial jetson_raw_serial;
     Jetson jetson;
 
@@ -162,7 +162,7 @@ class Hero : public BaseRobot {
             0.065,    // speed_pid_ff_ks
             35,     // yaw_initial_offset_ticks
             imu_,
-            &encoder_   
+            &encoder_
         }
         )
     // clang-format on
@@ -214,7 +214,7 @@ class Hero : public BaseRobot {
             referee_.is_aligned = false;
             referee_.is_cv_on = false;
             referee_.is_spinning = false;
-        }  else if (drive == 'd' || 
+        }  else if (drive == 'd' ||
                    (drive == 'o' &&
                     remote_.getMode() == DJIRemote2::ModeSwitch::MODE_S)) {
             des_chassis_state.vOmega = omega_speed;
@@ -234,7 +234,7 @@ class Hero : public BaseRobot {
             referee_.is_spinning = false;
         }
 
-        // Shooter Logic 
+        // Shooter Logic
         //REMOVED remote_.PAUSEToggled() == true && FROM THE FIRST CONDITION
         if ((remote_.PAUSEToggled() == true && remote_.TriggerPressed() == true) || remote_.getMouseL()) {
             des_shoot_state = ShootState::SHOOT;
@@ -254,7 +254,7 @@ class Hero : public BaseRobot {
         turret_.periodic(chassis_.getChassisSpeeds().vOmega * 60 / (2 * PI));
         chassis_.power_limit = referee_.robot_status.chassis_power_limit;
         chassis_.periodic(&imuAngles);
-        shooter_.periodic(referee_.power_heat_data.shooter_17mm_1_barrel_heat,
+        shooter_.periodic(referee_.power_heat_data.shooter_17mm_barrel_heat,
                          referee_.robot_status.shooter_barrel_heat_limit);
 
         // jetson comms

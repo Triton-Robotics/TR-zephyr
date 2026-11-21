@@ -266,7 +266,7 @@ class Infantry : public BaseRobot {
         
         
         chassis_.periodic(&imuAngles);
-        shooter_.periodic(referee_.power_heat_data.shooter_17mm_1_barrel_heat,
+        shooter_.periodic(referee_.power_heat_data.shooter_17mm_barrel_heat,
                          referee_.robot_status.shooter_barrel_heat_limit);
 
         // jetson comms
