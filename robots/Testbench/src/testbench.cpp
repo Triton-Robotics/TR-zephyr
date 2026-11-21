@@ -1,11 +1,3 @@
-// #include "stm32f446xx.h"
-// #include "syscalls/can.h"
-// #include "stm32f4xx_hal_can.h"
-// #include "syscalls/can.h"
-// #include <zephyr/drivers/can.h>
-#include <cerrno>
-#include <zephyr/drivers/i2c.h>
-#include <zephyr/drivers/pwm.h>
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/device.h>
@@ -90,4 +82,6 @@ int main(void)
         periodic();
         k_sleep(K_MSEC(2));
     }
+
+    return 0;
 }
