@@ -72,6 +72,28 @@ float INDEXER_POWEROUT = -1.0f;
 double indexer_start_angle = -1.0;
 double feeder_start_angle = -1.0;
 
+/*
+OZONE notes
+
+indexer
+normal torque current -> 4-5k
+induced stall -> 10k
+
+stall threshold -> 7k
+*/
+
+const float STALL_THRESHOLD = 7000;
+
+const uint64_t BACKFEED_DURATION_US = 500'000; // 0.1 seconds
+
+bool backfeeding = false;
+uint64_t backfeed_start_us = 0;
+
+void backfeed() {
+    indexer.setSpeed(-1000);
+}
+
+
 // void updateOzone() {
 //     double ticks_from_start = static_cast<double>(indexer >> MULTITURNANGLE) - indexer_start_angle;
 //     INDEXER_ANGLE = ticks_from_start / TICKS_PER_OUTPUT_REV * 360.0;  // degrees
@@ -139,13 +161,43 @@ int main(void)
             //     (int)feeder.getData(TORQUE));
 
             if (!stopped) {
-                leftFlywheel.setSpeed(25);
-                rightFlywheel.setSpeed(-25);
-                indexer.setSpeed(750);
-                feeder.setSpeed(1000);
-                // indexer.setPosition(indexer_target);
-                // feeder.setPosition(feeder_target);
+                leftFlywheel.setSpeed(10);
+                rightFlywheel.setSpeed(-10);
+
+                uint64_t now = now_us();
+
+                if (backfeeding) {
+                    if ((now - backfeed_start_us) < BACKFEED_DURATION_US) {
+                        // Continue reversing the indexer
+                        indexer.setSpeed(-1000);
+                    } else {
+                        // Backfeed finished; resume normal position control
+                        backfeeding = false;
+                        indexer.setPosition(indexer_target);
+                        // feeder.setPosition(feeder_target);
+                        // indexer.setSpeed(750);
+                        feeder.setSpeed(200);
+
+                        printf("Backfeed complete, resuming position control\n");
+                    }
+                } else {
+                    if (indexer.getData(TORQUE) >= STALL_THRESHOLD) {
+                        // Start a 0.5-second backfeed
+                        backfeeding = true;
+                        backfeed_start_us = now;
+
+                        indexer.setSpeed(-1000);
+                        printf("Stall detected, starting backfeed\n");
+                    } else {
+                        indexer.setPosition(indexer_target);
+                        // feeder.setPosition(feeder_target);
+                        // indexer.setSpeed(750);
+                        feeder.setSpeed(200);
+                    }
+                }
             }
+
+            INDEXER_TORQUE = indexer.getData(TORQUE);
 
             DJIMotor::sendValues(false);
 
