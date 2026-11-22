@@ -3,6 +3,17 @@
 #include "util/motor/DJIMotor.h"
 #include <zephyr/devicetree.h>
 
+// Debug globals for Ozone graphing
+volatile float dbg_pitch_des_deg    = 0;
+volatile float dbg_pitch_deg        = 0;
+volatile float dbg_pitch_des_vel    = 0;   // rad/s, from position PID
+volatile float dbg_pitch_vel        = 0;   // rad/s, measured
+volatile float dbg_pitch_power      = 0;   // current command sent to motor
+volatile float dbg_pitch_ff         = 0;   // gravity feedforward
+volatile float dbg_pitch_pC         = 0;
+volatile float dbg_pitch_iC         = 0;
+volatile float dbg_pitch_dC         = 0;
+
 TurretSubsystem::TurretSubsystem(config cfg, IMU &imu):
     pitch({
         cfg.pitch_can_device,
@@ -155,9 +166,20 @@ void TurretSubsystem::periodic(float chassisRpm)
             static_cast<float>(now_us() - turret_time) / 1000
         );
         pitch.setSpeed(des_pitch_velo);
-        float des_pitch_power = pitch.pidSpeed.calculate(des_pitch_velo, turret_state.pitch_velo_rad_s, static_cast<float>(now_us() - turret_time) / 1000);
+        // BELOW IS THIS JUST A RANDOM CALL?
+        // float des_pitch_power = pitch.pidSpeed.calculate(des_pitch_velo, turret_state.pitch_velo_rad_s, static_cast<float>(now_us() - turret_time) / 1000);
         // printf("pp %.2f | %.2f\n", des_pitch_power, des_pitch-turret_state.pitch_angle_degs);
         // pitch.setPower(des_pitch_power);
+        
+        dbg_pitch_des_deg = des_pitch;
+        dbg_pitch_deg     = turret_state.pitch_angle_degs;
+        dbg_pitch_des_vel = des_pitch_velo;
+        dbg_pitch_vel     = turret_state.pitch_velo_rad_s;
+        dbg_pitch_power   = pitch.getData(POWEROUT);
+        dbg_pitch_ff      = pitch.pidSpeed.feedForward;
+        dbg_pitch_pC      = pitch.pidSpeed.pC;
+        dbg_pitch_iC      = pitch.pidSpeed.iC;
+        dbg_pitch_dC      = pitch.pidSpeed.dC;
     }
 
     turret_time = now_us();;

@@ -14,7 +14,6 @@
 #include <base_robot/BaseRobot.h>
 #include <zephyr/dt-bindings/pwm/pwm.h>
 
-
 // Robot Constants
 constexpr float PITCH_LOWER_BOUND{-22.0};
 constexpr float PITCH_UPPER_BOUND{25.0};
@@ -288,7 +287,7 @@ class Infantry : public BaseRobot {
         // remote_.getSwitch(Remote::Switch::RIGHT_SWITCH));
         // %.2f\n", imu.getImuAngles().yaw);
         // printf("%d\n", referee_.get_game_progress());
-        printf("yp %.2f \n", encoder_.encoderMovingAverage());
+        // printf("yp %.2f \n", encoder_.encoderMovingAverage());
         // printf("%.2f, %.2f, %.2f\n", imuAngles.roll, imuAngles.pitch, imuAngles.yaw);
         // printf("remote state: %d\n", remote_.getMode());
         // printf("remote jx: %.2f, jy: %.2f, jpitch: %.2f, jyaw: %.2f\n", jx, jy, jpitch, jyaw);
