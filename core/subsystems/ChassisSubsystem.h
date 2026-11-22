@@ -135,7 +135,7 @@ public:
     float previousRPM[4] = {0, 0, 0, 0};
 
     // chassis-level accel pacer: all four wheels reach their target together
-    static constexpr float MAX_WHEEL_ACCEL_RPM_PER_S = 10000.0f; // motor-shaft RPM/s; starting value, tune on robot
+    static constexpr float MAX_WHEEL_ACCEL_RPM_PER_S = 50000.0f; // motor-shaft RPM/s; starting value, tune on robot
     static constexpr float MAX_PACER_DT_S = 0.05f;               // caps dt after a stall or first call
     WheelSpeeds paceWheelSpeeds(WheelSpeeds desired, float dt_s);
 
