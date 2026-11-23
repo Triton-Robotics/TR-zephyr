@@ -57,8 +57,6 @@ unsigned int ticks = 0;
 long curr_time_function_call = 0;
 long function_call_counter = 0;
 
-int high_speeds_multiturn_angle = 0;
-
 int high_speeds_case_one_false = 0;
 int high_speeds_case_two_false = 0;
 int high_speeds_case_three_false = 0;
@@ -67,6 +65,8 @@ int high_speeds_case_three_false = 0;
 int high_speeds_neg_skip_log = 0;
 int high_speeds_pos_skip_log = 0;
 int high_speeds_default_log = 0;
+int log_index = 0;
+int log_count = 0;
 
 
 int high_speeds_last_angle = 0;
@@ -94,6 +94,7 @@ decltype(motorM3508.buffer1) buffer1;
 decltype(motorM3508.buffer2) buffer2;
 decltype(motorM3508.buffer3) buffer3;
 decltype(motorM3508.buffer4) buffer4;
+decltype(motorM3508.buffer5) buffer5;
 
 
 void periodic() {
@@ -116,18 +117,22 @@ void periodic() {
     high_speeds_pos_skip_log = motorM3508.high_speeds_pos_skip_log;
     high_speeds_default_log = motorM3508.high_speeds_default_log;
 
+    log_index = motorM3508.log_index;
+    log_count = motorM3508.log_count;
 
     for(int i = 0; i < motorM3508.log_size; i++) {
         buffer1[i] = motorM3508.buffer1[(motorM3508.log_index + i) % motorM3508.log_size];
         buffer2[i] = motorM3508.buffer2[(motorM3508.log_index + i) % motorM3508.log_size];
         buffer3[i] = motorM3508.buffer3[(motorM3508.log_index + i) % motorM3508.log_size];
         buffer4[i] = motorM3508.buffer4[(motorM3508.log_index + i) % motorM3508.log_size];
+        buffer5[i] = motorM3508.buffer5[(motorM3508.log_index + i) % motorM3508.log_size];
     }
 
     end_logging = !end_logging;
 
+    bool moveMotor = true;
     
-    if(time_ctrl < SWAP_TIME) {
+    if(time_ctrl < SWAP_TIME && moveMotor) {
         if(current_motor_power < 1000) {
             current_motor_power = CLAMP(current_motor_power + 5, 0, 1000);
         }
@@ -140,14 +145,7 @@ void periodic() {
     } else {
         motorM3508.setPower(0);
         DJIMotor::sendValues(true);
-    //     if(go) {
-    //         DJIMotor::sendValues(true);
-    //         go = false;
-    //     }
     }
-
-    // printf("HOI: %f, %f, %f\n", static_cast<double>(current_motor_multiturn), static_cast<double>(current_motor_velocity), static_cast<double>(current_motor_angle));
-    // printf("%d\n", motorM3508.delta_angle);
 
     time_ctrl += 5;
 }

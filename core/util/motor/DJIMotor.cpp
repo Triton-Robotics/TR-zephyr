@@ -329,13 +329,13 @@ void DJIMotor::getCanTwoFeedback(const struct can_frame *msg) {
                "IS NOT INITIALIZED.. WHY: \n",
                msg->id, canBus, can_line, motor_id);
     }
-    updateOneMultiTurn(canBus, can_line, motor_id);
+    updateOneMultiTurn(canBus, can_line, motor_id, msg->timestamp);
 }
 
 
 // Samples angle and updates multiturn angle to match angle and accounts for any
 //      wrap-arounds to keep a consistent count of multiturn angle 
-void DJIMotor::updateOneMultiTurn(int canBus, int can_line, int motor_id) {
+void DJIMotor::updateOneMultiTurn(int canBus, int can_line, int motor_id, unsigned long time) {
     /** 
         8192 is encoder reading
         1/1000 is microsec to millisec
@@ -348,9 +348,6 @@ void DJIMotor::updateOneMultiTurn(int canBus, int can_line, int motor_id) {
     float raw_speed, raw_rps, cur_angle, last_angle, delta_angle;
     double dt_ms = 0;
     DJIMotor *curMotor;
-
-    unsigned long time = now_us();
-
 
     if (s_motorsExist[canBus][can_line][motor_id]) {
         curMotor = s_allMotors[canBus][can_line][motor_id];
@@ -366,17 +363,18 @@ void DJIMotor::updateOneMultiTurn(int canBus, int can_line, int motor_id) {
         }
 
         // Forces to sample at consistent intervals/frequencies
-        if(dt_ms < time_threshold_ms) {
-            return;
-        }
         
         cur_angle = curMotor->getData(ANGLE);
         last_angle = curMotor->lastMotorAngle;
         delta_angle = cur_angle - last_angle;
         
-        raw_speed = curMotor->getData(VELOCITY_RAW);
-        raw_rps = curMotor->getData(VELOCITY_RAW) / 60.0f;
-
+        raw_speed = curMotor->getData(VELOCITY_RAW); // rad/sec
+        raw_rps = raw_speed / 2 / PI;
+        
+        
+        if(dt_ms <= 0.0d) {
+            return;
+        }
 
         /*
             Slow speed mode where we assume that inbetween intervals, our motor
@@ -415,7 +413,7 @@ void DJIMotor::updateOneMultiTurn(int canBus, int can_line, int motor_id) {
             float actualRev = static_cast<float>(cur_angle)/ENCODER_WRAP;
             float lastRev = static_cast<float>(last_angle)/ENCODER_WRAP;       
 
-            // speed is backwards while our deltaAngle =ispositive
+            // speed is backwards while our deltaAngle = is positive
             //  thus we know for certain we have done a neg wrap (pos -> neg)
             if (predictedRev < 0 && delta_angle > 0) { 
                 delta_angle -= ENCODER_WRAP;
@@ -487,7 +485,9 @@ void DJIMotor::updateOneMultiTurn(int canBus, int can_line, int motor_id) {
         curMotor->buffer2[curMotor->log_index] = cur_angle;
         curMotor->buffer3[curMotor->log_index] = static_cast<long>(time);
         curMotor->buffer4[curMotor->log_index] = raw_speed;
+        curMotor->buffer5[curMotor->log_index] = static_cast<int>(curMotor->multiTurn / ENCODER_WRAP);
         curMotor->log_index = (curMotor->log_index + 1) % curMotor->log_size;
+        curMotor->log_count++;
         
     }
 }

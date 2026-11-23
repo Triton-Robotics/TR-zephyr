@@ -91,14 +91,16 @@ public:
     int high_speeds_pos_skip_log = 0;
     int high_speeds_default_log = 0;
         
-    static const int log_size = 7; // size of record
+    static const int log_size = 17; // size of record
     int log_index = 0; // next index to log data to (LAST RECORDED DATA IS STORED IN curr_index - 1!!!)
+    int log_count = 0;
     
     // string buffer1Name = "";
     int buffer1[log_size];
     int buffer2[log_size];
     long buffer3[log_size];
     float buffer4[log_size];
+    int buffer5[log_size];
     
 
     int outputCap = INT16_T_MAX;
@@ -204,7 +206,7 @@ private:
     uint32_t timeOfLastFeedback = 0;
     uint32_t timeOfLastPID = 0;
 
-    static void updateOneMultiTurn(int canBus, int can_line, int motor_id);
+    static void updateOneMultiTurn(int canBus, int can_line, int motor_id, unsigned long time = now_us());
     static void sendOneID(CANHandler::CANBus canBus, short sendIDindex, bool debug = false);
     void setOutput();
 
