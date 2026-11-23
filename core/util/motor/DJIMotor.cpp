@@ -255,7 +255,7 @@ void DJIMotor::getCanRxFeedback(const struct device *dev, struct can_frame *msg)
                "IS NOT INITIALIZED.. WHY: \n",
                msg->id, canBus, can_line, motor_id);
     }
-    updateOneMultiTurn(canBus, can_line, motor_id);
+    updateOneMultiTurn(canBus, can_line, motor_id, msg->timestamp);
 }
 
 void DJIMotor::getCanOneFeedback(const struct can_frame *msg) {
@@ -292,7 +292,7 @@ void DJIMotor::getCanOneFeedback(const struct can_frame *msg) {
                "IS NOT INITIALIZED.. WHY: \n",
                msg->id, canBus, can_line, motor_id);
     }
-    updateOneMultiTurn(canBus, can_line, motor_id);
+    updateOneMultiTurn(canBus, can_line, motor_id, msg->timestamp);
 }
 
 void DJIMotor::getCanTwoFeedback(const struct can_frame *msg) {
@@ -351,16 +351,6 @@ void DJIMotor::updateOneMultiTurn(int canBus, int can_line, int motor_id, unsign
 
     if (s_motorsExist[canBus][can_line][motor_id]) {
         curMotor = s_allMotors[canBus][can_line][motor_id];
-        
-        // calculates delta time and handles first itteration setup
-        if (curMotor->lastIntegrationTime != -1) {
-            dt_ms = static_cast<double>(time - curMotor->lastIntegrationTime) / 1000.0d; // ms
-        } else {
-            curMotor->lastRps = curMotor->getData(VELOCITY_RAW) / 60.0f;
-            curMotor->lastMotorAngle = curMotor->getData(ANGLE);
-            curMotor->lastIntegrationTime = static_cast<long>(time);
-            return;
-        }
 
         // Forces to sample at consistent intervals/frequencies
         
@@ -368,8 +358,18 @@ void DJIMotor::updateOneMultiTurn(int canBus, int can_line, int motor_id, unsign
         last_angle = curMotor->lastMotorAngle;
         delta_angle = cur_angle - last_angle;
         
-        raw_speed = curMotor->getData(VELOCITY_RAW); // rad/sec
-        raw_rps = raw_speed / 2 / PI;
+        raw_speed = curMotor->getData(VELOCITY_RAW); // in rad/sec
+        raw_rps = raw_speed / 2.0 / PI;
+        
+        // calculates delta time and handles first itteration setup
+        if (curMotor->lastIntegrationTime != -1) {
+            dt_ms = static_cast<double>(time - curMotor->lastIntegrationTime) / 1000.0d; // ms
+        } else {
+            curMotor->lastRps = raw_rps;
+            curMotor->lastMotorAngle = cur_angle;
+            curMotor->lastIntegrationTime = static_cast<long>(time);
+            return;
+        }
         
         
         if(dt_ms <= 0.0d) {
@@ -429,6 +429,7 @@ void DJIMotor::updateOneMultiTurn(int canBus, int can_line, int motor_id, unsign
             }   
             
             // shifts the predicted rev to have it's zero centered at last rev, range: [0,1]
+            //      predicted rev is already centerd at last rev, so we just force range: [0, 1]
             float predictedRevCenteredAtLast = (predictedRev - static_cast<int>(predictedRev) + 1);
             predictedRevCenteredAtLast -= static_cast<int>(predictedRevCenteredAtLast);
 
@@ -481,6 +482,7 @@ void DJIMotor::updateOneMultiTurn(int canBus, int can_line, int motor_id, unsign
         curMotor->lastRps = raw_rps;
         curMotor->lastIntegrationTime = static_cast<long>(time);
 
+        // DATA LOGGING
         curMotor->buffer1[curMotor->log_index] = curMotor->multiTurn;
         curMotor->buffer2[curMotor->log_index] = cur_angle;
         curMotor->buffer3[curMotor->log_index] = static_cast<long>(time);
