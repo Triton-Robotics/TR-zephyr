@@ -278,11 +278,11 @@ class Sentry : public BaseRobot {
         if (chassis_enabled) {
             // Preserve Sentry's Jetson axis signs; velocities are chassis-relative.
             chassis_command.vX = std::clamp(jetson_state.desired_x_vel, -MAX_VEL, MAX_VEL);
-            chassis_command.vY = std::clamp(-jetson_state.desired_y_vel, -MAX_VEL, MAX_VEL);
+            chassis_command.vY = -std::clamp(-jetson_state.desired_y_vel, -MAX_VEL, MAX_VEL); // THIS IS NEGATIVE SO THAT AUTO'S CONVENTION WORKS
             chassis_command.vOmega = std::clamp(jetson_state.desired_angular_vel,
                                                -JETSON_MAX_ANGULAR_VEL, JETSON_MAX_ANGULAR_VEL);
         }
-        chassis_.setChassisSpeeds(chassis_command, ChassisSubsystem::DRIVE_MODE::ROBOT_ORIENTED);
+        chassis_.setChassisSpeeds(chassis_command, ChassisSubsystem::DRIVE_MODE::YAW_ORIENTED);
         if (!chassis_enabled) {
             // Clear any PID output while waiting for the first packet or after timeout.
             chassis_.setWheelPower({0, 0, 0, 0});
