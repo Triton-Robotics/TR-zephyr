@@ -142,7 +142,7 @@ class Infantry : public BaseRobot {
     float translation_scale{1.0f};
     float last_chassis_scale{1.0f};
 
-    static constexpr float TRANSLATION_CUT_GAIN = 0.5f;       // fraction of the power overshoot removed per loop
+    static constexpr float TRANSLATION_CUT_GAIN = 0.0f;       // fraction of the power overshoot removed per loop
     static constexpr float TRANSLATION_RECOVER_PER_S = 1.0f;  // translation regained per second when under budget (0 -> full in 1 s)
 
     Infantry(Config &config)

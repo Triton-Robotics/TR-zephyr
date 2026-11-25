@@ -139,38 +139,34 @@ float MA4::dutycycle() {
 // }
 
 float MA4::encoderMovingAverage() {
-    const int windowSize = 20;
-    static float readings[windowSize] = {0};
-    static int index = 0;
-    static bool filled = false;
-
     float newReading = getEncoderYawPosition();
     if (newReading < 0) {
         return -1.0f; // Encoder not available
     }
 
-    readings[index] = newReading;
-    index = (index + 1) % windowSize;
-    if (index == 0) {
-        filled = true;
+    // Average as unit vectors, not raw degrees: a plain average of 359 and 1 gives 180,
+    // which is what made the angle sweep around the circle once per beyblade revolution.
+    float rad = newReading * (PI / 180.0f);
+    _ma_sin[_ma_index] = sinf(rad);
+    _ma_cos[_ma_index] = cosf(rad);
+    _ma_index = (_ma_index + 1) % MA_WINDOW;
+    if (_ma_count < MA_WINDOW) {
+        _ma_count++;
     }
 
-    float sum = 0.0;
-    float result = 0.0;
-
-    if (filled) {
-        for (int i = 0; i < windowSize; i++) {
-            sum += readings[i];
-        }
-        result = sum / windowSize;
-    } else {
-        for (int i = 0; i < index; i++) {
-            sum += readings[i];
-        }
-        result = sum / index;
+    float sum_sin = 0.0f, sum_cos = 0.0f;
+    for (int i = 0; i < _ma_count; i++) {
+        sum_sin += _ma_sin[i];
+        sum_cos += _ma_cos[i];
     }
-    // printf("%.2f\n",result);
-    return result;
 
+    float deg = atan2f(sum_sin, sum_cos) * (180.0f / PI);
+    if (deg < 0.0f) {
+        deg += 360.0f;
+    }
+    if (deg >= 360.0f) {
+        deg -= 360.0f; // float rounding can land exactly on 360
+    }
+    return deg;
 }
 

@@ -88,6 +88,15 @@ protected:
 
     float _filtered = 0.0f;
     bool  _have_filter = false;
+
+
+    // encoderMovingAverage() window, stored as sin/cos so it averages correctly across 0/360
+    static constexpr int MA_WINDOW = 20;
+    float _ma_sin[MA_WINDOW] = {0};
+    float _ma_cos[MA_WINDOW] = {0};
+    int   _ma_index = 0;
+    int   _ma_count = 0;
+
     float _alpha = 0.2f;
 
 
