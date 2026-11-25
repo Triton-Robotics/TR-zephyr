@@ -218,9 +218,29 @@ class Sentry : public BaseRobot {
         set_jetson_state();
         jetson.write(stm_state);
     }
-
+    
     unsigned int main_loop_dt_ms() override { return 2; } // 500 Hz loop
+    
+    // ---------------------------------------------------------------
+    // Neutral Mode
+    // ---------------------------------------------------------------
+    void run_neutral_mode() {
+        chassis_.setWheelPower({0, 0, 0, 0});
 
+        des_turret_state.turret_mode = TurretState::SLEEP;
+        des_turret_state.yaw_angle_degs = turret_.getState().yaw_angle_degs;
+        des_turret_state.pitch_angle_degs = 0;
+        yaw_desired_angle = turret_.getState().yaw_angle_degs;
+        pitch_desired_angle = 0;
+
+        turret_.setState(des_turret_state);
+        shooter_.setState(ShootState::OFF);
+
+        referee_.is_aligned = false;
+        referee_.is_cv_on = false;
+        referee_.is_spinning = false;
+        referee_.is_flywheel_on = false;
+    }
     // ---------------------------------------------------------------
     // Mode N: Infantry-mode basically, the remote does everything
     // ---------------------------------------------------------------
@@ -319,26 +339,6 @@ class Sentry : public BaseRobot {
         referee_.is_flywheel_on = shoot_command != ShootState::OFF;
     }
 
-    // ---------------------------------------------------------------
-    // Any other switch position: everything off
-    // ---------------------------------------------------------------
-    void run_neutral_mode() {
-        chassis_.setWheelPower({0, 0, 0, 0});
-
-        des_turret_state.turret_mode = TurretState::SLEEP;
-        des_turret_state.yaw_angle_degs = turret_.getState().yaw_angle_degs;
-        des_turret_state.pitch_angle_degs = 0;
-        yaw_desired_angle = turret_.getState().yaw_angle_degs;
-        pitch_desired_angle = 0;
-
-        turret_.setState(des_turret_state);
-        shooter_.setState(ShootState::OFF);
-
-        referee_.is_aligned = false;
-        referee_.is_cv_on = false;
-        referee_.is_spinning = false;
-        referee_.is_flywheel_on = false;
-    }
 
     void set_jetson_state() {
         // Only request autonomy while the remote has handed control to the Jetson.
