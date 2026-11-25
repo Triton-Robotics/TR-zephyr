@@ -23,6 +23,8 @@ SerialBase::SerialBase(const struct device *dev, USART_TypeDef *ll_usart) : uart
     // This function basically declares: When the interrupt happens, irq_trampoline got that. Just let it know we're going thru THIS 
     // SerialBase object, and uart_dev is the device we're going with 
     uart_irq_rx_enable(uart_dev);  // RX stays on; TX toggles via enable_output
+    //ensures rx stays on
+    m_rx_enabled = true;
 }
 
 USART_TypeDef *SerialBase::usart_getter() const {
