@@ -155,6 +155,8 @@ float ChassisSubsystem::setChassisSpeeds(ChassisSpeeds desiredChassisSpeeds_, DR
         else if (yawError < -90) yawError += 180;
 
         float yaw_velo = (yawCurrent - yawPrior);
+        if (yaw_velo > 180.0f) yaw_velo -= 360.0f;       // MA4 now steps 359 -> 0 cleanly; unwrap the difference
+        else if (yaw_velo < -180.0f) yaw_velo += 360.0f;
         float deg2rad = PI/180; // convert to rad and just run at 2x that rad/s
         pid_align.feedForward = yaw_velo * yaw_velo_gain;
         float omegaCmd = pid_align.calculatePeriodic(yawError, 1000) * deg2rad;
