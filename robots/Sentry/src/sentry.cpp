@@ -354,8 +354,12 @@ class Sentry : public BaseRobot {
 
         stm_state.yaw_angle_rads = degreesToRadians(turret_.getState().yaw_angle_degs);
         stm_state.yaw_velocity = turret_.getState().yaw_velo_rad_s; // already rad/s
-        stm_state.pitch_angle_rads = degreesToRadians(turret_.getState().pitch_angle_degs);
-        stm_state.pitch_velocity = turret_.getState().pitch_velo_rad_s; // already rad/s
+        // Sentry's pitch axis is the opposite way round from the Jetson's
+        // convention, so run_jetson_mode() negates the commanded pitch. Report
+        // it negated too: autonomy aims by adding an image offset to this
+        // reading, and with mismatched signs that loop runs away to a limit.
+        stm_state.pitch_angle_rads = -degreesToRadians(turret_.getState().pitch_angle_degs);
+        stm_state.pitch_velocity = -turret_.getState().pitch_velo_rad_s; // already rad/s
     }
 };
 
