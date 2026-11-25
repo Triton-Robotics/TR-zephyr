@@ -13,7 +13,10 @@
 #include <util/algorithms/PID.h>
 #include <base_robot/BaseRobot.h>
 #include <zephyr/dt-bindings/pwm/pwm.h>
+#include <zephyr/logging/log.h>
+#include <zephyr/sys/printk.h>
 
+LOG_MODULE_REGISTER(infantry, LOG_LEVEL_INF);
 
 // Robot Constants
 constexpr float PITCH_LOWER_BOUND{-22.0};
