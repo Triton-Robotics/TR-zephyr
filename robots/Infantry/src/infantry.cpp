@@ -307,11 +307,11 @@ class Infantry : public BaseRobot {
             static uint32_t last_print = 0;
             if ((now_us() - last_print) / 1000 > 200) {
                 last_print = now_us();
-                printf("ENC:%.1f CMD_w:%.2f ACT_w:%.2f RATIO:%.0f%%\n",
+                printf("ENC:%.1f CMD_w:%.2f ACT_w:%.2f RATIO:%.0f%% JX:%.2f JY:%.2f\n",
                     encoder_.encoderMovingAverage(),
                     des_chassis_state.vOmega,
                     chassis_.getChassisSpeeds().vOmega,
-                    (chassis_.getChassisSpeeds().vOmega / omega_speed) * 100);
+                    (chassis_.getChassisSpeeds().vOmega / omega_speed) * 100, jx, jy);
                 printf("vX:%.2f vY:%.2f WHEELS:%.2f %.2f %.2f %.2f\n",
                     chassis_.getChassisSpeeds().vX,
                     chassis_.getChassisSpeeds().vY,
