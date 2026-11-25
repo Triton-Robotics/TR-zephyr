@@ -16,7 +16,8 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/sys/printk.h>
 
-LOG_MODULE_REGISTER(infantry, LOG_LEVEL_INF);
+LOG_MODULE_REGISTER(infantry, LOG_LEVEL_INF);   // This basically sets the log level of infantry to "INFormation"
+                                                // Infantry logs should be preceeded with "infantry"
 
 // Robot Constants
 constexpr float PITCH_LOWER_BOUND{-22.0};
@@ -158,15 +159,15 @@ class Infantry : public BaseRobot {
 
         // TODO add passing in individual PID objects for the motors
         chassis_(ChassisSubsystem::Config{
-            5,      // left_front_can_id
-            1,      // right_front_can_id
-            2,      // left_back_can_id
-            4,      // right_back_can_id
-            0.22617,  // radius
-            0.065,    // speed_pid_ff_ks
-            35,     // yaw_initial_offset_ticks
-            imu_,
-            &encoder_   
+            .left_front_can_id = 5,      
+            .right_front_can_id = 1,      
+            .left_back_can_id = 2,      
+            .right_back_can_id = 4,      
+            .radius = 0.22617,  
+            .speed_pid_ff_ks = 0.065,    
+            .yaw_initial_offset_ticks = 232.0f, // Note that for now this is in degrees     
+            .imu = imu_,
+            .encoder = &encoder_   
         }
         )
     // clang-format on
@@ -291,7 +292,7 @@ class Infantry : public BaseRobot {
         // remote_.getSwitch(Remote::Switch::RIGHT_SWITCH));
         // %.2f\n", imu.getImuAngles().yaw);
         // printf("%d\n", referee_.get_game_progress());
-        printf("yp %.2f \n", encoder_.encoderMovingAverage());
+        // printk("yp %.2f \n", encoder_.encoderMovingAverage());
         // printf("%.2f, %.2f, %.2f\n", imuAngles.roll, imuAngles.pitch, imuAngles.yaw);
         // printf("remote state: %d\n", remote_.getMode());
         // printf("remote jx: %.2f, jy: %.2f, jpitch: %.2f, jyaw: %.2f\n", jx, jy, jpitch, jyaw);
