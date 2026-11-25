@@ -31,7 +31,7 @@ int Referee::JudgeSystem_USART_Receive_DMA()  // modified
     return ref.read(JudgeSystem_rxBuff_priv, JUDGESYSTEM_PACKSIZE);
 }
 
-void Referee::Judge_GetMessage(uint16_t Data_Length) {
+uint16_t Referee::Judge_GetMessage(uint16_t Data_Length) {
     uint16_t n = 0;
     while (n < Data_Length) {
         // frame is the current byte the "cursor" is on
@@ -40,9 +40,35 @@ void Referee::Judge_GetMessage(uint16_t Data_Length) {
             n++;
             continue;
         }
+        //accounts for split frames
+        if (n + LEN_HEADER + LEN_CMDID > Data_Length) return n;
 
+        //Checks that the 0xA5 byte is actualy the header
+        if (!Verify_CRC8_Check_Sum(frame, LEN_HEADER)) {
+            n++;
+            continue;
+        }
+        //pulls the packet length from the frame itself to avoid noise bugs
+        uint16_t data_len = static_cast<uint16_t>(frame[1] | (frame[2] << 8));
+        if (data_len > JUDGESYSTEM_PACKSIZE - JUDGE_EXTRA) {  // impossible length, treat as noise
+            n++;
+            continue;
+        }
+        uint16_t frame_len = data_len + JUDGE_EXTRA;
         // Constructs the command id header from buffer
         PacketHeader cmd_id = static_cast<PacketHeader>(frame[5] | (frame[6] << 8));
+
+        //accounts for split frames
+        if (n + frame_len > Data_Length) return n;
+
+
+        if (!Verify_CRC16_Check_Sum(frame, frame_len)) {
+#if REF_DEBUG
+            printf("CRC16_NO[%d] cmd=0x%02X%02X len=%u\n", n, frame[6], frame[5], data_len);
+#endif
+            n++;
+            continue;
+        }
 
         // Searches through packets till the correct command id is found.
         // The correct packet is then stored in val
@@ -54,30 +80,28 @@ void Referee::Judge_GetMessage(uint16_t Data_Length) {
             }
         }
 
-        // Verify_CRC16_Check_Sum checks the data is uncorrupted
-        // If corrupted, skip over it
-        // Also skips if the cmd_id was not identified
-        if (val == nullptr ||
-            !Verify_CRC16_Check_Sum(frame, static_cast<uint16_t>(val->frame_len))) {
+        // skips if the cmd_id was not identified
+        if (val == nullptr) {
 #if REF_DEBUG
-            printf("%s_NO[%d]\n", val ? val->debug_print : "UNKNOWN", n);
+            printf("SKIP[%d] cmd=0x%02X%02X len=%u\n", n, frame[6], frame[5], data_len);
 #endif
 
-            n++;
+            n+=frame_len;
             continue;
         }
         last_rx_ms = k_uptime_get_32();
         // For the Power Heat it needs to be here otherwise it gets overwritten
         power_heat_data_t preData = power_heat_data;
 
-        uint16_t frame_len = static_cast<uint16_t>(val->frame_len);
-
+        
         // Frame len specifies the TOTAL amount of bytes per packet of data
         // frame + LEN_HEADER + LEN_CMDID bypasses the header + command ID prefix and skips to actual data
         // JUDGE_EXTRA is a const that contains the length of the extra useless data,
         // so we subtract to copy the right amount
+        uint16_t expected = static_cast<uint16_t>(val->frame_len) - JUDGE_EXTRA;
+        uint16_t copy_len = (data_len < expected) ? data_len : expected;
         bool unpackStatusCode =
-            unpack_payload(val->dest, frame + LEN_HEADER + LEN_CMDID, frame_len - JUDGE_EXTRA, val->update_flag);
+            unpack_payload(val->dest, frame + LEN_HEADER + LEN_CMDID, copy_len, val->update_flag);
         if (!unpackStatusCode) printf("fail to parse server packet\n");
 
 #if REF_DEBUG
@@ -99,7 +123,9 @@ void Referee::Judge_GetMessage(uint16_t Data_Length) {
                 power_heat_data.shooter_42mm_barrel = preData.shooter_42mm_barrel;
         }
         }
+        
     }
+    return Data_Length;
 }
 // JudgeSystem.InfoUpdateFrame++;
 
@@ -273,7 +299,19 @@ void Referee::read() {
             return;  // or continue, depending on call site
         }
         mutex_read_.lock();
-        memcpy(JudgeSystem_rxBuff, JudgeSystem_rxBuff_priv, JUDGESYSTEM_PACKSIZE);
+        //Accunts for split frames that were cut off
+        // Append new bytes after whatever partial frame is left from last time
+        uint16_t space = JUDGESYSTEM_PACKSIZE - rx_len;
+        uint16_t add = (static_cast<uint16_t>(rad) < space) ? static_cast<uint16_t>(rad) : space;
+        memcpy(JudgeSystem_rxBuff + rx_len, JudgeSystem_rxBuff_priv, add);
+        uint16_t total = rx_len + add;
+
+        uint16_t used = Judge_GetMessage(total);
+
+        // Move the unfinished frame (if any) to the front for the next read
+        rx_len = total - used;
+        if (rx_len >= JUDGESYSTEM_PACKSIZE) rx_len = 0;  // safety: never stall on a full buffer
+        memmove(JudgeSystem_rxBuff, JudgeSystem_rxBuff + used, rx_len);
         mutex_read_.unlock();
         Judge_GetMessage(static_cast<uint16_t>(rad));
         // int rad = JudgeSystem_USART_Receive_DMA();

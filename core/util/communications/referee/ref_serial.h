@@ -82,6 +82,8 @@ private:
     // Receive buffer
     uint8_t JudgeSystem_rxBuff[JUDGESYSTEM_PACKSIZE];
     // Current robot ID
+    // Bytes at the start of JudgeSystem_rxBuff left over from the last read (partial frame)
+    uint16_t rx_len = 0;
     uint8_t Judge_Self_ID;
     // Client ID corresponding to the sender robot
     uint16_t Judge_SelfClient_ID;
@@ -91,7 +93,9 @@ private:
      * @brief Receive data from the referee system serial port
     */
     int JudgeSystem_USART_Receive_DMA();
-    void Judge_GetMessage(uint16_t Data_Length);
+    // Parses JudgeSystem_rxBuff[0..Data_Length). Returns how many bytes were used;
+    // anything after that is the start of a frame that hasn't fully arrived yet.
+    uint16_t Judge_GetMessage(uint16_t Data_Length);
     void Judge_sendPC();
     void RobotStatus_LEDYellow();
 
