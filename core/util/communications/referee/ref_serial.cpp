@@ -334,7 +334,7 @@ void Referee::readThread() {
 
 void Referee::writeThread() {
     while (get_robot_id() == 0) {
-        k_yield();
+        k_msleep(50);
     }
 
     // Some variables required to properrly send
