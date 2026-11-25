@@ -24,34 +24,39 @@ K_THREAD_STACK_DEFINE(referee_write_stack, REFEREE_WRITE_STACK_SIZE);
 
 int Referee::JudgeSystem_USART_Receive_DMA()  // modified
 {
-    return ref.read(JudgeSystem_rxBuff_priv, JUDGESYSTEM_PACKSIZE);
+    return ref.read(rx_staging_buf_, JUDGESYSTEM_PACKSIZE);
 }
 
 uint16_t Referee::Judge_GetMessage(uint16_t Data_Length) {
     uint16_t n = 0;
+
     while (n < Data_Length) {
         // frame is the current byte the "cursor" is on
-        uint8_t* frame = &JudgeSystem_rxBuff[n];
+        uint8_t* frame = &rx_parse_buf_[n];
         if (frame[0] != JUDGE_FRAME_HEADER) {
             n++;
             continue;
         }
-        //accounts for split frames
+
+        // if there's not enough space for crc8 header or command id header,
+        // just exit and move on to the next packet
         if (n + LEN_HEADER + LEN_CMDID > Data_Length) return n;
 
-        //Checks that the 0xA5 byte is actualy the header
+        // Checks that the 0xA5 byte is actually the header
         if (!Verify_CRC8_Check_Sum(frame, LEN_HEADER)) {
             n++;
             continue;
         }
-        //pulls the packet length from the frame itself to avoid noise bugs
+
+        // pulls the packet length from the frame itself to avoid noise bugs
         uint16_t data_len = static_cast<uint16_t>(frame[1] | (frame[2] << 8));
         if (data_len > JUDGESYSTEM_PACKSIZE - JUDGE_EXTRA) {  // impossible length, treat as noise
             n++;
             continue;
         }
         uint16_t frame_len = data_len + JUDGE_EXTRA;
-        // Constructs the command id header from buffer
+
+        // Constructs the command id from buffer
         PacketHeader cmd_id = static_cast<PacketHeader>(frame[5] | (frame[6] << 8));
 
         //accounts for split frames
@@ -82,22 +87,24 @@ uint16_t Referee::Judge_GetMessage(uint16_t Data_Length) {
             printf("SKIP[%d] cmd=0x%02X%02X len=%u\n", n, frame[6], frame[5], data_len);
 #endif
 
-            n+=frame_len;
+            n += frame_len;
             continue;
         }
-        last_rx_ms = k_uptime_get_32();
+
+        last_rx_ms = k_uptime_get_32(); // for debugging
         // For the Power Heat it needs to be here otherwise it gets overwritten
         power_heat_data_t preData = power_heat_data;
 
-        
+
         // Copy the frame's data into its struct. Copy no more than the struct holds or the
         // frame carries; if the frame is short, zero the struct first so unsent fields read 0.
         uint16_t expected = static_cast<uint16_t>(val->frame_len) - JUDGE_EXTRA;
         uint16_t copy_len = (data_len < expected) ? data_len : expected;
         if (copy_len < expected) memset(val->dest, 0, expected);
+
         bool unpackStatusCode =
             unpack_payload(val->dest, frame + LEN_HEADER + LEN_CMDID, copy_len, val->update_flag);
-        if (!unpackStatusCode) printf("fail to parse server packet\n");
+        if (!unpackStatusCode) printf("fail to parse server packet!\n");
 
 #if REF_DEBUG
         printf("%s[%d]\n", val ? val->debug_print : "UNKNOWN", n);
@@ -111,15 +118,17 @@ uint16_t Referee::Judge_GetMessage(uint16_t Data_Length) {
         if (val->cmd_id == PacketHeader::POWER_HEAT) {
             if (power_heat_data.shooter_17mm_barrel_heat == 0 &&
             preData.shooter_17mm_barrel_heat != 0) {
-            power_heat_data.shooter_17mm_barrel_heat = preData.shooter_17mm_barrel_heat;
-        }
+                power_heat_data.shooter_17mm_barrel_heat = preData.shooter_17mm_barrel_heat;
+            }
+
             if (power_heat_data.shooter_42mm_barrel == 0 &&
                 preData.shooter_42mm_barrel != 0) {
                 power_heat_data.shooter_42mm_barrel = preData.shooter_42mm_barrel;
+            }
         }
-        }
-        
     }
+
+    // if successfully parsed the entire frame
     return Data_Length;
 }
 // JudgeSystem.InfoUpdateFrame++;
@@ -263,7 +272,7 @@ Referee::Referee(const struct device* uart, USART_TypeDef* ll_usart)
 
       } {
 
-    memset(JudgeSystem_rxBuff, 0, JUDGESYSTEM_PACKSIZE);
+    memset(rx_parse_buf_, 0, JUDGESYSTEM_PACKSIZE);
 
     k_thread_create(&m_read_tdata, referee_read_stack, REFEREE_READ_STACK_SIZE,
                     &Referee::readThreadEntry, this, NULL,
@@ -288,30 +297,34 @@ bool Referee::readable() { return ref.readable(); }
 
 void Referee::read() {
     if (ref.readable()) {
-        int rad = JudgeSystem_USART_Receive_DMA();
-        if (rad <= 0 || rad > JUDGESYSTEM_PACKSIZE) {
-            if (enablePrintRefData) printf("[ERROR] bad ref read: %d\n", rad);
+        int bytesRead = JudgeSystem_USART_Receive_DMA();
+        if (bytesRead <= 0 || bytesRead > JUDGESYSTEM_PACKSIZE) {
+            if (enablePrintRefData) printf("[ERROR] bad ref read: %d bytes attempted to write to ref buffer\n", bytesRead);
             return;  // or continue, depending on call site
         }
-        mutex_read_.lock();
-        //Accunts for split frames that were cut off
-        // Append new bytes after whatever partial frame is left from last time
-        uint16_t space = JUDGESYSTEM_PACKSIZE - rx_len;
-        uint16_t add = (static_cast<uint16_t>(rad) < space) ? static_cast<uint16_t>(rad) : space;
-        memcpy(JudgeSystem_rxBuff + rx_len, JudgeSystem_rxBuff_priv, add);
-        uint16_t total = rx_len + add;
 
-        uint16_t used = Judge_GetMessage(total);
+        mutex_read_.lock();
+
+        // Accounts for split frames that were cut off
+        // Append new bytes after whatever partial frame is left from last time
+        uint16_t remainingSpace = JUDGESYSTEM_PACKSIZE - rx_len;
+        // clamp down to remaining space on the buffer to prevent buffer overflow
+        uint16_t copySize = std::min(static_cast<uint16_t>(bytesRead), remainingSpace);
+        memcpy(rx_parse_buf_ + rx_len, rx_staging_buf_, copySize);
+
+        uint16_t totalBufferBytes = rx_len + copySize;
+
+        // index where incomplete/non parsed data starts (if partial data exists)
+        uint16_t used = Judge_GetMessage(totalBufferBytes);
 
         // Move the unfinished frame (if any) to the front for the next read
-        rx_len = total - used;
+        rx_len = totalBufferBytes - used;
         if (rx_len >= JUDGESYSTEM_PACKSIZE) rx_len = 0;  // safety: never stall on a full buffer
-        memmove(JudgeSystem_rxBuff, JudgeSystem_rxBuff + used, rx_len);
+
+        // move unparsed bytes in buffer back to index 0 for the next read() call
+        memmove(rx_parse_buf_, rx_parse_buf_ + used, rx_len);
+
         mutex_read_.unlock();
-        // int rad = JudgeSystem_USART_Receive_DMA();
-        // mutex_read_.lock();
-        // memcpy(JudgeSystem_rxBuff, JudgeSystem_rxBuff_priv,
-        // JUDGESYSTEM_PACKSIZE); mutex_read_.unlock(); Judge_GetMessage(rad);
 
         if (enablePrintRefData) printDebug();
     } else {
