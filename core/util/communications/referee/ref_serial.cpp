@@ -440,24 +440,23 @@ TeamColor Referee::is_red_or_blue() {
 void Referee::printDebug() {
     if (!enablePrintRefData) return;
 
-    if (!ref.readable()) {
-        printf("REFEREE - Not readable!\n");
-        return;
-    }
+    // read() calls this every 5 ms, so only print once a second
+    static uint32_t last_print_ms = 0;
+    uint32_t now = k_uptime_get_32();
+    if (now - last_print_ms < 1000) return;
+    last_print_ms = now;
 
-    int rad = JudgeSystem_USART_Receive_DMA();
-    if (rad > 0 && rad <= JUDGESYSTEM_PACKSIZE) {
-        printf("[ERROR] bad ref read: %d\n", rad);
-        return;
-    }
-
+    // Only prints already-parsed data; never reads from the UART
     // does not include chassis voltage, current, power
     // if want to add, use reserved1-3 (respectively) in power_heat_data
     printf(
-        "====REF DATA====\nRobot ID: %d\nColor: %s\nCurrent HP: %d\nMax HP: %d\nAngle: "
-        "%.2f\n================\n",
+        "====REF DATA====\nRobot ID: %d\nColor: %s\nCurrent HP: %d\nMax HP: %d\n"
+        "Power limit: %d\nBuffer energy: %d\nAngle: %.2f\nLast frame: %u ms ago\n"
+        "================\n",
         robot_status.robot_id, TeamColor_To_Str[static_cast<uint8_t>(is_red_or_blue())],
-        robot_status.current_HP, robot_status.maximum_HP, static_cast<double>(robot_pos.angle));
+        robot_status.current_HP, robot_status.maximum_HP,
+        robot_status.chassis_power_limit, power_heat_data.buffer_energy,
+        static_cast<double>(robot_pos.angle), now - last_rx_ms);
 }
 
 bool Referee::unpack_payload(void* dest, const uint8_t* src, size_t payload_len,
