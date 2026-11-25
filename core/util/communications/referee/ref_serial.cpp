@@ -24,10 +24,6 @@ K_THREAD_STACK_DEFINE(referee_write_stack, REFEREE_WRITE_STACK_SIZE);
 
 int Referee::JudgeSystem_USART_Receive_DMA()  // modified
 {
-    // b->enable_input(TRUE);
-    // memset(JudgeSystem_rxBuff, 0, sizeof(JudgeSystem_rxBuff));
-    ref.enable_output(true);
-    // memset (JudgeSystem_rxBuff,0,JUDGESYSTEM_PACKSIZE);
     return ref.read(JudgeSystem_rxBuff_priv, JUDGESYSTEM_PACKSIZE);
 }
 
