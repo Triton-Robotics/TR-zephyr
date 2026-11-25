@@ -90,12 +90,11 @@ uint16_t Referee::Judge_GetMessage(uint16_t Data_Length) {
         power_heat_data_t preData = power_heat_data;
 
         
-        // Frame len specifies the TOTAL amount of bytes per packet of data
-        // frame + LEN_HEADER + LEN_CMDID bypasses the header + command ID prefix and skips to actual data
-        // JUDGE_EXTRA is a const that contains the length of the extra useless data,
-        // so we subtract to copy the right amount
+        // Copy the frame's data into its struct. Copy no more than the struct holds or the
+        // frame carries; if the frame is short, zero the struct first so unsent fields read 0.
         uint16_t expected = static_cast<uint16_t>(val->frame_len) - JUDGE_EXTRA;
         uint16_t copy_len = (data_len < expected) ? data_len : expected;
+        if (copy_len < expected) memset(val->dest, 0, expected);
         bool unpackStatusCode =
             unpack_payload(val->dest, frame + LEN_HEADER + LEN_CMDID, copy_len, val->update_flag);
         if (!unpackStatusCode) printf("fail to parse server packet\n");
@@ -309,7 +308,6 @@ void Referee::read() {
         if (rx_len >= JUDGESYSTEM_PACKSIZE) rx_len = 0;  // safety: never stall on a full buffer
         memmove(JudgeSystem_rxBuff, JudgeSystem_rxBuff + used, rx_len);
         mutex_read_.unlock();
-        Judge_GetMessage(static_cast<uint16_t>(rad));
         // int rad = JudgeSystem_USART_Receive_DMA();
         // mutex_read_.lock();
         // memcpy(JudgeSystem_rxBuff, JudgeSystem_rxBuff_priv,
