@@ -24,7 +24,7 @@ public:
 
     // Referee(PinName pin_tx, PinName pin_rx);
     explicit Referee(const struct device *uart, USART_TypeDef *ll_usart); // Apparently no uart_dt_spec the same way there is for PWM and i2c, very sad
-    
+
     //BufferedSerial getRef();
     bool readable();
 
@@ -45,11 +45,11 @@ public:
 
     // Return robot remaining HP.
     uint16_t get_remain_hp();
-    
+
     // Return game progress
     GameProgress get_game_progress();
-    
-    
+
+
     robot_status_t                          robot_status;
     power_heat_data_t                       power_heat_data;
     bool is_spinning = false;
@@ -57,7 +57,7 @@ public:
     bool is_cv_on = false;
     bool is_aligned = false;
 private:
-    
+
     SerialBase ref;
     Mutex mutex_write_;
     Mutex mutex_read_;
@@ -69,11 +69,11 @@ private:
 
     static void readThreadEntry(void *p1, void *p2, void *p3);
     static void writeThreadEntry(void *p1, void *p2, void *p3);
-    
+
     struct k_thread m_read_tdata;
     struct k_thread m_write_tdata;
 
-    volatile uint32_t last_rx_ms = 0; // Used to log when our last successful read was 
+    volatile uint32_t last_rx_ms = 0; // Used to log when our last successful read was
 
 
     bool enablePrintRefData = 0;
@@ -89,7 +89,7 @@ private:
     uint16_t Judge_SelfClient_ID;
 
 
-    /** 
+    /**
      * @brief Receive data from the referee system serial port
     */
     int JudgeSystem_USART_Receive_DMA();
@@ -101,7 +101,7 @@ private:
 
     // ------------------------------
     // Extra stuff
-    
+
     game_status_t 		                    game_status;
     game_result_t                           game_result;
     ext_game_robot_HP_t                     ext_game_robot_HP;
@@ -124,11 +124,11 @@ private:
 
     // Unused
     // ext_dart_status_t                       ext_dart_status;
-    // ext_ICRA_buff_debuff_zone_status_t      ext_ICRA_buff_debuff_zone_status;   
+    // ext_ICRA_buff_debuff_zone_status_t      ext_ICRA_buff_debuff_zone_status;
     // ext_supply_projectile_action_t          ext_supply_projectile_action;
     // aerial_robot_energy_t                   aerial_robot_energy;
 
-    uint8_t Robot_Commute[26];
+    uint8_t Robot_Commute[MAX_SIZE];
     const Packet packets[21];
 
     uint8_t seq=0;
@@ -150,7 +150,7 @@ private:
     void printDebug();
 
     static bool unpack_payload(void* dest, const uint8_t* src, size_t payload_len, uint8_t* update_flag = nullptr);
-    
+
 };
 
 #endif

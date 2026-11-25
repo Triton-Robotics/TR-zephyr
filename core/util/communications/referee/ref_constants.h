@@ -7,18 +7,10 @@
 #define SCREEN_WIDTH 1080
 
 // Writing data stuff
-// Maximum length of uploaded data
+// Maximum length of TX packet buffer & robot communication data
 #define MAX_SIZE 128
 
-#define send_max_len 300  // 200
-
-// -------------------------------------
-// From South China University of Technology
-// ---------------------------------- 
-
-// From South China University of Technology Guangzhou College - Wild Wolf Team - Infantry Code 
-// https://github.com/wuzjun/2021RM_Infantry/blob/master/Devices/Devices.h/RM_JudgeSystem.h
-// 2021 section
+#define send_max_len 300
 
 //  Corresponding communication protocol format:
 //  frame_header(5-byte)+cmd_id(2-byte)+data(n-byte)+frame_tail(2-byte,CRC16,whole packet check)
@@ -31,12 +23,17 @@
 // Referee system packet size (354+35)
 #define JUDGESYSTEM_PACKSIZE 389u
 
+// Protocol version toggle:
+//   2026 = RoboMaster 2025/2026 MCM firmware (V1.7 / V1.8)
+//   2027 = RoboMaster 2027 Communication Protocol V1.0.0
+#define RM_PROTOCOL_VERSION 2026
+
 
 /*
-    Based on the RoboMaster 2027 Referee Communication Protocol
+    Based on the RoboMaster 2026 (V1.7/V1.8) & 2027 Referee Communication Protocol
     (https://drive.google.com/file/d/1HYB7Tj4u0AFA7-obBdLQBzYZNYMHihIQ/view?usp=sharing)
 
-    Last Updated: 11/09/2026
+    Last Updated: 11/24/2026
 */
 
 
@@ -53,11 +50,16 @@ enum class GameType : uint8_t {
     RMUC = 1, // RoboMaster University Championship
     RMUL_INFANTRY = 5,
     RMUL_3V3 = 4,
-    
+
+#if RM_PROTOCOL_VERSION == 2026
+    RMUT = 2, // RoboMaster University Technical Challenge
+    RMUA = 3, // ICRA RoboMaster University AI Challenge
+#else
     // not used in 2027
     // included just in case server sends 2 or 3
     RESERVED_1 = 2,
     RESERVED_2 = 3,
+#endif
 };
 
 enum class GameProgress : uint8_t {
@@ -80,7 +82,7 @@ enum class PenaltyLevels : uint8_t {
     YELLOW_CARD = 2, // own robot received yellow
     RED_CARD = 3,
     FORFEITURE = 4,
-};  
+};
 
 enum class ProjectileType : uint8_t {
     MM_17 = 1,
@@ -89,7 +91,9 @@ enum class ProjectileType : uint8_t {
 
 enum class ShooterId : uint8_t {
     SHOOTER_17MM_1 = 1,
-    //SHOOTER_17MM_2 = 2, not used in 2027
+#if RM_PROTOCOL_VERSION == 2026
+    SHOOTER_17MM_2 = 2,
+#endif
     SHOOTER_42MM = 3,
 };
 
@@ -108,27 +112,27 @@ enum class DartStatus: uint8_t {
 /*********************************** Command Code ID *************************************/
 
 enum class PacketHeader : uint16_t {
-    GAME_STATUS_DATA  = 0x0001, // 11
-    GAME_RESULT_DATA  = 0x0002, // 1
-    ROBOT_HP          = 0x0003, // 24
-    EVENT_DATA        = 0x0101, // 8
-    REFEREE_WARNING   = 0x0104, // 3
-    DART_COUNTDOWN    = 0x0105, // 3
-    ROBOT_STATE       = 0x0201, // 17
-    POWER_HEAT        = 0x0202, // 14
-    ROBOT_POSITION    = 0x0203, // 12
-    ROBOT_BUFF        = 0x0204, // 7
-    INJURY_STATE      = 0x0206, // 7
-    REAL_TIME_SHOOT   = 0x0207, // 7
-    REMAINING_ROUNDS  = 0x0208, // 8
-    ROBOT_RFID        = 0x0209, // 6
-    DART_CLIENT       = 0x020A, // 6
-    ROBOT_COMMUNICATE = 0x0301, // 118
-    MAP_INTERACTION   = 0x0303, // 12
-    GROUND_ROBOT_POS = 0x020B, // 40 
-    RADAR_MARK       = 0x020C, // 2 
-    SENTRY_INFO      = 0x020D, // 14 
-    RADAR_INFO       = 0x020E, // 8  
+    GAME_STATUS_DATA  = 0x0001,
+    GAME_RESULT_DATA  = 0x0002,
+    ROBOT_HP          = 0x0003,
+    EVENT_DATA        = 0x0101,
+    REFEREE_WARNING   = 0x0104,
+    DART_COUNTDOWN    = 0x0105,
+    ROBOT_STATE       = 0x0201,
+    POWER_HEAT        = 0x0202,
+    ROBOT_POSITION    = 0x0203,
+    ROBOT_BUFF        = 0x0204,
+    INJURY_STATE      = 0x0206,
+    REAL_TIME_SHOOT   = 0x0207,
+    REMAINING_ROUNDS  = 0x0208,
+    ROBOT_RFID        = 0x0209,
+    DART_CLIENT       = 0x020A,
+    ROBOT_COMMUNICATE = 0x0301,
+    MAP_INTERACTION   = 0x0303,
+    GROUND_ROBOT_POS  = 0x020B,
+    RADAR_MARK        = 0x020C,
+    SENTRY_INFO       = 0x020D,
+    RADAR_INFO        = 0x020E,
 
     // Removed in 2027: 0x0004, 0x0005, 0x0102, 0x0205, 0x0302, 0x0304
 };
@@ -142,10 +146,32 @@ enum class PacketHeader : uint16_t {
 enum class PacketLength : uint16_t {
     GAME_STATUS_DATA  = 20,
     GAME_RESULT_DATA  = 10,
+#if RM_PROTOCOL_VERSION == 2026
+    ROBOT_HP          = 41,
+    EVENT_DATA        = 13,
+#else
     ROBOT_HP          = 33,
     EVENT_DATA        = 17,
+#endif
     REFEREE_WARNING   = 12,
     DART_COUNTDOWN    = 12,
+#if RM_PROTOCOL_VERSION == 2026
+    ROBOT_STATE       = 22,
+    POWER_HEAT        = 25,
+    ROBOT_POSITION    = 21,
+    ROBOT_BUFF        = 17,
+    INJURY_STATE      = 10,
+    REAL_TIME_SHOOT   = 16,
+    REMAINING_ROUNDS  = 15,
+    ROBOT_RFID        = 13,
+    DART_CLIENT       = 15,
+    ROBOT_COMMUNICATE = 127,
+    MAP_INTERACTION   = 24,
+    GROUND_ROBOT_POS  = 49,
+    RADAR_MARK        = 11,
+    SENTRY_INFO       = 15,
+    RADAR_INFO        = 10,
+#else
     ROBOT_STATE       = 26,
     POWER_HEAT        = 23,
     ROBOT_POSITION    = 21,
@@ -155,12 +181,13 @@ enum class PacketLength : uint16_t {
     REMAINING_ROUNDS  = 17,
     ROBOT_RFID        = 15,
     DART_CLIENT       = 15,
-    ROBOT_COMMUNICATE = 35, 
+    ROBOT_COMMUNICATE = 127,
     MAP_INTERACTION   = 21,
     GROUND_ROBOT_POS  = 49,
     RADAR_MARK        = 11,
     SENTRY_INFO       = 23,
     RADAR_INFO        = 17,
+#endif
 };
 
 // needed for anonymous structs defined below
@@ -180,25 +207,25 @@ typedef struct {
 } xFrameHeader;
 
 
-/* 
-    ID: 0x0001    
-    Byte: 11    
-    General game status info 
+/*
+    ID: 0x0001
+    Byte: 11
+    General game status info
 */
 typedef struct __packed {
     GameType game_type : 4;
     GameProgress game_progress : 4;
-    uint16_t stage_remain_time; // remaining time in round (in sec) 
+    uint16_t stage_remain_time; // remaining time in round (in sec)
     uint64_t SyncTimeStamp;     // unix timestamp to sync with server
     uint8_t infoUpdateFlag;
 } game_status_t;
 static_assert(offsetof(game_status_t, infoUpdateFlag) == 11, "game_status_t size must be 11 bytes");
 
 
-/* 
-    ID: 0x0002    
-    Byte: 1     
-    Game result data 
+/*
+    ID: 0x0002
+    Byte: 1
+    Game result data
 */
 typedef struct __packed {
     Result winner;
@@ -207,13 +234,34 @@ typedef struct __packed {
 static_assert(offsetof(game_result_t, infoUpdateFlag) == 1, "game_result_t size must be 1 byte");
 
 
-/* 
-    ID: 0x0003     
-    24 byte length
+/*
+    ID: 0x0003
+    2026: 32 byte length | 2027: 24 byte length
 
     Retrieves the hp of every robot in the round from the server and stores it here.
 */
 typedef struct __packed {
+#if RM_PROTOCOL_VERSION == 2026
+    uint16_t red_1_robot_HP;
+    uint16_t red_2_robot_HP;
+    uint16_t red_3_robot_HP;
+    uint16_t red_4_robot_HP;
+    uint16_t reserved1;
+    uint16_t red_7_robot_HP;
+    uint16_t red_outpost_HP;
+    uint16_t red_base_HP;
+    uint16_t blue_1_robot_HP;
+    uint16_t blue_2_robot_HP;
+    uint16_t blue_3_robot_HP;
+    uint16_t blue_4_robot_HP;
+    uint16_t reserved2;
+    uint16_t blue_7_robot_HP;
+    uint16_t blue_outpost_HP;
+    uint16_t blue_base_HP;
+    uint8_t infoUpdateFlag;
+} ext_game_robot_HP_t;
+static_assert(offsetof(ext_game_robot_HP_t, infoUpdateFlag) == 32, "ext_game_robot_HP_t size must be 32 bytes");
+#else
     uint16_t ally_1_robot_HP; // if not in round or ejected, will be 0
     uint16_t reserved;
     uint16_t ally_3_robot_HP;
@@ -225,29 +273,36 @@ typedef struct __packed {
     uint16_t outpost_B_HP;
     uint16_t enemy_base_HP;
     uint16_t ally_control_point;
-    uint16_t enemy_control_point; 
+    uint16_t enemy_control_point;
     uint8_t infoUpdateFlag;
 } ext_game_robot_HP_t;
 static_assert(offsetof(ext_game_robot_HP_t, infoUpdateFlag) == 24, "ext_game_robot_HP_t size must be 24 bytes");
+#endif
 
 
-/* 
-    ID: 0x0101     
-    Byte: 8       
-    Field event data 
+/*
+    ID: 0x0101
+    2026: Byte 4 | 2027: Byte 8
+    Field event data
 */
 typedef struct __packed {
     uint32_t event_type;
-    uint32_t event_data_2; 
+#if RM_PROTOCOL_VERSION != 2026
+    uint32_t event_data_2;
+#endif
     uint8_t infoUpdateFlag;
 } ext_event_data_t;
+#if RM_PROTOCOL_VERSION == 2026
+static_assert(offsetof(ext_event_data_t, infoUpdateFlag) == 4, "ext_event_data_t size must be 4 bytes");
+#else
 static_assert(offsetof(ext_event_data_t, infoUpdateFlag) == 8, "ext_event_data_t size must be 8 bytes");
+#endif
 
 
-/* 
-    ID: 0X0104          
-    Byte: 3      
-    Referee warning data 
+/*
+    ID: 0X0104
+    Byte: 3
+    Referee warning data
 */
 typedef struct __packed {
     PenaltyLevels level;
@@ -258,10 +313,10 @@ typedef struct __packed {
 static_assert(offsetof(referee_warning_t, infoUpdateFlag) == 3, "referee_warning_t size must be 3 bytes");
 
 
-/* 
-    ID: 0x0105          
-    Byte: 3      
-    Dart launch gate countdown 
+/*
+    ID: 0x0105
+    Byte: 3
+    Dart launch gate countdown
 */
 typedef struct __packed {
     uint8_t dart_remaining_time;
@@ -271,10 +326,10 @@ typedef struct __packed {
 static_assert(offsetof(ext_dart_remaining_time_t, infoUpdateFlag) == 3, "ext_dart_remaining_time_t size must be 3 bytes");
 
 
-/* 
-    ID: 0X0201          
-    Byte: 17      
-    Robot status data 
+/*
+    ID: 0X0201
+    2026: Byte 13 | 2027: Byte 17
+    Robot status data
 */
 typedef struct __packed {
     uint8_t robot_id;
@@ -284,20 +339,26 @@ typedef struct __packed {
     uint16_t shooter_barrel_cooling_value; //Robot barrel heat cooling value per second
     uint16_t shooter_barrel_heat_limit;
     uint16_t chassis_power_limit;
+#if RM_PROTOCOL_VERSION != 2026
     float bullet_speed_limit;
+#endif
     //bit 0-2: Corresponding port output, 0 indicates no output, 1 indicates 24V output
     uint8_t power_management_gimbal_output : 1;
     uint8_t power_management_chassis_output : 1;
     uint8_t power_management_shooter_output : 1;
     uint8_t infoUpdateFlag;
 } robot_status_t;
+#if RM_PROTOCOL_VERSION == 2026
+static_assert(offsetof(robot_status_t, infoUpdateFlag) == 13, "robot_status_t size must be 13 bytes");
+#else
 static_assert(offsetof(robot_status_t, infoUpdateFlag) == 17, "robot_status_t size must be 17 bytes");
+#endif
 
 
-/* 
-    ID: 0X0202          
-    Byte: 14      
-    Real-time power and heat data 
+/*
+    ID: 0X0202
+    2026: Byte 16 | 2027: Byte 14
+    Real-time power and heat data
 */
 typedef struct __packed {
     //The reserveds have identical names for some reason in the pdf
@@ -306,16 +367,23 @@ typedef struct __packed {
     float reserved3;
     uint16_t buffer_energy;
     uint16_t shooter_17mm_barrel_heat;
+#if RM_PROTOCOL_VERSION == 2026
+    uint16_t shooter_17mm_2_barrel_heat;
+#endif
     uint16_t shooter_42mm_barrel;
     uint8_t infoUpdateFlag;
 } power_heat_data_t;
+#if RM_PROTOCOL_VERSION == 2026
+static_assert(offsetof(power_heat_data_t, infoUpdateFlag) == 16, "power_heat_data_t size must be 16 bytes");
+#else
 static_assert(offsetof(power_heat_data_t, infoUpdateFlag) == 14, "power_heat_data_t size must be 14 bytes");
+#endif
 
 
-/* 
-    ID: 0X0203          
-    Byte: 12      
-    
+/*
+    ID: 0X0203
+    Byte: 12
+
     Robot position data. Units are in m (for x,y) and degrees for angle.
     True north is 0 degrees
 */
@@ -328,10 +396,10 @@ typedef struct __packed {
 static_assert(offsetof(robot_pos_t, infoUpdateFlag) == 12, "robot_pos_t size must be 12 bytes");
 
 
-/* 
-    ID: 0X0204          
-    Byte: 7       
-    Robot buff data. Units are in percent EXCEPT cooling buff, which is a flat value increase. 
+/*
+    ID: 0X0204
+    2026: Byte 8 | 2027: Byte 7
+    Robot buff data. Units are in percent EXCEPT cooling buff, which is a flat value increase.
     (e.g recovery_buff = 50 means 50% recovery buff)
 */
 typedef struct __packed {
@@ -340,32 +408,45 @@ typedef struct __packed {
     uint8_t defence_buff;
     uint8_t vulnerability_buff;
     uint16_t attack_buff;
+#if RM_PROTOCOL_VERSION == 2026
+    uint8_t remaining_energy;
+#endif
     uint8_t infoUpdateFlag;
 } buff_t;
 typedef buff_t ext_buff_t; // used for not breaking our serial defines
+#if RM_PROTOCOL_VERSION == 2026
+static_assert(offsetof(buff_t, infoUpdateFlag) == 8, "buff_t size must be 8 bytes");
+#else
 static_assert(offsetof(buff_t, infoUpdateFlag) == 7, "buff_t size must be 7 bytes");
+#endif
 
 
-/* 
-    ID: 0X0206          
-    Byte: 7       
-    Damage status data 
+/*
+    ID: 0X0206
+    2026: Byte 1 | 2027: Byte 7
+    Damage status data
 */
 typedef struct __packed {
     uint8_t armor_id : 4;
     uint8_t HP_deduction_reason : 4;
+#if RM_PROTOCOL_VERSION != 2026
     uint16_t hit_sequence;
     int16_t hit_position_x;
     int16_t hit_position_y;
+#endif
     uint8_t infoUpdateFlag;
 } hurt_data_t;
+#if RM_PROTOCOL_VERSION == 2026
+static_assert(offsetof(hurt_data_t, infoUpdateFlag) == 1, "hurt_data_t size must be 1 byte");
+#else
 static_assert(offsetof(hurt_data_t, infoUpdateFlag) == 7, "hurt_data_t size must be 7 byte");
+#endif
 
 
 
-/* 
-    ID: 0X0207          
-    Byte: 7       
+/*
+    ID: 0X0207
+    Byte: 7
     Real-time shooting data
 */
 typedef struct __packed {
@@ -378,27 +459,33 @@ typedef struct __packed {
 static_assert(offsetof(shoot_data_t, infoUpdateFlag) == 7, "shoot_data_t size must be 7 bytes");
 
 
-/* 
-    ID: 0X0208          
-    Byte: 8       
-    Remaining projectile launch count 
+/*
+    ID: 0X0208
+    2026: Byte 6 | 2027: Byte 8
+    Remaining projectile launch count
 */
 typedef struct __packed {
     uint16_t projectile_allowance_17mm;
     uint16_t projectile_allowance_42mm;
     uint16_t remaining_gold_coin;
+#if RM_PROTOCOL_VERSION != 2026
     uint16_t projectile_allowance_fortress; // the reserve 17mm projectile allowance provided by the Fortress Buff Point
+#endif
     uint8_t infoUpdateFlag;
 } projectile_allowance_t;
+#if RM_PROTOCOL_VERSION == 2026
+static_assert(offsetof(projectile_allowance_t, infoUpdateFlag) == 6, "projectile_allowance_t size must be 6 bytes");
+#else
 static_assert(offsetof(projectile_allowance_t, infoUpdateFlag) == 8, "projectile_allowance_t size must be 8 bytes");
+#endif
 
 
 
-/* 
-    ID: 0X0209          
-    Byte: 4       
-    Robot RFID status 
-    
+/*
+    ID: 0X0209
+    2026: Byte 4 | 2027: Byte 6
+    Robot RFID status
+
     bit 0: Base buff point RFID status;
     bit 1: Elevated ground buff point RFID status;
     bit 2: Power Rune activation point RFID status;
@@ -413,22 +500,28 @@ static_assert(offsetof(projectile_allowance_t, infoUpdateFlag) == 8, "projectile
 */
 typedef struct __packed {
     uint32_t rfid_status;
-    uint16_t rfid_status_2; 
+#if RM_PROTOCOL_VERSION != 2026
+    uint16_t rfid_status_2;
+#endif
     uint8_t infoUpdateFlag;
 } ext_rfid_status_t;
+#if RM_PROTOCOL_VERSION == 2026
+static_assert(offsetof(ext_rfid_status_t, infoUpdateFlag) == 4, "ext_rfid_status_t size must be 4 bytes");
+#else
 static_assert(offsetof(ext_rfid_status_t, infoUpdateFlag) == 6, "ext_rfid_status_t size must be 6 bytes");
+#endif
 
 
-/* 
-    ID: 0x020A          
-    Byte: 12      
-    Dart robot client commands 
+/*
+    ID: 0x020A
+    Byte: 12
+    Dart robot client commands
 */
 typedef struct __packed {
     DartStatus dart_launch_opening_status;
     uint8_t reserved;
     // remaining competition time when attack target changed. Default: 0sec (no target change)
-    uint16_t target_change_time; 
+    uint16_t target_change_time;
     // Remaining competition time when the Operator confirms the launch command for the last time. Default: 0sec
     uint16_t latest_launch_cmd_time;
     uint8_t infoUpdateFlag;
@@ -455,10 +548,10 @@ typedef struct __packed {
 } ground_robot_position_t;
 static_assert(offsetof(ground_robot_position_t, infoUpdateFlag) == 40, "ground_robot_position_t must be 40 bytes");
 
-/* 
-    0x020C, 
-    2 bytes. 
-    Radar tracking/vulnerability bits (Table 1-22). 
+/*
+    0x020C,
+    2 bytes.
+    Radar tracking/vulnerability bits (Table 1-22).
 */
 typedef struct __packed {
     uint16_t tracking_progress;
@@ -466,38 +559,50 @@ typedef struct __packed {
 } radar_mark_data_t;
 static_assert(offsetof(radar_mark_data_t, infoUpdateFlag) == 2, "radar_mark_data_t must be 2 bytes");
 
-/* 
-    0x020D, 
-    14 bytes. 
-    Sentry decision sync (Table 1-23). 
+/*
+    0x020D,
+    2026: 6 bytes | 2027: 14 bytes.
+    Sentry decision sync (Table 1-23).
 */
 typedef struct __packed {
     uint32_t sentry_info;   // exchanges, respawn flags, respawn cost
     uint16_t sentry_info_2; // out of combat, remaining 17mm exchanges, mode
+#if RM_PROTOCOL_VERSION != 2026
     uint64_t sentry_info_3; // mode timers (seconds)
+#endif
     uint8_t infoUpdateFlag;
 } sentry_info_t;
+#if RM_PROTOCOL_VERSION == 2026
+static_assert(offsetof(sentry_info_t, infoUpdateFlag) == 6, "sentry_info_t must be 6 bytes");
+#else
 static_assert(offsetof(sentry_info_t, infoUpdateFlag) == 14, "sentry_info_t must be 14 bytes");
+#endif
 
-/* 
-    0x020E, 
-    8 bytes. 
-    Radar decision sync (Table 1-24). 
+/*
+    0x020E,
+    2026: 1 byte | 2027: 8 bytes.
+    Radar decision sync (Table 1-24).
 */
 typedef struct __packed {
     uint8_t  radar_info;    // double vulnerability, level, key-change flag
+#if RM_PROTOCOL_VERSION != 2026
     uint8_t  radar_info_2;  // armor reinforcement zone status
     uint16_t fortify_center_x; // mm
     uint16_t fortify_center_y; // mm
     uint16_t fortify_radius;   // mm
+#endif
     uint8_t infoUpdateFlag;
 } radar_info_t;
+#if RM_PROTOCOL_VERSION == 2026
+static_assert(offsetof(radar_info_t, infoUpdateFlag) == 1, "radar_info_t must be 1 byte");
+#else
 static_assert(offsetof(radar_info_t, infoUpdateFlag) == 8, "radar_info_t must be 8 bytes");
+#endif
 
-/* 
-    0x0303, 
-    12 bytes. 
-    Operator minimap click (Table 1-35). 
+/*
+    0x0303,
+    12 bytes.
+    Operator minimap click (Table 1-35).
 */
 typedef struct __packed {
     float    target_position_x; // m, 0 if robot ID sent
