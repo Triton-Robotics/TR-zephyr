@@ -98,7 +98,7 @@ bool ISM330::begin(float prop_gain, float int_gain) noexcept //TODO: Currently w
 
 void ISM330::calibrate() noexcept
 {
-    printk("Calibrating IMU...\n");
+    printf("Calibrating IMU...\n");
     // Throw out first few readings
     for (int i = 0; i < 500; i++) {
         readAGraw();
@@ -131,7 +131,7 @@ void ISM330::calibrate() noexcept
     wyBias /= 5000.0f;
     wzBias /= 5000.0f;
 
-    printk("IMU Calibration complete.\n");
+    printf("IMU Calibration complete.\n");
 }
 
 
