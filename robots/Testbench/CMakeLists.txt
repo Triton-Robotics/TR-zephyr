@@ -9,3 +9,4 @@ target_include_directories(app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../core)
 
 # Otherwise has trouble getting core since it's up a level on the directory
 target_link_libraries(app PRIVATE core)
+target_compile_definitions(core PRIVATE REF_DEBUG=1)

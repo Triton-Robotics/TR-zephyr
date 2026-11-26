@@ -58,32 +58,20 @@ void periodic() {
 
 int main(void)
 {
-    printk("HERROoooo\n");
+    static Referee ref(DEVICE_DT_GET(DT_NODELABEL(usart3)), USART3);  // PC11 RX, PC10 TX
 
-    
-    printk("CAN SET MODE %d\n", can_set_mode(canbus1_dev, CAN_MODE_NORMAL));
-    printk("EBUSY %d, EIO %d, ENOTSUP %d\n", -EBUSY, -EIO, -ENOTSUP);
-    
-    
-    can_state state;
-    can_bus_err_cnt err_cnt;
-    can_get_state(canbus1_dev, &state, &err_cnt);
-    printk("STATE %d, RX ERROR %d, TX ERROR %d\n", state, err_cnt.rx_err_cnt, err_cnt.tx_err_cnt);
-
-    if (device_is_ready(canbus1_dev)) {
-        printk("CANBUS 1 device is ready\n");
-    } else {
-        printk("CANBUS 1 device is not ready\n");
-        return -1;
-    }
-
-    DJIMotor::setCanHandlers();
-    DJIMotor::getCanHandler(CANHandler::CANBUS_1)->registerCallback(
-    0x201, 0x208, DJIMotor::getCanOneFeedback);
-
-    
+    int sec = 0;
     while (true) {
-        periodic();
-        k_sleep(K_MSEC(200));
+        k_sleep(K_MSEC(1000));
+        sec++;
+        printf("[%d s] id=%u  hp=%u/%u  power_limit=%u  buffer=%u\n", sec,
+               ref.robot_status.robot_id , ref.robot_status.current_HP, ref.robot_status.maximum_HP,
+               ref.robot_status.chassis_power_limit, ref.power_heat_data.buffer_energy);
+
+        // Every 5 s toggle the UI flags so writeThread sends UI packets
+        if (sec % 5 == 0) {
+            ref.is_spinning = !ref.is_spinning;
+            ref.is_flywheel_on = !ref.is_flywheel_on;
+        }
     }
 }
