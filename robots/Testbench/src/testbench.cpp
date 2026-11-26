@@ -27,7 +27,7 @@ static const struct device *canbus2 = DEVICE_DT_GET(DT_NODELABEL(can2));
 
 
 short constexpr MOTOR_ID = 7;
-CANHandler *can1;
+// CANHandler *can1;
 float motorTorque = 0.0f;
 float motorCurrent = 0.0f;
 int step = 25;
@@ -63,9 +63,8 @@ void testTwo() {
 }
 
 void periodic() {
-    can1->readAllCan();
-    testOne();
-    // testTwo();
+    // testOne();
+    testTwo();
     motorTorque = motor.getData(TORQUE);
     motorCurrent = motor.getData(POWEROUT);
 }
@@ -81,8 +80,8 @@ int main(void)
     // can_bus_err_cnt err_cnt;
     // can_get_state(canbus1_dev, &state, &err_cnt);
     // printk("STATE %d, RX ERROR %d, TX ERROR %d\n", state, err_cnt.rx_err_cnt, err_cnt.tx_err_cnt);
-
-
+    
+    
     // --------------------------- Your code after this line 
     if (device_is_ready(canbus1)){
         printk("CAN bus 1 is ready\n");
@@ -90,18 +89,19 @@ int main(void)
         printk("CAN bus 1 is not ready\n");
         return -1;
     }
-
+    
     DJIMotor::setCanHandlers();
-
+    
     CANHandler *can1 = DJIMotor::getCanHandler(CANHandler::CANBUS_1);
     if (!can1) {
         printk("CAN bus 1 initialization failed\n");
         return -1;
     }
-
+    
     can1->registerCallback(0x201, 0x208, DJIMotor::getCanOneFeedback);
-
+    
     while (true){
+        can1->readAllCan();
         periodic();
         k_sleep(K_MSEC(100));
     }
