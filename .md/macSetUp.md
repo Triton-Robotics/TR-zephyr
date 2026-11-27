@@ -22,23 +22,14 @@ If you're on an M-series chip (M1, M2, M3 etc.) use the following command
 
 ```
 cd ~
-wget https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.16.8/zephyr-sdk-0.16.8_macos-aarch64.tar.xz
-wget -O - https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.16.8/sha256.sum | shasum --check --ignore-missing
-tar xvf zephyr-sdk-0.16.8_macos-aarch64.tar.xz
-cd zephyr-sdk-0.16.8
+curl -fLO https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v1.0.1/zephyr-sdk-1.0.1_macos-aarch64_gnu.tar.xz
+curl -fsSL https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v1.0.1/sha256.sum | shasum -a 256 --check --ignore-missing
+tar xvf zephyr-sdk-1.0.1_macos-aarch64_gnu.tar.xz
+cd zephyr-sdk-1.0.1
 ./setup.sh
 ```
 
-If you're on an intel chip, use the following command 
-
-```
-cd ~
-wget https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.16.8/zephyr-sdk-0.16.8_macos-x86_64.tar.xz
-wget -O - https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.16.8/sha256.sum | shasum --check --ignore-missing
-tar xvf zephyr-sdk-0.16.8_macos-x86_64.tar.xz
-cd zephyr-sdk-0.16.8
-./setup.sh
-```
+If you're on an intel chip, talk to your embed lead. 
 
 From here on, you can return to step 3 of the main readme, **HOWEVER**, if you run into any issues with those steps, we have some potential fixes below. Note that this list is **not exhaustive**, so talk to your embed lead if you have any questions. 
 
