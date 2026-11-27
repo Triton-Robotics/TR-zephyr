@@ -13,7 +13,12 @@
 #include <util/algorithms/PID.h>
 #include <base_robot/BaseRobot.h>
 #include <zephyr/dt-bindings/pwm/pwm.h>
+#include <zephyr/logging/log.h>
+#include <algorithm>
+#include <zephyr/sys/printk.h>
 
+// LOG_MODULE_REGISTER(infantry, LOG_LEVEL_INF);   // This basically sets the log level of infantry to "INFormation"
+                                                // Infantry logs should be preceeded with "infantry"
 
 // Robot Constants
 constexpr float PITCH_LOWER_BOUND{-22.0};
@@ -26,12 +31,12 @@ constexpr float MOUSE_SENSITIVITY_YAW_DPS = 1.0;
 constexpr float MOUSE_SENSITIVITY_PITCH_DPS = 1.0;
 
 // constexpr PID::config YAW_VEL_PID     = {181, 3.655 * 10e-3, 4.51 * 7.5, 32000, 1000};
-constexpr PID::config YAW_VEL_PID     = {181,0,10, 32000, 1000};
+constexpr PID::config YAW_VEL_PID     = {181,0,10.0f, 32000, 1000};
 constexpr PID::config YAW_POS_PID     = {1, 0, 0, 45, 2};
 const float yaw_static_friction       = 0;//-150;       // We multiply it by dir
 const float yaw_kinetic_friction      = 0;       // We multiply this by yawvelo
 
-constexpr PID::config PITCH_VEL_PID   = {173.8994f, 4.898f * static_cast<float>(10e-6), 12.474f * static_cast<float>(10e3) * 1.5f, 16000, 2000}; //{25, 0.001, 5, 16000, 1000};
+constexpr PID::config PITCH_VEL_PID   = {173.8994f, 4.898f * 1000.0f * static_cast<float>(10e-6), 12.474f * static_cast<float>(10e3) * 1.5f / 1000.0f, 16000, 2000}; //{25, 0.001, 5, 16000, 1000};
 // constexpr PID::config PITCH_VEL_PID = {170, 0, 1200, 16000,2000}; //{25, 0.001, 5, 16000, 1000};
 constexpr PID::config PITCH_POS_PID   = {1, 0, 0,30,2}; //{1, 0, 0, 30, 2};
 const float pitch_gravity_feedforward = -1200;    // We multiply this by cos(angle)
@@ -155,15 +160,15 @@ class Infantry : public BaseRobot {
 
         // TODO add passing in individual PID objects for the motors
         chassis_(ChassisSubsystem::Config{
-            5,      // left_front_can_id
-            1,      // right_front_can_id
-            2,      // left_back_can_id
-            4,      // right_back_can_id
-            0.22617,  // radius
-            0.065,    // speed_pid_ff_ks
-            35,     // yaw_initial_offset_ticks
-            imu_,
-            &encoder_   
+            .left_front_can_id = 5,      
+            .right_front_can_id = 1,      
+            .left_back_can_id = 2,      
+            .right_back_can_id = 4,      
+            .radius = 0.22617,  
+            .speed_pid_ff_ks = 0.065,    
+            .yaw_initial_offset_ticks = 232.0f, // Note that for now this is in degrees     
+            .imu = imu_,
+            .encoder = &encoder_   
         }
         )
     // clang-format on
@@ -176,10 +181,11 @@ class Infantry : public BaseRobot {
 
     void init() override {
         // timer = us_ticker_read();
-            if (!device_is_ready(controllerUart)) {
-    printf("[ERROR] controllerUart (usart1) not ready!\n");
-    }
+        if (!device_is_ready(controllerUart)) {
+            printf("[ERROR] controllerUart (usart1) not ready!\n");
+            }
         imu_.begin(0.9, 0);
+        encoder_.init();
     }
 
     void periodic(unsigned long dt_us) override {

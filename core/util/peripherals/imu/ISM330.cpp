@@ -60,8 +60,10 @@ void ISM330::readReg(uint8_t reg, uint8_t *out, size_t len) noexcept {
 
 bool ISM330::begin(float prop_gain, float int_gain) noexcept //TODO: Currently written in explicit i2c_writes so that ret is an actual test; change in future to writeReg/readReg
 {
+
+    int ret = i2c_recover_bus(i2c_.bus);
     
-    int ret = i2c_write_dt(&i2c_, SWRST, sizeof(SWRST));
+    ret = i2c_write_dt(&i2c_, SWRST, sizeof(SWRST));
     if (ret != 0) {
         printf("SWRST write failed: %d\r\n", ret);
         return false;
@@ -96,7 +98,7 @@ bool ISM330::begin(float prop_gain, float int_gain) noexcept //TODO: Currently w
 
 void ISM330::calibrate() noexcept
 {
-    printk("Calibrating IMU...\n");
+    printf("Calibrating IMU...\n");
     // Throw out first few readings
     for (int i = 0; i < 500; i++) {
         readAGraw();
@@ -129,7 +131,7 @@ void ISM330::calibrate() noexcept
     wyBias /= 5000.0f;
     wzBias /= 5000.0f;
 
-    printk("IMU Calibration complete.\n");
+    printf("IMU Calibration complete.\n");
 }
 
 

@@ -41,7 +41,7 @@ void periodic() {
     
     // printk("Accel: %.2f, %.2f, %.2f\n", static_cast<double>(imuaccel.x), static_cast<double>(imuaccel.y), static_cast<double>(imuaccel.z));
 
-    printk("%.2f, %.2f, %.2f\n", static_cast<double>(imuAngles.roll), static_cast<double>(imuAngles.pitch), static_cast<double>(imuAngles.yaw));
+    printf("%.2f, %.2f, %.2f\n", static_cast<double>(imuAngles.roll), static_cast<double>(imuAngles.pitch), static_cast<double>(imuAngles.yaw));
 }
 
 int main(void)

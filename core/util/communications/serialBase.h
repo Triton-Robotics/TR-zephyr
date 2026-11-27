@@ -7,6 +7,7 @@
 #include <zephyr/drivers/uart.h>
 #include <zephyr/pm/device.h>
 #include <zephyr/device.h>
+#include <sys/types.h>
 
 
 // TODO: CONFIRM THESE VALUES

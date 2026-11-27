@@ -1,3 +1,9 @@
+
+/* Board default puts I2C2 SDA on PB3, which is the SWO pin. Disable I2C2 so SWO can use PB3. */
+&i2c2 {
+    status = "disabled";
+};
+
 &i2c1 {
     pinctrl-0 = <&i2c1_scl_pb8 &i2c1_sda_pb7>;
     pinctrl-names = "default";
@@ -50,7 +56,7 @@
 
 &timers3 { // Encoder | PWM is done thru timer node, PB_4 is timer3 channel 1
     status = "okay";
-    st,prescaler = <83>;   // tune below
+    st,prescaler = <3>;   // This decides how coarse the ticks are; see notion for details
 
     pwm3: pwm {
         compatible = "st,stm32-pwm";
@@ -110,3 +116,9 @@ root dts file Zephyr has for us, this LED node is specific to us */
    &gpioc {
        status = "okay";
    };
+
+//    Disabled ones
+
+&i2c3 {
+	status = "disabled";
+};

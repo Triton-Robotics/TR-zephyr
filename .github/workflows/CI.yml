@@ -10,9 +10,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: true          # one robot failing doesn't cancel the others
+      fail-fast: false 
       matrix:
-        robot: [hero, infantry, sentry, testbench]
+        robot: [testbench, infantry, sentry, hero]
 
     steps:
       - uses: actions/checkout@v4
@@ -22,13 +22,16 @@ jobs:
       - name: Set up Zephyr (west, workspace, SDK)
         uses: zephyrproject-rtos/action-zephyr-setup@v1
         with:
-          app-path: app
+          base-path: app
+          app-path: manifest-repo
           toolchains: arm-zephyr-eabi
           # sdk-version: match whatever you use locally
 
       - name: Build ${{ matrix.robot }}
         working-directory: app
-        run: make ${{ matrix.robot }}-build-clean
+        run: make -f makefiles/Makefile_linux ${{ matrix.robot }}-build-clean
+        env:
+          ZEPHYR_TOOLCHAIN_VARIANT: zephyr
 
       - name: Upload firmware
         uses: actions/upload-artifact@v4

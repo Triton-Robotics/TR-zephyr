@@ -19,6 +19,9 @@ compile_commands.json
 # ignore builds
 build/
 
+# ignore mac stuff
+.DS_Store
+
 # ignore makefile
 Makefile
 

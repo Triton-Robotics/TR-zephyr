@@ -17,10 +17,10 @@ For convenience make sure that the clone is "TR-zephyr", otherwise you'll have t
 2. Download the Zephyr SDK
 ```
 cd ~
-wget https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.16.8/zephyr-sdk-0.16.8_linux-x86_64.tar.xz
-wget -O - https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.16.8/sha256.sum | shasum --check --ignore-missing
-tar xvf zephyr-sdk-0.16.8_linux-x86_64.tar.xz
-cd zephyr-sdk-0.16.8
+wget https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v1.0.1/zephyr-sdk-1.0.1_linux-x86_64_gnu.tar.xz
+wget -O - https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v1.0.1/sha256.sum | shasum --check --ignore-missing
+tar xvf zephyr-sdk-1.0.1_linux-x86_64_gnu.tar.xz
+cd zephyr-sdk-1.0.1
 ./setup.sh
 ```
 
@@ -122,7 +122,7 @@ Also, in your .vscode file, in settings.json, append the following to the end, (
 
 ```
 "clangd.arguments": [
-        "--query-driver=[YOUR-PATH HERE]/zephyr-sdk-0.16.8/arm-zephyr-eabi/bin/arm-zephyr-eabi-*"
+        "--query-driver=[YOUR-PATH HERE]/zephyr-sdk-1.0.1/arm-zephyr-eabi/bin/arm-zephyr-eabi-*"
     ]
 ```
 

@@ -85,7 +85,9 @@ DJIMotor::~DJIMotor() {
 }
 
 void DJIMotor::setOutput() {
-    uint32_t time = now_us();
+    uint32_t time = now_us() * 1000.0f; 
+
+
 
     if (mode == SPD)
         powerOut = (short) calculateSpeedPID(value, getData(VELOCITY),
