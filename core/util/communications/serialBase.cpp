@@ -199,7 +199,8 @@ void SerialBase::deinit_peripheral() {
 }
 
 void SerialBase::irq_handler() {
-        if(!uart_irq_update(uart_dev)) return; // Asking if our uart stuff refreshed/is it up to date?
+        
+    uart_irq_update(uart_dev);
 
         if(uart_irq_rx_ready(uart_dev)) {
             uint8_t byte;
