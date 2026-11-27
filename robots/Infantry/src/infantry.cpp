@@ -14,6 +14,7 @@
 #include <base_robot/BaseRobot.h>
 #include <zephyr/dt-bindings/pwm/pwm.h>
 #include <zephyr/logging/log.h>
+#include <algorithm>
 #include <zephyr/sys/printk.h>
 
 // LOG_MODULE_REGISTER(infantry, LOG_LEVEL_INF);   // This basically sets the log level of infantry to "INFormation"
