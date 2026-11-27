@@ -1,6 +1,7 @@
 #include <zephyr/kernel.h>
 #include <stdlib.h>
 #include <cmath>
+#include <algorithm>
 
 #define PI 3.14159265f
 
