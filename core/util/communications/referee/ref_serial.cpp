@@ -341,7 +341,8 @@ void Referee::readThread() {
 
 void Referee::writeThread() {
     while (get_robot_id() == 0) {
-        k_msleep(50);
+        //runs at 60hz because mcm outputs at 30hz
+        k_msleep(16);
     }
 
     // Some variables required to properrly send
